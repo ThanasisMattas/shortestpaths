@@ -37,9 +37,13 @@ class TestPriorityQueue():
 
   def test_len(self):
     assert len(self.pq) == self.length
+    self.pq.clear()
+    assert len(self.pq) == 0
 
   def test_bool(self):
     assert self.pq
+    self.pq.clear()
+    assert not self.pq
 
   @pytest.mark.parametrize(
     "entry_id,entry_expected",
@@ -53,7 +57,7 @@ class TestPriorityQueue():
     del self.pq[5]
     assert len(self.pq) == self.length - 1
     with pytest.raises(KeyError) as ke:
-      assert self.pq[5] == [3, 1, 5]
+      print(self.pq[5])
 
   def test_setitem(self):
     self.pq[12] = [6, 2, 12]
@@ -61,19 +65,23 @@ class TestPriorityQueue():
     assert len(self.pq) == self.length
 
   def test_contains(self):
-    five = False
-    if 5 in self.pq:
-      five = True
-    assert self.pq[5] == [3, 1, 5]
-    assert five
+    assert 5 in self.pq
+    assert 9 in self.pq
+    assert 15 not in self.pq
+    assert 0 not in self.pq
 
   def test_empty(self):
     assert not self.pq.empty()
+    self.pq.clear()
+    assert self.pq.empty()
 
   def test_pop_low(self):
     entry = self.pq.pop_low()
     assert entry == [1, 8, 9]
     assert len(self.pq) == self.length - 1
+    while self.pq:
+      self.pq.pop_low()
+    assert self.pq.empty()
 
   def test_iter(self):
     data = iter(sorted(self.data, key=itemgetter(0, 1, 2)))
@@ -84,3 +92,4 @@ class TestPriorityQueue():
     assert self.pq
     self.pq.clear()
     assert not self.pq
+    assert len(self.pq) == 0

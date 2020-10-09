@@ -80,7 +80,7 @@ class PriorityQueue:
     return len(self._entry_finder)
 
   def __bool__(self):
-    if len(self._entry_finder):
+    if self._entry_finder:
       return True
     return False
 
