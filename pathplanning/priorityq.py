@@ -85,7 +85,7 @@ class PriorityQueue:
     return False
 
   def __getitem__(self, entry_id):
-    entry = self._entry_finder[entry_id]
+    entry = self._entry_finder[entry_id].copy()
     # remove the counter
     del entry[-3]
     return entry
