@@ -150,3 +150,8 @@ class PriorityQueue:
         # remove the counter
         del entry[-3]
         yield entry
+
+  def clear(self):
+    while self._heapq:
+      heapq.heappop(self._heapq)
+    self._entry_finder.clear()

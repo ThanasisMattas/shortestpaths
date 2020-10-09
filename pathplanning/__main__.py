@@ -50,6 +50,7 @@ def main(num_nodes,
                                    weights_on=weights_on,
                                    max_edge_weight=max_edge_weight,
                                    max_node_weight=max_node_weight)
+
   path_cost, path = dijkstra.shortest_path(adj_list,
                                            num_nodes,
                                            start=1,
