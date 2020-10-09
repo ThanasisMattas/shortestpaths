@@ -86,6 +86,8 @@ class PriorityQueue:
 
   def __getitem__(self, entry_id):
     entry = self._entry_finder[entry_id]
+    # remove the counter
+    del entry[-3]
     return entry
 
   def __delitem__(self, entry_id):
@@ -132,6 +134,8 @@ class PriorityQueue:
       entry = heapq.heappop(self._heapq)
       if entry[-1] is not self._REMOVED:
         del self._entry_finder[entry[-1]]
+        # remove the counter
+        del entry[-3]
         return entry
     raise KeyError("trying to pop from an empty priority queue")
 
@@ -143,4 +147,6 @@ class PriorityQueue:
     for _ in range(len(heapq_)):
       entry = heapq.heappop(heapq_)
       if entry[-1] in self._entry_finder:
+        # remove the counter
+        del entry[-3]
         yield entry
