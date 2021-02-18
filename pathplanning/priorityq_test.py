@@ -1,16 +1,15 @@
+# priorityq_test.py is part of PathPlanning
+#
 # PathPlanning is free software; you may redistribute it and/or modify it
 # under the terms of the GNU General Public License as published by the
 # Free Software Foundation, either version 3 of the License, or (at your
 # option) any later version. You should have received a copy of the GNU
 # General Public License along with this program. If not, see
 # <https://www.gnu.org/licenses/>.
-"""
-info:
-    file        :  priorityq_test.py
-    author      :  Thanasis Mattas
-    license     :  GNU General Public License v3
-    description :  Houses all the tests for the priorityq module
-"""
+#
+# (C) 2020 Athanasios Mattas
+# =======================================================================
+"""Houses all the tests for the priorityq module."""
 
 from operator import itemgetter
 

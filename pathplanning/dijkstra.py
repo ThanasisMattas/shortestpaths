@@ -1,17 +1,15 @@
+# dijkstra.py is part of PathPlanning
+#
 # PathPlanning is free software; you may redistribute it and/or modify it
 # under the terms of the GNU General Public License as published by the
 # Free Software Foundation, either version 3 of the License, or (at your
 # option) any later version. You should have received a copy of the GNU
 # General Public License along with this program. If not, see
 # <https://www.gnu.org/licenses/>.
-# ======================================================================
-"""
-info:
-    file        :  dijkstra.py
-    author      :  Thanasis Mattas
-    license     :  GNU General Public License v3
-    description :  implements the Dijkstra's algorithm
-"""
+#
+# (C) 2020 Athanasios Mattas
+# =======================================================================
+"""Implemantation of the Dijkstra's algorithm."""
 
 import math
 
@@ -48,7 +46,7 @@ def _dijkstra(adj_list,
               to_visit,
               goal,
               shortest_paths):
-  """runs the dijkstra's algorithm recursively
+  """Runs the dijkstra's algorithm recursively.
 
   Args:
     adj_list (list)          : each entry is a list of 2-tuples for the
@@ -87,7 +85,7 @@ def _dijkstra(adj_list,
 
 
 def shortest_path(adj_list, num_nodes, start, goal):
-  """finds the shortest path from start to goal, using the Dijkstra's algorithm
+  """Finds the shortest path from start to goal, using the Dijkstra's algorithm
 
   Args:
     adj_list (list)                 : each entry is a list of 2-tuples for the

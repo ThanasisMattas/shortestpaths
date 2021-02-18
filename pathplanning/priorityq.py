@@ -1,24 +1,22 @@
+# priorityq.py is part of PathPlanning
+#
 # PathPlanning is free software; you may redistribute it and/or modify it
 # under the terms of the GNU General Public License as published by the
 # Free Software Foundation, either version 3 of the License, or (at your
 # option) any later version. You should have received a copy of the GNU
 # General Public License along with this program. If not, see
 # <https://www.gnu.org/licenses/>.
-# ======================================================================
-"""
-info:
-    file        :  priorityq.py
-    author      :  Thanasis Mattas
-    license     :  GNU General Public License v3
-    description :  implementation of the priority queue data structure
-"""
+#
+# (C) 2020 Athanasios Mattas
+# =======================================================================
+"""Implementation of the priority queue data structure."""
 
 import heapq
 import itertools
 
 
 class PriorityQueue:
-  """implements the priority queue, using the heapq module
+  """Implements the priority queue, using the heapq module.
 
   The basic features, not supported by the heapq module and introduced here,
   are getting, setting and deleting an entry anywhere in the priority queue,
@@ -45,7 +43,7 @@ class PriorityQueue:
   _counter = itertools.count()
 
   def __init__(self, data=None):
-    """constructs the PriorityQueue object
+    """Constructs the PriorityQueue object.
 
     Args:
       data (list): Holds the cost values to prioritize with and the entry_id.
@@ -96,7 +94,7 @@ class PriorityQueue:
     entry[-1] = self._REMOVED
 
   def __setitem__(self, entry_id, entry):
-    """adds a new entry or updates an existing one
+    """Adds a new entry or updates an existing one.
 
     In case the entry already exists, it is marked as REMOVED and the updated
     entry is pushded to the queue and the entry_finder dictionary.

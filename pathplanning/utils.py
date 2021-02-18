@@ -1,17 +1,15 @@
+# utils.py is part of PathPlanning
+#
 # PathPlanning is free software; you may redistribute it and/or modify it
 # under the terms of the GNU General Public License as published by the
 # Free Software Foundation, either version 3 of the License, or (at your
 # option) any later version. You should have received a copy of the GNU
 # General Public License along with this program. If not, see
 # <https://www.gnu.org/licenses/>.
-# ======================================================================
-"""
-info:
-    file        :  utils.py
-    author      :  Thanasis Mattas
-    license     :  GNU General Public License v3
-    description :  helper functions
-"""
+#
+# (C) 2020 Athanasios Mattas
+# =======================================================================
+"""Houses some utility functions."""
 
 from datetime import datetime
 from itertools import combinations
@@ -22,7 +20,7 @@ import networkx as nx
 
 
 def plot_graph(G, path, path_cost):
-  """plots the graph in a spring_layout"""
+  """Plots the graph in a spring_layout."""
   shortest_path_edge_list = list(zip(path, path[1:]))
 
   pos = nx.spring_layout(G)
@@ -37,7 +35,7 @@ def plot_graph(G, path, path_cost):
 
 
 def _edge_weight_bias(edge, num_nodes):
-  """penalizes edges that connect distant nodes
+  """Penalizes edges that connect distant nodes.
 
   Args:
     edge (tuple)    : (tail, head)
@@ -63,7 +61,7 @@ def random_graph(num_nodes,
                  weights_on="edges",
                  max_edge_weight=100,
                  max_node_weight=1000):
-  """Generates a random graph of num_nodes, using the Erdős–Rényi model
+  """Generates a random graph of num_nodes, using the Erdős–Rényi model.
 
   Args:
     num_nodes (int)       : number of nodes
