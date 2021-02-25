@@ -36,6 +36,8 @@ class TestPriorityQueue():
 
   def test_len(self):
     assert len(self.pq) == self.length
+    del self.pq[9]
+    assert len(self.pq) == self.length - 1
     self.pq.clear()
     assert len(self.pq) == 0
 
