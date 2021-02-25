@@ -70,6 +70,7 @@ class TestPriorityQueue():
     assert 9 in self.pq
     assert 15 not in self.pq
     assert 0 not in self.pq
+    assert len(self.pq) == self.length
 
   def test_empty(self):
     assert not self.pq.empty()
