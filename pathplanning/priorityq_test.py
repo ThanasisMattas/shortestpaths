@@ -47,7 +47,7 @@ class TestPriorityQueue():
     assert not self.pq
 
   @pytest.mark.parametrize(
-    "entry_id,entry_expected",
+    "entry_id, entry_expected",
     [(10, [5, 11, 10]), (12, [8, 3, 12]), (3, [2, 6, 3])]
   )
   def test_getitem(self, entry_id, entry_expected):
@@ -60,10 +60,14 @@ class TestPriorityQueue():
     with pytest.raises(KeyError) as ke:
       print(self.pq[5])
 
-  def test_setitem(self):
-    self.pq[12] = [6, 2, 12]
-    assert self.pq[12] == [6, 2, 12]
-    assert len(self.pq) == self.length
+  @pytest.mark.parametrize(
+    "entry_id, entry, length",
+    [(12, [6, 2, 12], 6), (6, [1, 1, 6], 7)]
+  )
+  def test_setitem(self, entry_id, entry, length):
+    self.pq[entry_id] = entry.copy()
+    assert self.pq[entry_id] == entry
+    assert len(self.pq) == length
 
   def test_contains(self):
     assert 5 in self.pq
