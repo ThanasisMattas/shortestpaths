@@ -89,7 +89,11 @@ class PriorityQueue:
     return entry
 
   def __delitem__(self, entry_id):
-    """Mark an existing entry as REMOVED. Raise KeyError if not found."""
+    """Mark an existing entry as REMOVED.
+
+    Raises:
+      KeyError : if entry_id is not found
+    """
     entry = self._entry_finder.pop(entry_id)
     entry[-1] = self._REMOVED
 
