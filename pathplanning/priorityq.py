@@ -154,6 +154,5 @@ class PriorityQueue:
         yield entry
 
   def clear(self):
-    while self._heapq:
-      heapq.heappop(self._heapq)
+    self._heapq.clear()
     self._entry_finder.clear()
