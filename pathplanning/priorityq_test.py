@@ -28,7 +28,7 @@ class TestPriorityQueue():
                  [8, 3, 12],
                  [5, 11, 10]]
     self.pq = PriorityQueue(self.data)
-    self.length = 6
+    self.length = len(self.data)
 
   def teardown_method(self):
     self.pq.clear()
