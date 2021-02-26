@@ -30,8 +30,8 @@ def plot_graph(G, path, path_cost):
   nx.draw_networkx_edges(G, pos=pos, edgelist=shortest_path_edge_list,
                          edge_color='r', width=3)
   plt.title(
-    "nodes: {0}    edges: {1}    path cost: {2}\npath: ".format(
-      G.number_of_nodes(), G.number_of_edges(), path_cost) + str(path)
+    f"#nodes: {G.number_of_nodes()}    #edges: {G.number_of_edges()}    "
+    f"path cost: {path_cost}\npath: {str(path)}"
   )
   plt.show()
 
@@ -46,10 +46,9 @@ def _edge_weight_bias(edge, num_nodes) -> float:
   Returns:
     bias (float)    : takes values in [0, 1]
   """
-  # In case that num_nodes is big and the edge connects close nodes, the bias
-  # can become too small. Thus, discretized bin values are used, so as to cap
-  # a bias to the upper limit of the bin that it lies into.
-  bias_bins = [0.1 * i for i in range(11)]
+  # Bias will be capped with one of [0.1, 0.2, ..., 1.0], depending on with bin
+  # it falls into.
+  bias_bins = [0.1 * i for i in range(1, 11)]
   bias = abs(edge[0] - edge[1]) / num_nodes
   for b in bias_bins:
     if bias < b:
