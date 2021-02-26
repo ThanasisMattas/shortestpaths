@@ -11,9 +11,11 @@
 # =======================================================================
 """Houses some utility functions."""
 
-from datetime import datetime
+from datetime import datetime, timedelta
 from itertools import combinations
+from functools import wraps
 import random
+from timeit import default_timer as timer
 
 import matplotlib.pyplot as plt
 import networkx as nx
@@ -34,7 +36,7 @@ def plot_graph(G, path, path_cost):
   plt.show()
 
 
-def _edge_weight_bias(edge, num_nodes):
+def _edge_weight_bias(edge, num_nodes) -> float:
   """Penalizes edges that connect distant nodes.
 
   Args:
@@ -102,10 +104,11 @@ def random_graph(num_nodes,
     )
   }
 
+  # Iterate through all possible edges and randomly deside which to keep.
   for edge in combinations(nodes, 2):
     # The closer the nodes are, the more probable it is that they are connected
     # with an edge and the weight is lower. (This way, it is more realistic and
-    # paths with too few nodes are avoided)
+    # paths with too few nodes are avoided.)
     bias = _edge_weight_bias(edge, num_nodes)
     edge_probability = max(
       0, (num_nodes - abs(edge[0] - edge[1])) / num_nodes - 0.4
@@ -118,3 +121,41 @@ def random_graph(num_nodes,
 
   G.add_weighted_edges_from(edges)
   return adj_list, G
+
+
+def print_duration(start, end, process):
+    """Prints the duration of a process."""
+    process_name = {
+        "main": "Total",
+    }
+    if process in process_name:
+        process = process_name[process]
+    prefix = f"{process.capitalize()} duration"
+    duration = timedelta(seconds=end - start)
+    print(f"{prefix:-<30}{duration}"[:40])
+
+
+def time_this(f):
+    """function timer decorator
+
+    - Uses wraps to preserve the metadata of the decorated function
+      (__name__ and __doc__)
+    - logs the duration
+    - prints the duration
+
+    Args:
+        f(funtion)      : the function to be decorated
+
+    Returns:
+        wrap (callable) : returns the result of the decorated function
+    """
+    assert callable(f)
+
+    @wraps(f)
+    def wrap(*args, **kwargs):
+        start = timer()
+        result = f(*args, **kwargs)
+        end = timer()
+        print_duration(start, end, f.__name__)
+        return result
+    return wrap
