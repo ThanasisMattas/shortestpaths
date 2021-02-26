@@ -61,8 +61,12 @@ def random_graph(num_nodes,
                  weighted=True,
                  weights_on="edges",
                  max_edge_weight=100,
-                 max_node_weight=1000):
-  """Generates a random graph of num_nodes, using the Erdős–Rényi model.
+                 max_node_weight=1000,
+                 random_seed=None):
+  """Generates a random graph of <num_nodes>, using the Erdős–Rényi model.
+
+  The graph is represented by its adjacency list. NetworkX is used only for
+  plotting.
 
   Args:
     num_nodes (int)       : number of nodes
@@ -72,6 +76,7 @@ def random_graph(num_nodes,
                             max_edge_weight (defaults to 100)
     max_node_weight (int) : each node has a random weight from 0 to
                             max_node_weight (defaults to 100)
+    random_seed (int)     : in case of fixed random graph (defaults to None)
 
   Returns:
     adj_list (list)       : the adjacency list
@@ -79,8 +84,11 @@ def random_graph(num_nodes,
                             of the neighbors of each node
     G (Graph)             : used to plot the graph
   """
-  random.seed(datetime.now)
-  nodes = [node for node in range(1, num_nodes + 1)]
+  if random_seed is None:
+    random_seed = datetime.now
+  random.seed(random_seed)
+
+  nodes = list(range(1, num_nodes + 1))
   edges = set()
   adj_list = [set() for _ in range(num_nodes + 1)]
   G = nx.Graph()
