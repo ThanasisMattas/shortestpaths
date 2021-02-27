@@ -99,3 +99,11 @@ class TestPriorityQueue():
     self.pq.clear()
     assert not self.pq
     assert len(self.pq) == 0
+
+  def test_keys(self):
+    pq_keys = self.pq.keys()
+    raw_data_keys = list(zip(*self.data))[3]
+    assert len(pq_keys) == len(raw_data_keys)
+    # symmetric difference
+    diff = set(pq_keys) ^ set(raw_data_keys)
+    assert not diff

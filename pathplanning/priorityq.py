@@ -156,3 +156,6 @@ class PriorityQueue:
   def clear(self):
     self._heapq.clear()
     self._entry_finder.clear()
+
+  def keys(self):
+    return list(self._entry_finder.keys())

@@ -60,7 +60,7 @@ def _edge_weight_bias(edge, num_nodes) -> float:
 def random_graph(num_nodes,
                  weighted=True,
                  weights_on="edges",
-                 max_edge_weight=100,
+                 max_edge_weight=1000,
                  max_node_weight=1000,
                  random_seed=None):
   """Generates a random graph of <num_nodes>, using the Erdős–Rényi model.
@@ -93,7 +93,8 @@ def random_graph(num_nodes,
   adj_list = [set() for _ in range(num_nodes + 1)]
   G = nx.Graph()
   G.add_nodes_from(nodes)
-  node_weights = random.choices(range(max_node_weight), k=num_nodes + 1)
+  if weights_on in ["nodes", "edges-and-nodes"]:
+    node_weights = random.choices(range(max_node_weight + 1), k=num_nodes + 1)
 
   # When nodes have weights, the weight that each neighbor holds at the
   # adjacency list (the edge weight) is increased by by its node-weight.
@@ -114,14 +115,14 @@ def random_graph(num_nodes,
   # Iterate through all possible edges and randomly deside which to keep.
   for edge in combinations(nodes, 2):
     # The closer the nodes are, the more probable it is that they are connected
-    # with an edge and the weight is lower. (This way, it is more realistic and
-    # paths with too few nodes are avoided.)
-    bias = _edge_weight_bias(edge, num_nodes)
-    edge_probability = max(
-      0, (num_nodes - abs(edge[0] - edge[1])) / num_nodes - 0.4
-    )
+    # with an edge and the edge-weight is lower. (This way, it is more
+    # realistic - edges of nearby nodes cost less - and paths with too few
+    # nodes, that go straight to the end, are avoided.)
+    # Namely, distance (up) (down) edge_probability.
+    edge_probability = max(0, 1 - abs(edge[0] - edge[1]) / num_nodes - 0.5)
     random_probability = random.random()
-    if random_probability < edge_probability:
+    if edge_probability > random_probability:
+      bias = _edge_weight_bias(edge, num_nodes)
       edges.add((*edge, weight[weight_mode](edge[1], bias)))
       adj_list[edge[0]].add((edge[1], weight[weight_mode](edge[1], bias)))
       adj_list[edge[1]].add((edge[0], weight[weight_mode](edge[0], bias)))
