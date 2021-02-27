@@ -11,12 +11,14 @@
 # =======================================================================
 """Houses some utility functions."""
 
+import ast
 from datetime import datetime, timedelta
 from itertools import combinations
 from functools import wraps
 import random
 from timeit import default_timer as timer
 
+import click
 import matplotlib.pyplot as plt
 import networkx as nx
 
@@ -33,6 +35,25 @@ def plot_graph(G, path, path_cost):
     f"#nodes: {G.number_of_nodes()}    #edges: {G.number_of_edges()}    "
     f"path cost: {path_cost}\npath: {str(path)}"
   )
+  plt.show()
+
+
+def plot_aternative_paths(G, alternative_paths_list):
+  """Plots the graph and the alternative paths in spring_layout."""
+  pos = nx.spring_layout(G)
+  nx.draw_networkx(G, pos, node_size=450, width=0.3)
+  for path in alternative_paths_list:
+    shortest_path_edge_list = list(zip(path[0], path[0][1:]))
+    nx.draw_networkx_edges(G, pos=pos, edgelist=shortest_path_edge_list,
+                           edge_color='r', width=3)
+    # if path[2] is not None:
+    #   nx.draw_networkx_nodes(G, pos=pos, nodelist=path[2], node_color='r',
+    #                          node_shape='x', node_size=600, linewidths=2)
+
+  # plt.title(
+  #   f"#nodes: {G.number_of_nodes()}    #edges: {G.number_of_edges()}    "
+  #   f"path cost: {path_cost}\npath: {str(path)}"
+  # )
   plt.show()
 
 
@@ -119,7 +140,7 @@ def random_graph(num_nodes,
     # realistic - edges of nearby nodes cost less - and paths with too few
     # nodes, that go straight to the end, are avoided.)
     # Namely, distance (up) (down) edge_probability.
-    edge_probability = max(0, 1 - abs(edge[0] - edge[1]) / num_nodes - 0.5)
+    edge_probability = max(0, 1 - abs(edge[0] - edge[1]) / num_nodes - 0.6)
     random_probability = random.random()
     if edge_probability > random_probability:
       bias = _edge_weight_bias(edge, num_nodes)
@@ -167,3 +188,12 @@ def time_this(f):
         print_duration(start, end, f.__name__)
         return result
     return wrap
+
+
+class PythonLiteralOption(click.Option):
+
+    def type_cast_value(self, ctx, value):
+        try:
+            return ast.literal_eval(value)
+        except:
+            raise click.BadParameter(value)
