@@ -11,6 +11,7 @@
 # =======================================================================
 """Implementation of the priority queue data structure."""
 
+import copy
 import heapq
 import itertools
 
@@ -73,6 +74,22 @@ class PriorityQueue:
         self._entry_finder[entry[-1]] = entry
     else:
       pass
+
+  def __copy__(self):
+    new_obj = PriorityQueue()
+    new_obj._heapq = self._heapq.copy()
+    new_obj._entry_finder = self._entry_finder.copy()
+    new_obj._counter = self._counter
+    return new_obj
+
+  def __deepcopy__(self, *args, **kargs):
+    new_obj = PriorityQueue()
+    new_obj._heapq = copy.deepcopy(self._heapq, *args, **kargs)
+    new_obj._entry_finder = copy.deepcopy(self._entry_finder, *args, **kargs)
+    new_obj._counter = self._counter
+    return new_obj
+
+
 
   def __len__(self):
     return len(self._entry_finder)
