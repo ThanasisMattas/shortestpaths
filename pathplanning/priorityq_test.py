@@ -54,11 +54,20 @@ class TestPriorityQueue():
     assert self.pq[entry_id] == entry_expected
     assert len(self.pq) == self.length
 
-  def test_delitem(self):
+  def test_delitem__single_item(self):
+    # delete a single item
     del self.pq[5]
     assert len(self.pq) == self.length - 1
     with pytest.raises(KeyError) as ke:
       print(self.pq[5])
+
+  def test_delitem__collection_of_items(self):
+    items = [5, 3, 12]
+    del self.pq[items]
+    assert len(self.pq) == self.length - 3
+    for item in items:
+      with pytest.raises(KeyError) as ke:
+        print(self.pq[item])
 
   @pytest.mark.parametrize(
     "entry_id, entry, length",

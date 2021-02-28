@@ -14,6 +14,7 @@
 import copy
 import heapq
 import itertools
+from typing import Hashable, Iterable, Union
 
 
 class PriorityQueue:
@@ -89,8 +90,6 @@ class PriorityQueue:
     new_obj._counter = self._counter
     return new_obj
 
-
-
   def __len__(self):
     return len(self._entry_finder)
 
@@ -105,14 +104,19 @@ class PriorityQueue:
     del entry[-3]
     return entry
 
-  def __delitem__(self, entry_id):
+  def __delitem__(self, entry_id: Union[Hashable, Iterable]):
     """Mark an existing entry as REMOVED.
 
     Raises:
       KeyError : if entry_id is not found
     """
-    entry = self._entry_finder.pop(entry_id)
-    entry[-1] = self._REMOVED
+    try:
+      for id in entry_id:
+        entry = self._entry_finder.pop(id)
+        entry[-1] = self._REMOVED
+    except TypeError:
+      entry = self._entry_finder.pop(entry_id)
+      entry[-1] = self._REMOVED
 
   def __setitem__(self, entry_id, entry):
     """Adds a new entry or updates an existing one.
