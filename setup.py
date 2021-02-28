@@ -5,6 +5,7 @@ import os
 
 REQUIRED = ['click>=7.1.2',
             'matplotlib>=3.3.2',
+            'scipy>=1.6.1',
             'networkx>=2.5']
 
 EXTRAS = {
@@ -13,12 +14,12 @@ EXTRAS = {
 
 here = os.path.abspath(os.path.dirname(__file__))
 
-# pull info from __init__.py
+# Pull info from __init__.py.
 about = {}
 with open(os.path.join(here, 'pathplanning', '__init__.py'), 'r') as fr:
   exec(fr.read(), about)
 
-# assign long_description with the README.md content
+# Assign long_description with the README.md content.
 try:
   with open(os.path.join(here, 'README.md'), 'r') as fr:
     long_description = fr.read()
