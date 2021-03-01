@@ -32,9 +32,9 @@ class PriorityQueue:
 
   The _counter variable serves as a tie-breaker when multiple entries have the
   same priority and the entry_id (or object) cannot be used to prioritize with.
-  A count value will be inserted after the cost values and before the entry
-  attributes:
-             [cost_1, cost_2, ..., count, entry_attrs, entry_id]
+  An entry_count value will be inserted after the cost values and before the
+  entry attributes:
+            [cost_1, cost_2, ..., entry_count, entry_attrs, entry_id]
 
   More info:
   https://docs.python.org/3/library/heapq.html#priority-queue-implementation-notes
@@ -67,14 +67,14 @@ class PriorityQueue:
     # heapify performs in linear time, so is iterating through the data, and
     # this way the entry_finder dictionary can be constructed, pointing to the
     # entries of the queue.
-    if data is not None:
+    if data is None:
+      pass
+    else:
       for entry in data:
-        count = next(self._counter)
-        entry.insert(-2, count)
+        entry_count = next(self._counter)
+        entry.insert(-2, entry_count)
         heapq.heappush(self._heapq, entry)
         self._entry_finder[entry[-1]] = entry
-    else:
-      pass
 
   def __copy__(self):
     new_obj = PriorityQueue()
@@ -136,8 +136,8 @@ class PriorityQueue:
     """
     if entry_id in self._entry_finder:
       del self[entry_id]
-    count = next(self._counter)
-    entry.insert(-2, count)
+    entry_count = next(self._counter)
+    entry.insert(-2, entry_count)
     self._entry_finder[entry_id] = entry
     heapq.heappush(self._heapq, entry)
 
@@ -157,7 +157,6 @@ class PriorityQueue:
       entry = heapq.heappop(self._heapq)
       if entry[-1] is not self._REMOVED:
         del self._entry_finder[entry[-1]]
-        # remove the counter
         del entry[-3]
         return entry
     raise KeyError("trying to pop from an empty priority queue")
