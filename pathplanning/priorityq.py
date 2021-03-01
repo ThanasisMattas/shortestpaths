@@ -99,7 +99,7 @@ class PriorityQueue:
     return False
 
   def __getitem__(self, entry_id):
-    entry = self._entry_finder[entry_id].copy()
+    entry = copy.deepcopy(self._entry_finder[entry_id])
     # remove the counter
     del entry[-3]
     return entry
