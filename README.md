@@ -2,10 +2,10 @@
 
 <br />
 
-An implementation of the Dijkstra's algorithm on a random Erdős-Rényi graph
+An adaptive version of Dijkstra's algorithm, using dynamic programming.
 
 
-<img src="bin/pathplanning_figure.png"  />
+<img src="bin/adaptive_dijkstra_s_algorithm.png"  />
 <br />
 
 | requirements       |
@@ -81,7 +81,7 @@ Lastly, networkx and matplotlib are used for the visualization.
 
 <br />
 
-> (C) 2020, Thanasis Mattas <br />
+> (C) 2020, Athanasios Mattas <br />
 > atmattas@physics.auth.gr
 
 [//]: # "links"
