@@ -11,6 +11,7 @@
 # =======================================================================
 """Houses all the tests for the priorityq module."""
 
+import copy
 from operator import itemgetter
 
 import pytest
@@ -27,12 +28,40 @@ class TestPriorityQueue():
                  [1, 8, 9],
                  [8, 3, 12],
                  [5, 11, 10]]
-    self.pq = PriorityQueue(self.data)
+    self.pq = PriorityQueue(copy.deepcopy(self.data))
     self.length = len(self.data)
 
   def teardown_method(self):
     self.pq.clear()
     self.data.clear()
+
+  def test_instantiation(self):
+    pq1 = PriorityQueue(copy.deepcopy(self.data[:4]))
+    pq2 = copy.deepcopy(pq1)
+    del pq2[1]  # 4th priority
+    assert len(self.pq) == self.length
+    assert len(pq1) == 4
+    assert len(pq2) == 3
+
+    data = sorted(self.data, key=itemgetter(0, 1, 2))
+
+    counter = 0
+    for i, entry in enumerate(self.pq):
+      counter += 1
+      assert entry[-1] == data[i][-1]
+    assert counter == self.length
+
+    counter = 0
+    for i, entry in enumerate(pq1):
+      counter += 1
+      assert entry[-1] == data[i][-1]
+    assert counter == 4
+
+    counter = 0
+    for i, entry in enumerate(pq2):
+      counter += 1
+      assert entry[-1] == data[i][-1]
+    assert counter == 3
 
   def test_len(self):
     assert len(self.pq) == self.length
@@ -111,7 +140,7 @@ class TestPriorityQueue():
 
   def test_keys(self):
     pq_keys = self.pq.keys()
-    raw_data_keys = list(zip(*self.data))[3]
+    raw_data_keys = list(zip(*self.data))[-1]
     assert len(pq_keys) == len(raw_data_keys)
     # symmetric difference
     diff = set(pq_keys) ^ set(raw_data_keys)
