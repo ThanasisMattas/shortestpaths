@@ -61,15 +61,15 @@ class PriorityQueue:
     TODO:
       entry_attrs, entry_id become a small wrapper class (or use @dataclass)
     """
-    # heapify performs in linear time, so is iterating through the data, and
-    # this way the entry_finder dictionary can be constructed, pointing to the
-    # entries of the queue.
     self._heapq = []
     self._entry_finder = {}
     self._counter = itertools.count()
     if data is None:
       pass
     else:
+      # heapify performs in linear time, so is iterating through the data, and
+      # this way the entry_finder dictionary can be constructed, pointing to
+      # the entries of the queue.
       for entry in data:
         entry_count = next(self._counter)
         entry.insert(-2, entry_count)
@@ -105,7 +105,7 @@ class PriorityQueue:
     return entry
 
   def __delitem__(self, entry_id: Union[Hashable, Iterable]):
-    """Mark an existing entry as REMOVED.
+    """Marks an existing entry as REMOVED and removes it from _entry_finder.
 
     Raises:
       KeyError : if entry_id is not found

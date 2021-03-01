@@ -16,19 +16,20 @@ from datetime import datetime, timedelta
 from itertools import combinations
 from functools import wraps
 from operator import itemgetter
+import os
 import random
 from timeit import default_timer as timer
 from typing import Iterable
+import warnings
 
 import click
 import matplotlib.pyplot as plt
 import networkx as nx
 
 
-def plot_graph(G, paths_data, disconnected_nodes):
+def plot_graph(G, paths_data, disconnected_nodes, save_graph, show_graph):
   """Plots the graph and all the generated paths in spring_layout."""
-  # pos = nx.spring_layout(G)
-  pos = nx.spring_layout(G)
+  pos = nx.spring_layout(G, seed=2)
 
   # Layouts
   # -------
@@ -38,8 +39,9 @@ def plot_graph(G, paths_data, disconnected_nodes):
   # spiral_layout                <--
 
   # 1. Draw the graph
-  nx.draw_networkx(G, pos, node_size=450, width=0.2, alpha=0.3,
+  nx.draw_networkx(G, pos, node_size=450, width=0.25, alpha=0.3,
                    with_labels=False)
+
   # 2. Draw the disconnected nodes
   nx.draw_networkx_nodes(G, pos=pos, nodelist=disconnected_nodes, node_color='r',
                          node_shape='x', node_size=800, linewidths=3)
@@ -58,7 +60,7 @@ def plot_graph(G, paths_data, disconnected_nodes):
       plt.text(x, y, node, fontsize=14, ha='center', va='center')
 
   # 3. Draw the nodes of all the paths
-  nx.draw_networkx_nodes(G, pos=pos, nodelist=paths_nodes, node_size=700,
+  nx.draw_networkx_nodes(G, pos=pos, nodelist=paths_nodes, node_size=600,
                          edgecolors='k', node_color="deepskyblue")
 
   # 4. Draw the paths
@@ -67,12 +69,12 @@ def plot_graph(G, paths_data, disconnected_nodes):
     path_edges_sequence = list(zip(path[0], path[0][1:]))
 
     label = (f"path_{i + 1}: {str(path[0])}\ncost: {path[1]}    "
-             f"disconnected nodes: {str(path[2])}")
+             f"disconnected nodes: {str(list(path[2]))}")
 
     # Draw the path
     nx.draw_networkx_edges(G, pos=pos, edgelist=path_edges_sequence,
                            edge_color=color,
-                           width=len(paths_data) + 14 - 4 * i, label=label)
+                           width=len(paths_data) + 15 - 4.5 * i, label=label)
 
     # Mark the disconnceted node with an X.
     nx.draw_networkx_nodes(G, pos=pos, nodelist=path[2], node_color=color,
@@ -87,7 +89,96 @@ def plot_graph(G, paths_data, disconnected_nodes):
   #                         font_color='k', font_size=20,
   #                         bbox=dict(boxstyle="square", fc='w', ec='k'))
 
-  plt.title(f"#nodes: {G.number_of_nodes()}    #edges: {G.number_of_edges()}")
+  frame_title = (f"#nodes: {G.number_of_nodes()}    "
+                 f"#edges: {G.number_of_edges()}")
+  if disconnected_nodes:
+    frame_title += f"\ndisconnected nodes: {list(disconnected_nodes)}"
+  plt.title(frame_title)
+  plt.legend()
+
+  if save_graph:
+    date_n_time = str(datetime.now())[:19]
+    date_n_time = date_n_time.replace(':', '-').replace(' ', '_')
+    file_name = f"graph_vis_{date_n_time}.png"
+    plt.savefig(os.path.join(os.getcwd(), file_name))
+  if show_graph:
+    plt.show()
+
+
+def plot_adaptive_dijkstra(G,
+                           paths_data,
+                           disconnected_nodes,
+                           nodes_visited_sequence,
+                           checkpoint_node):
+  """Plots the adaptive Dijkstra's algorithms."""
+  pos = nx.spring_layout(G, seed=1)
+
+  # 1. Draw the graph
+  nx.draw_networkx(G, pos, node_size=450, width=0.25, alpha=0.4,
+                   with_labels=False)
+
+  nx.draw_networkx_nodes(G, pos=pos, nodelist=nodes_visited_sequence,
+                         node_color='goldenrod', node_size=1250,
+                         linewidths=3, label="nodes visited by the algorithm")
+  retrieved_state = nodes_visited_sequence[
+    :nodes_visited_sequence.index(checkpoint_node)
+  ]
+  nx.draw_networkx_nodes(G, pos=pos, nodelist=retrieved_state,
+                         node_color='g', node_size=800,
+                         linewidths=3, label="retrieved state")
+
+  # 2. Draw the disconnected nodes
+  nx.draw_networkx_nodes(G, pos=pos, nodelist=disconnected_nodes, node_color='r',
+                         node_shape='x', node_size=800, linewidths=3)
+
+  # colors = iter(['b', 'm', 'g', 'k', 'r', 'c', 'y', 'w'])
+  colors = iter(['mediumblue', 'r', 'g', 'k', 'r', 'c', 'y', 'w'])
+  # Accumulates all the nodes of all the paths for label drawing.
+  paths_nodes = set()
+
+  for path in paths_data:
+    paths_nodes.update(path[0])
+
+  # Change the font of the labels of the path nodes and restore alpha=None.
+  for node, (x, y) in pos.items():
+    if node in paths_nodes:
+      plt.text(x, y, node, fontsize=14, ha='center', va='center')
+
+  # 3. Draw the nodes of all the paths
+  nx.draw_networkx_nodes(G, pos=pos, nodelist=paths_nodes, node_size=550,
+                         edgecolors='k', node_color="deepskyblue")
+
+  # 4. Draw the paths
+  for i, path in enumerate(paths_data):
+    color = next(colors)
+    path_edges_sequence = list(zip(path[0], path[0][1:]))
+
+    label = (f"path_{i + 1}: {str(path[0])}\ncost: {path[1]}    "
+             f"disconnected nodes: {str(list(path[2]))}")
+
+    # Draw the path
+    nx.draw_networkx_edges(G, pos=pos, edgelist=path_edges_sequence,
+                           edge_color=color,
+                           width=len(paths_data) + 9 - 6 * i, label=label)
+
+    # Mark the disconnceted node with an X.
+    nx.draw_networkx_nodes(G, pos=pos, nodelist=path[2], node_color=color,
+                           node_shape='x', node_size=800, linewidths=3)
+
+  # Draw 'Start' & 'End' labels.
+  # labels = {paths_data[0][0][0]: "Start", paths_data[0][0][-1]: "End"}
+  # for node, (x, y) in pos.items():
+  #   if node in labels.keys():
+  #     plt.text(x + 50, y + 50, node, fontsize=14, ha='center', va='center')
+  # nx.draw_networkx_labels(G, pos=pos, labels=labels,
+  #                         font_color='k', font_size=20,
+  #                         bbox=dict(boxstyle="square", fc='w', ec='k'))
+
+  frame_title = (f"#nodes: {G.number_of_nodes()}    "
+                 f"#edges: {G.number_of_edges()}")
+  if disconnected_nodes:
+    frame_title += f"\ndisconnected nodes: {list(disconnected_nodes)}"
+  plt.title(frame_title)
   plt.legend()
   plt.show()
 
@@ -104,11 +195,11 @@ def _edge_weight_bias(edge, num_nodes) -> float:
   """
   # Bias will be capped with one of [0.1, 0.2, ..., 1.0], depending on with bin
   # it falls into.
-  bias_bins = [0.1 * i**2 for i in range(1, 11)]
+  bias_bins = [0.1 * i for i in range(1, 11)]
   bias = abs(edge[0] - edge[1]) / num_nodes
   for b in bias_bins:
     if bias < b:
-      bias = b
+      bias = b * 2
       break
   return bias
 
@@ -142,7 +233,6 @@ def random_graph(num_nodes,
   """
   if random_seed is None:
     random_seed = datetime.now
-    # random_seed = 99
   random.seed(random_seed)
 
   nodes = list(range(1, num_nodes + 1))
@@ -176,7 +266,7 @@ def random_graph(num_nodes,
     # realistic - edges of nearby nodes cost less - and paths with too few
     # nodes, that go straight to the end, are avoided.)
     # Namely, distance (up) (down) edge_probability.
-    edge_probability = max(0, 1 - abs(edge[0] - edge[1]) / num_nodes - 0.5)
+    edge_probability = max(0, 1 - abs(edge[0] - edge[1]) / num_nodes - 0.6)
     random_probability = random.random()
     if edge_probability > random_probability:
       bias = _edge_weight_bias(edge, num_nodes)
@@ -252,3 +342,46 @@ def check_nodal_connection(nodes: Iterable,
           nodes[i] = neighbor[1]
           break
   return nodes
+
+
+def extract_path(dijkstra_output, start, goal, with_step_weights=False):
+  """Dijkstra's method saves the shortest path cost for each node of the graph,
+  as well as its previous node on the path, so as to retrieve the path by
+  jumping through previous nodes, until the start node.
+
+  Args:
+    dijkstra_output (2D list)       : each entry is a 2-list,
+                                      [path_cost, prev_node_id]
+    start, goal (any hashable type) : the ids of start and goal nodes
+    with_step_weights (bool)        : - True : returns just the node_id's
+                                      - False: returns 2-lists:
+                                               (node_id, step_to_node_cost)
+
+  Returns:
+    path (list)                     : each entry is a node_id or a 2-list,
+                                      [node_id, edge-cost] (depending on the
+                                      with_step_weights argument), constituting
+                                      the consecutive nodes of the path.
+  """
+  # At this stage, edge costs are comulative.
+  path = [[goal, dijkstra_output[goal][0]]]
+  node = goal
+  while node != start:
+    prev_node = dijkstra_output[node][1]
+    prev_node_cost = dijkstra_output[prev_node][0]
+    # Offset the cost of node with prev_node_cost, because the corresponding
+    # costs are comulative and not edge-costs.
+    path[-1][1] -= prev_node_cost
+    path.append([prev_node, prev_node_cost])
+    if node == prev_node:
+      # raise Exception(f"Start node ({start}) is not connected to the"
+      #                 f" destination node ({goal}).")
+      warnings.warn(f"Start node ({start}) is not connected to the"
+                    f" destination node ({goal}).")
+      return []
+    node = prev_node
+  path.reverse()
+
+  if not with_step_weights:
+    path = list(list(zip(*path))[0])
+  return path

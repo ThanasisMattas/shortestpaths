@@ -15,6 +15,7 @@ import click
 
 from pathplanning import dijkstra
 from pathplanning import utils
+from pathplanning.utils import PythonLiteralOption
 
 
 @click.command()
@@ -22,7 +23,7 @@ from pathplanning import utils
 @click.option("--weighted/--no-weighted", "weighted",
               default=True, show_default=True)
 @click.option("--weights-on", "weights_on",
-              default="edges", show_default=True,
+              default="edges-and-nodes", show_default=True,
               type=click.Choice(["edges", "nodes", "edges-and-nodes"],
                                 case_sensitive=False))
 # @click.option("-p", "--probability",
@@ -30,35 +31,85 @@ from pathplanning import utils
 #               help="the probability of edges exist (Erdős–Rényi model)")
 @click.option("--max-edge-weight", "max_edge_weight",
               default=1000, show_default=True,
-              help="the max edge weight of the graph (defaults to 100)")
+              help="the max edge weight of the graph (defaults to 1000)")
 @click.option("--max-node-weight", "max_node_weight",
               default=1000, show_default=True,
-              help="the max nodal weight of the graph (defaults to 100)")
+              help="the max nodal weight of the graph (defaults to 1000)")
+@click.option("--num-paths", "num_paths",
+              help="number of alternative paths to be generated",
+              default=1, show_default=True)
+@click.option("--adapted-path/--no-adapted-path", "adapted_path",
+              help="Generates a new path after disconnecting some nodes.",
+              default=False, show_default=True)
+@click.option("--disconnected-nodes", "disconnected_nodes",
+              help=("Usage:\n\n"
+                    "--disconnected-nodes '[id_1, id_2, ...]'"
+                    "\n\n"
+                    "An alternative path will be constructed, disregarding the"
+                    " disconnected nodes."),
+              cls=PythonLiteralOption, default="[]", show_default=True)
 @click.option("--show-graph/--no-show-graph", "show_graph",
               default=True, show_default=True)
+@click.option("--save-graph/--no-save-graph", "save_graph",
+              default=False, show_default=True)
 def main(num_nodes,
          weighted,
          weights_on,
          max_edge_weight,
          max_node_weight,
-         show_graph):
+         num_paths,
+         adapted_path,
+         disconnected_nodes,
+         show_graph,
+         save_graph):
 
+  # 1. Preprocessing
   adj_list, G = utils.random_graph(num_nodes=num_nodes,
                                    weighted=weighted,
                                    weights_on=weights_on,
                                    max_edge_weight=max_edge_weight,
-                                   max_node_weight=max_node_weight)
+                                   max_node_weight=max_node_weight,
+                                   random_seed=1)
+  disconnected_nodes = set(disconnected_nodes)
 
-  path_cost, path = dijkstra.shortest_path(adj_list,
-                                           num_nodes,
-                                           start=1,
-                                           goal=num_nodes)
+  # 2. Paths generation
+  #
+  # paths_data format:
+  # [
+  #  [path_1, path_1_cost, disconnected_nodes_1],
+  #  [path_2, path_2_cost, disconnected_nodes_2],
+  #  ...
+  # ]
+  paths_data = dijkstra.shortest_path(adj_list,
+                                      num_nodes,
+                                      start=1,
+                                      goal=num_nodes,
+                                      num_paths=num_paths,
+                                      saving_states=True,
+                                      adapted_path=adapted_path,
+                                      disconnected_nodes=disconnected_nodes)
 
-  click.echo("path cost: {}".format(path_cost))
-  click.echo("path: " + str(path))
+  # 3. Post-processing
+  click.echo(f"disconnected nodes: {disconnected_nodes}")
+  for i, path in enumerate(paths_data):
+    click.echo(f"path_{i}: {str(path[0])}")
+    click.echo(f"path cost: {path[1]}")
+    click.echo(f"avoided nodes: {str(path[2])}")
+    click.echo()
 
-  if show_graph:
-    utils.plot_graph(G, path, path_cost)
+  if save_graph or show_graph:
+    utils.plot_graph(G,
+                     paths_data,
+                     disconnected_nodes,
+                     save_graph,
+                     show_graph)
 
-if __name__ == '__main__':
+    # utils.plot_adaptive_dijkstra(G,
+    #                              paths_data,
+    #                              disconnected_nodes,
+    #                              nodes_visited_sequence,
+    #                              checkpoint_node)
+
+
+if __name__ == "__main__":
   main()
