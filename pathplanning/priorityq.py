@@ -39,10 +39,7 @@ class PriorityQueue:
   More info:
   https://docs.python.org/3/library/heapq.html#priority-queue-implementation-notes
   """
-  _heapq = []
-  _entry_finder = {}
   _REMOVED = "<removed-entry>"     # placeholder for a removed entry
-  _counter = itertools.count()
 
   def __init__(self, data=None):
     """Constructs the PriorityQueue object.
@@ -67,6 +64,9 @@ class PriorityQueue:
     # heapify performs in linear time, so is iterating through the data, and
     # this way the entry_finder dictionary can be constructed, pointing to the
     # entries of the queue.
+    self._heapq = []
+    self._entry_finder = {}
+    self._counter = itertools.count()
     if data is None:
       pass
     else:
@@ -165,7 +165,7 @@ class PriorityQueue:
     pass
 
   def __iter__(self):
-    heapq_ = self._heapq.copy()
+    heapq_ = copy.deepcopy(self._heapq)
     for _ in range(len(heapq_)):
       entry = heapq.heappop(heapq_)
       if entry[-1] in self._entry_finder:
