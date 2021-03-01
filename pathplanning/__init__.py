@@ -12,11 +12,11 @@
 """Houses some special variables."""
 
 __name__ = 'pathplanning'
-__version__ = '0.1.0'
-__author__ = 'Thanasis Mattas'
+__version__ = '0.2.0'
+__author__ = 'Athanasios Mattas'
 __author_email__ = 'atmattas@physics.auth.gr'
-__description__ = ("An implementation of the Dijkstra's algorithm on a random"
-                   + " Erdős-Rényi graph")
+__description__ = ("An adaptive version of Dijkstra's algorithm, using dynamic"
+                   " programming")
 __url__ = 'https://github.com/ThanasisMattas/pathplanning.git'
 __license__ = 'GNU General Public License v3'
-__copyright__ = 'Copyright 2020 Thanasis Mattas'
+__copyright__ = 'Copyright 2020 Athanasios Mattas'
