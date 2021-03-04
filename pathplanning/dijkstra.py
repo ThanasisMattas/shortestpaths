@@ -47,13 +47,12 @@ def _dijkstra(adj_list,
                                     [path_cost, prev_node_id, node_id]
     goal (any hashable type)      : the goal node_id
     dijkstra_output (2D list)     : each entry is a 2-list:
-                                    (path_cost, prev_node_id)
+                                    [path_cost, prev_node_id]
     saving_states (bool)          : If true, the step-wise state of the algo-
-                                    rithm will be saved in a list, so as to be
-                                    able to retrieve any of the states.
-    dijkstra_states (OrderedDict) : If num_paths > 1, it will hold the
-                                    step-wise state of the algorithm in pair:
-                                    {node_id: (to_visit, dijkstra_output)},
+                                    rithm will be saved in an OrderedDict.
+    dijkstra_states (OrderedDict) : If saving_states, it will hold the
+                                    step-wise state of the algorithm in a pair:
+                                    {node_id: (to_visit, dijkstra_output)}
                                     using as key the expanded node_id.
                                     NOTE: OrderedDict is used, in order to be
                                           able to retrieve the needed state at
@@ -64,8 +63,9 @@ def _dijkstra(adj_list,
     dijkstra_output (2D list)     : each entry is a 2-list for each node:
                                     [path_cost, prev_node_id]
     dijkstra_states (OrderedDict) : each entry is the step-wise state of the
-                                    algorithm as a 2-tuple:
-                                    node_id: (to_visit, dijkstra_output)
+                                    algorithm as a pair:
+                                    {node_id: (to_visit, dijkstra_output)}
+                                    using as key the expanded node_id
   """
   if to_visit.empty():
     return dijkstra_output, dijkstra_states
@@ -76,15 +76,14 @@ def _dijkstra(adj_list,
   prev_node_id = visiting_node[1]
   node_id = visiting_node[2]
 
-  # Save its final shortest path
+  # Save the path_cost and the previous node of the visited node.
   # (-1 denotes an unconnected node and, in that case, node and previous node
   # are the same by initialization.)
   dijkstra_output[node_id][0] = \
       path_to_node_cost if path_to_node_cost != math.inf else -1
-  # Save its previous node
   dijkstra_output[node_id][1] = prev_node_id
 
-  # Momoizing the algorithm step-wise states, so as to later retrieve the
+  # Memoizing the algorithm step-wise states, so as to later retrieve the
   # appropriate state, in order to calculate an alternative path.
   if saving_states:
     dijkstra_states[node_id] = (copy.deepcopy(to_visit),

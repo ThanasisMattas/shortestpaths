@@ -243,11 +243,24 @@ def random_graph(num_nodes,
   if weights_on in ["nodes", "edges-and-nodes"]:
     node_weights = random.choices(range(max_node_weight + 1), k=num_nodes + 1)
 
-  # When nodes have weights, the weight that each neighbor holds at the
-  # adjacency list (the edge weight) is increased by by its node-weight.
-  # Whereas this holds true in the case of the adjacency list, it is not
-  # correct when adding the weighted edges to the Graph object, but that's ok,
-  # because the Graph object is used only for plotting.
+  # NOTE:
+  #   When nodes are weighted:
+  #   1. The weight that each neighbor holds at the
+  #      adjacency list (the edge weight) is increased by by its node-weight.
+  #      Whereas this holds true in the case of the adjacency list, it is not
+  #      correct when adding the weighted edges to the Graph object, but that's
+  #      ok, because the Graph object is used only for plotting.
+  #   2. The undirected, simple graph is converted to a directed multigraph,
+  #      since each undirected edge breaks into two with opposite directions
+  #      and different weights. Namely,
+  #
+  #                  {a, b}, weight_a, weight_b, weight_edge
+  #                                becomes
+  #                    (a, b), weight_edge + weight_b &
+  #                    (b, a), weight_edge + weight_a
+  #
+  #      This way each edge is related to one value, instead of three, hence
+  #      the Dijkstra's algorithm can operate without modifications.
   weight_mode = "not-weighted" if not weighted else weights_on
 
   weight = {
