@@ -25,6 +25,44 @@ from pathplanning.utils import time_this
 sys.setrecursionlimit(1500)
 
 
+def _dijkstra_init(num_nodes, start):
+  """Initializes the data structures that are used by Dijkstra's algorithm.
+
+  Args:
+    num_nodes (int)
+    start (Hashable)
+
+  Returns:
+    to_visit (PriorityQueue) : holds the data of the nodes not yet visited
+                               - costs initialized to inf
+                               - prev_node_id initialized to node_id
+                               - format:
+                                   [
+                                     [cost_to_node_x, prev_node_id_x, x],
+                                     [cost_to_node_y, prev_node_id_y, y],
+                                     ...
+                                   ]
+                              where cost_to_node_x <= cost_to_node_y
+
+    dijkstra_output (list)   : holds the data of the visited nodes
+                               - costs initialized to 0
+                               - prev_node_id initialized to None
+                               - format:
+                                   [
+                                     [0, None]
+                                     [cost_to_node_1, prev_node_id_1],
+                                     [cost_to_node_2, prev_node_id_2],
+                                     ...
+                                     [cost_to_node_n, prev_node_id_n]
+                                   ]
+  """
+  to_visit = [[math.inf, node, node] for node in range(1, num_nodes + 1)]
+  to_visit = PriorityQueue(to_visit)
+  to_visit[start] = [0, start, start]
+  dijkstra_output = [[0, None] for _ in range(num_nodes + 1)]
+  return to_visit, dijkstra_output
+
+
 # @profile
 def _dijkstra(adj_list,
               to_visit,
@@ -165,13 +203,8 @@ def _alternative_paths(num_paths,
       if new_path:
         paths_data.append([new_path, new_path_cost, [node[0]]])
   else:
-    # Build a new PriorityQueue
-    num_nodes = len(adj_list) - 1
-    to_visit = [[math.inf, n, n] for n in range(1, num_nodes + 1)]
-    to_visit = PriorityQueue(to_visit)
-    to_visit[start] = [0, start, start]
-
-    dijkstra_output = [[0, None] for _ in range(num_nodes + 1)]
+    # Build a new PriorityQueue and a new output list
+    to_visit, dijkstra_output = _dijkstra_init(len(adj_list) - 1, start)
 
     for node in path[1: -1]:
       # Disconnect the node
@@ -248,10 +281,9 @@ def _adapted_path(path,
     del to_visit[disconnected_nodes]
   else:
     # Build a new PriorityQueue
-    num_nodes = len(adj_list)
-    to_visit = [[math.inf, node, node] for node in range(1, num_nodes + 1)]
-    to_visit = PriorityQueue(to_visit)
-    to_visit[start] = [0, start, start]
+    to_visit, dijkstra_output = _dijkstra_init(len(adj_list), start)
+    visited_nodes = None
+    checkpoint_node = None
 
     # Disconnect the node
     del to_visit[disconnected_nodes]
@@ -272,10 +304,6 @@ def _adapted_path(path,
             adj_list[neighbor[0]].remove(ne)
             break
       adj_list[node].clear()
-
-    dijkstra_output = [[0, None] for _ in range(num_nodes + 1)]
-    visited_nodes = None
-    checkpoint_node = None
 
   # Continue with the algorithm execution
   new_dijkstra_output, _ = _dijkstra(adj_list,
@@ -323,28 +351,11 @@ def shortest_path(adj_list,
                                       Where each path is a list of the nodes of
                                       the shortest path.
   """
-  # Build the priority queue holding the current shortest path cost for each
-  # node, as well as its privious node. Format:
-  # [
-  #   [cost_to_node_x, prev_node_id_x, node_id_of_x],
-  #   [cost_to_node_y, prev_node_id_y, node_id_of_y],
-  #   ...
-  # ]
-  # Where cost_to_node_x <= cost_to_node_y.
-  to_visit = [[math.inf, node, node] for node in range(1, num_nodes + 1)]
-  to_visit = PriorityQueue(to_visit)
-  to_visit[start] = [0, start, start]
-
-  # Dijkstra's algorithm will return the shortest path to all nodes expanded,
-  # starting from the start-node.
-  # [
-  #   [0, None]
-  #   [cost_to_node_1, prev_node_id_1],
-  #   [cost_to_node_2, prev_node_id_2],
-  #   ...
-  #   [cost_to_node_n, prev_node_id_n]
-  # ]
-  dijkstra_output = [[0, None] for _ in range(num_nodes + 1)]
+  # Build the priority queue, holding the current shortest path cost for each
+  # node not yet expanded, as well as its previous node, and the output list,
+  # holding the found shortest path cost for each expanded node, as well as its
+  # previous node in the path.
+  to_visit, dijkstra_output = _dijkstra_init(num_nodes, start)
 
   # Find the absolute shortest path.
   dijkstra_output, dijkstra_states = _dijkstra(adj_list,
