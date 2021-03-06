@@ -372,13 +372,13 @@ def check_nodal_connection(nodes: Iterable,
   return nodes
 
 
-def extract_path(dijkstra_output, start, goal, with_step_weights=False):
+def extract_path(visited, start, goal, with_step_weights=False):
   """Dijkstra's method saves the shortest path cost for each node of the graph,
   as well as its previous node on the path, so as to retrieve the path by
   jumping through previous nodes, until the start node.
 
   Args:
-    dijkstra_output (2D list)       : each entry is a 2-list,
+    visited (2D list)               : each entry is a 2-list,
                                       [path_cost, prev_node_id]
     start, goal (any hashable type) : the ids of start and goal nodes
     with_step_weights (bool)        : - True : returns just the node_id's
@@ -392,11 +392,11 @@ def extract_path(dijkstra_output, start, goal, with_step_weights=False):
                                       the consecutive nodes of the path.
   """
   # At this stage, edge costs are comulative.
-  path = [[goal, dijkstra_output[goal][0]]]
+  path = [[goal, visited[goal][0]]]
   node = goal
   while node != start:
-    prev_node = dijkstra_output[node][1]
-    prev_node_cost = dijkstra_output[prev_node][0]
+    prev_node = visited[node][1]
+    prev_node_cost = visited[prev_node][0]
     # Offset the cost of node with prev_node_cost, because the corresponding
     # costs are comulative and not edge-costs.
     path[-1][1] -= prev_node_cost

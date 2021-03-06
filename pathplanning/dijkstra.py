@@ -44,7 +44,7 @@ def _dijkstra_init(num_nodes, start):
                                    ]
                               where cost_to_node_x <= cost_to_node_y
 
-    dijkstra_output (list)   : holds the data of the visited nodes
+    visited (list)           : holds the data of the visited nodes
                                - costs initialized to 0
                                - prev_node_id initialized to None
                                - format:
@@ -59,15 +59,15 @@ def _dijkstra_init(num_nodes, start):
   to_visit = [[math.inf, node, node] for node in range(1, num_nodes + 1)]
   to_visit = PriorityQueue(to_visit)
   to_visit[start] = [0, start, start]
-  dijkstra_output = [[0, None] for _ in range(num_nodes + 1)]
-  return to_visit, dijkstra_output
+  visited = [[0, None] for _ in range(num_nodes + 1)]
+  return to_visit, visited
 
 
 # @profile
 def _dijkstra(adj_list,
               to_visit,
               goal,
-              dijkstra_output,
+              visited,
               saving_states=True,
               dijkstra_states=OrderedDict(),
               avoided_nodes=[]):
@@ -84,13 +84,13 @@ def _dijkstra(adj_list,
                                     algorithm, each entry is a list:
                                     [path_cost, prev_node_id, node_id]
     goal (any hashable type)      : the goal node_id
-    dijkstra_output (2D list)     : each entry is a 2-list:
+    visited (2D list)     : each entry is a 2-list:
                                     [path_cost, prev_node_id]
     saving_states (bool)          : If true, the step-wise state of the algo-
                                     rithm will be saved in an OrderedDict.
     dijkstra_states (OrderedDict) : If saving_states, it will hold the
                                     step-wise state of the algorithm in a pair:
-                                    {node_id: (to_visit, dijkstra_output)}
+                                    {node_id: (to_visit, visited)}
                                     using as key the expanded node_id.
                                     NOTE: OrderedDict is used, in order to be
                                           able to retrieve the needed state at
@@ -98,15 +98,15 @@ def _dijkstra(adj_list,
     avoided_nodes (list)          : (defaults to [])
 
   Returns:
-    dijkstra_output (2D list)     : each entry is a 2-list for each node:
+    visited (2D list)     : each entry is a 2-list for each node:
                                     [path_cost, prev_node_id]
     dijkstra_states (OrderedDict) : each entry is the step-wise state of the
                                     algorithm as a pair:
-                                    {node_id: (to_visit, dijkstra_output)}
+                                    {node_id: (to_visit, visited)}
                                     using as key the expanded node_id
   """
   if to_visit.empty():
-    return dijkstra_output, dijkstra_states
+    return visited, dijkstra_states
 
   # visiting_node = [path_cost, prev_node_id, node_id]
   visiting_node = to_visit.pop_low()
@@ -117,18 +117,18 @@ def _dijkstra(adj_list,
   # Save the path_cost and the previous node of the visited node.
   # (-1 denotes an unconnected node and, in that case, node and previous node
   # are the same by initialization.)
-  dijkstra_output[node_id][0] = \
+  visited[node_id][0] = \
       path_to_node_cost if path_to_node_cost != math.inf else -1
-  dijkstra_output[node_id][1] = prev_node_id
+  visited[node_id][1] = prev_node_id
 
   # Memoizing the algorithm step-wise states, so as to later retrieve the
   # appropriate state, in order to calculate an alternative path.
   if saving_states:
     dijkstra_states[node_id] = (copy.deepcopy(to_visit),
-                                copy.deepcopy(dijkstra_output))
+                                copy.deepcopy(visited))
 
   if node_id == goal:
-    return dijkstra_output, dijkstra_states
+    return visited, dijkstra_states
 
   # neighbor = (neighbor_id, weight)
   for neighbor in adj_list[node_id]:
@@ -149,7 +149,7 @@ def _dijkstra(adj_list,
   return _dijkstra(adj_list,
                    to_visit,
                    goal,
-                   dijkstra_output,
+                   visited,
                    saving_states,
                    dijkstra_states,
                    avoided_nodes)
@@ -186,7 +186,7 @@ def _alternative_paths(num_paths,
     for node in path[1: -1]:
       # Retrieve the algorithm state that corresponds to the previous step.
       checkpoint_node = visited_nodes[visited_nodes.index(node[0]) - 1]
-      to_visit, dijkstra_output = dijkstra_states[checkpoint_node]
+      to_visit, visited = dijkstra_states[checkpoint_node]
 
       # Disconnect the node
       del to_visit[node[0]]
@@ -195,7 +195,7 @@ def _alternative_paths(num_paths,
       new_dijkstra_output, _ = _dijkstra(adj_list,
                                          to_visit,
                                          goal,
-                                         dijkstra_output,
+                                         visited,
                                          saving_states=False,
                                          avoided_nodes=[node[0]])
       new_path = utils.extract_path(new_dijkstra_output, start, goal)
@@ -204,7 +204,7 @@ def _alternative_paths(num_paths,
         paths_data.append([new_path, new_path_cost, [node[0]]])
   else:
     # Build a new PriorityQueue and a new output list
-    to_visit, dijkstra_output = _dijkstra_init(len(adj_list) - 1, start)
+    to_visit, visited = _dijkstra_init(len(adj_list) - 1, start)
 
     for node in path[1: -1]:
       # Disconnect the node
@@ -230,7 +230,7 @@ def _alternative_paths(num_paths,
       new_dijkstra_output, _ = _dijkstra(new_adj_list,
                                          new_to_visit,
                                          goal,
-                                         copy.deepcopy(dijkstra_output),
+                                         copy.deepcopy(visited),
                                          saving_states)
       new_path = utils.extract_path(new_dijkstra_output, start, goal)
       new_path_cost = new_dijkstra_output[goal][0]
@@ -275,13 +275,13 @@ def _adapted_path(path,
       if visited_node in disconnected_nodes:
         checkpoint_node = visited_nodes[i - 1]
         break
-    to_visit, dijkstra_output = dijkstra_states[checkpoint_node]
+    to_visit, visited = dijkstra_states[checkpoint_node]
 
     # Disconnect the node
     del to_visit[disconnected_nodes]
   else:
     # Build a new PriorityQueue
-    to_visit, dijkstra_output = _dijkstra_init(len(adj_list), start)
+    to_visit, visited = _dijkstra_init(len(adj_list), start)
     visited_nodes = None
     checkpoint_node = None
 
@@ -309,7 +309,7 @@ def _adapted_path(path,
   new_dijkstra_output, _ = _dijkstra(adj_list,
                                      to_visit,
                                      goal,
-                                     dijkstra_output,
+                                     visited,
                                      saving_states=False,
                                      avoided_nodes=disconnected_nodes)
 
@@ -355,16 +355,16 @@ def shortest_path(adj_list,
   # node not yet expanded, as well as its previous node, and the output list,
   # holding the found shortest path cost for each expanded node, as well as its
   # previous node in the path.
-  to_visit, dijkstra_output = _dijkstra_init(num_nodes, start)
+  to_visit, visited = _dijkstra_init(num_nodes, start)
 
   # Find the absolute shortest path.
-  dijkstra_output, dijkstra_states = _dijkstra(adj_list,
-                                               to_visit,
-                                               goal,
-                                               dijkstra_output,
-                                               saving_states)
-  path_cost = dijkstra_output[goal][0]
-  path = utils.extract_path(dijkstra_output,
+  visited, dijkstra_states = _dijkstra(adj_list,
+                                       to_visit,
+                                       goal,
+                                       visited,
+                                       saving_states)
+  path_cost = visited[goal][0]
+  path = utils.extract_path(visited,
                             start,
                             goal,
                             with_step_weights=True)
