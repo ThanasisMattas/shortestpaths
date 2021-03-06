@@ -18,6 +18,7 @@ from functools import wraps
 from operator import itemgetter
 import os
 import random
+import time
 from timeit import default_timer as timer
 from typing import Iterable
 import warnings
@@ -291,16 +292,21 @@ def random_graph(num_nodes,
   return adj_list, G
 
 
-def print_duration(start, end, process):
-    """Prints the duration of a process."""
-    process_name = {
-        "main": "Total",
-    }
-    if process in process_name:
-        process = process_name[process]
-    prefix = f"{process.capitalize()} duration"
+def print_duration(start, end, process, time_type=None):
+    """Prints the duration of a process.
+
+    Args:
+      start (float)    : the starting timestamp in seconds
+      end (float)      : the ending timestamp in seconds
+      process (string) : the process name
+      time_type (string) : i.e. wall-clock, CPU or sys time (defaults to None)
+    """
+    if time_type is None:
+      prefix = f"{process} time"
+    else:
+      prefix = f"{process} {time_type} time"
     duration = timedelta(seconds=end - start)
-    print(f"{prefix:-<30}{duration}"[:40])
+    print(f"{prefix:-<30}{duration}"[:41])
 
 
 def time_this(f):
@@ -321,10 +327,19 @@ def time_this(f):
 
     @wraps(f)
     def wrap(*args, **kwargs):
-        start = timer()
+        start_wall = timer()
+        start_user_plus_sys = time.process_time()
         result = f(*args, **kwargs)
-        end = timer()
-        print_duration(start, end, f.__name__)
+        end_user_plus_sys = time.process_time()
+        end_wall = timer()
+        print_duration(start_wall,
+                       end_wall,
+                       f.__name__,
+                       "wall-clock")
+        print_duration(start_user_plus_sys,
+                       end_user_plus_sys,
+                       f.__name__,
+                       "user+sys CPU")
         return result
     return wrap
 
