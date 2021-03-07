@@ -48,6 +48,12 @@ from pathplanning.utils import PythonLiteralOption
                     "An alternative path will be constructed, disregarding the"
                     " disconnected nodes."),
               cls=PythonLiteralOption, default="[]", show_default=True)
+@click.option('-s', "--seed", "random_seed",
+              default=None, show_default=True,
+              help="If provided, a fixed random graph will be generated")
+@click.option("--layout-seed", "layout_seed",
+              default=1, show_default=True,
+              help="Fixes the random initialization of the spirng_layout.")
 @click.option("--show-graph/--no-show-graph", "show_graph",
               default=True, show_default=True)
 @click.option("--save-graph/--no-save-graph", "save_graph",
@@ -60,6 +66,8 @@ def main(num_nodes,
          num_paths,
          adapted_path,
          disconnected_nodes,
+         random_seed,
+         layout_seed,
          show_graph,
          save_graph):
 
@@ -69,7 +77,7 @@ def main(num_nodes,
                                    weights_on=weights_on,
                                    max_edge_weight=max_edge_weight,
                                    max_node_weight=max_node_weight,
-                                   random_seed=1)
+                                   random_seed=random_seed)
   disconnected_nodes = set(disconnected_nodes)
 
   # 2. Paths generation
@@ -87,7 +95,8 @@ def main(num_nodes,
                                       num_paths=num_paths,
                                       saving_states=True,
                                       adapted_path=adapted_path,
-                                      disconnected_nodes=disconnected_nodes)
+                                      disconnected_nodes=disconnected_nodes,
+                                      random_seed=random_seed)
 
   # 3. Post-processing
   click.echo(f"disconnected nodes: {disconnected_nodes}")
@@ -102,7 +111,8 @@ def main(num_nodes,
                      paths_data,
                      disconnected_nodes,
                      save_graph,
-                     show_graph)
+                     show_graph,
+                     layout_seed=layout_seed)
 
     # utils.plot_adaptive_dijkstra(G,
     #                              paths_data,

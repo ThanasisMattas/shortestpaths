@@ -15,6 +15,7 @@ import ast
 from datetime import datetime, timedelta
 from itertools import combinations
 from functools import wraps
+from math import sqrt
 from operator import itemgetter
 import os
 import random
@@ -28,9 +29,14 @@ import matplotlib.pyplot as plt
 import networkx as nx
 
 
-def plot_graph(G, paths_data, disconnected_nodes, save_graph, show_graph):
+def plot_graph(G,
+               paths_data,
+               disconnected_nodes,
+               save_graph,
+               show_graph,
+               layout_seed=None):
   """Plots the graph and all the generated paths in spring_layout."""
-  pos = nx.spring_layout(G, seed=2)
+  pos = nx.spring_layout(G, k=10 / sqrt(G.number_of_nodes()), seed=layout_seed)
 
   # Layouts
   # -------
@@ -205,6 +211,28 @@ def _edge_weight_bias(edge, num_nodes) -> float:
   return bias
 
 
+def _edge_weight(edge,
+                 num_nodes,
+                 weight_mode,
+                 max_edge_weight,
+                 random_seed=None):
+  """Calculates a relative to the proximity of the nodes ranodm edge weight."""
+  bias = _edge_weight_bias(edge, num_nodes)
+
+  if random_seed is not None:
+    # Almost all edges will have consistent yet different form each other seed.
+    random.seed(sum(edge))
+
+  if weight_mode == "not-weighted":
+    return 1
+  elif weight_mode in ["edges", "edges-and-nodes"]:
+    return round(bias * random.randint(0, max_edge_weight))
+  elif weight_mode in ["nodes", "edges-and-nodes"]:
+    return 0
+  else:
+    raise Exception(f"Unknown weight-mode: {weight_mode}")
+
+
 def random_graph(num_nodes,
                  weighted=True,
                  weights_on="edges",
@@ -215,6 +243,25 @@ def random_graph(num_nodes,
 
   The graph is represented by its adjacency list. NetworkX is used only for
   plotting.
+
+  NOTE:
+    When nodes are weighted:
+    1. The weight that each neighbor holds at the
+       adjacency list (the edge weight) is increased by by its node-weight.
+       Whereas this holds true in the case of the adjacency list, it is not
+       correct when adding the weighted edges to the nx.Graph object, but
+       that's ok, because the nx.Graph object is used only for plotting.
+    2. The undirected, simple graph is converted to a directed multigraph,
+       since each undirected edge breaks into two with opposite directions
+       and different weights. Namely,
+
+                   {a, b}, weight_a, weight_b, weight_edge
+                                 becomes
+                     (a, b), weight_edge + weight_b &
+                     (b, a), weight_edge + weight_a
+
+       This way each edge is related to one value, instead of three, hence
+       the Dijkstra's algorithm can operate without modifications.
 
   Args:
     num_nodes (int)       : number of nodes
@@ -232,46 +279,16 @@ def random_graph(num_nodes,
                             of the neighbors of each node
     G (Graph)             : used to plot the graph
   """
-  if random_seed is None:
-    random_seed = datetime.now
+  weight_mode = "not-weighted" if not weighted else weights_on
   random.seed(random_seed)
 
   nodes = list(range(1, num_nodes + 1))
+  # edges is used only for the graph visualization via networkx
   edges = set()
   adj_list = [set() for _ in range(num_nodes + 1)]
-  G = nx.Graph()
-  G.add_nodes_from(nodes)
-  if weights_on in ["nodes", "edges-and-nodes"]:
+
+  if weight_mode in ["nodes", "edges-and-nodes"]:
     node_weights = random.choices(range(max_node_weight + 1), k=num_nodes + 1)
-
-  # NOTE:
-  #   When nodes are weighted:
-  #   1. The weight that each neighbor holds at the
-  #      adjacency list (the edge weight) is increased by by its node-weight.
-  #      Whereas this holds true in the case of the adjacency list, it is not
-  #      correct when adding the weighted edges to the Graph object, but that's
-  #      ok, because the Graph object is used only for plotting.
-  #   2. The undirected, simple graph is converted to a directed multigraph,
-  #      since each undirected edge breaks into two with opposite directions
-  #      and different weights. Namely,
-  #
-  #                  {a, b}, weight_a, weight_b, weight_edge
-  #                                becomes
-  #                    (a, b), weight_edge + weight_b &
-  #                    (b, a), weight_edge + weight_a
-  #
-  #      This way each edge is related to one value, instead of three, hence
-  #      the Dijkstra's algorithm can operate without modifications.
-  weight_mode = "not-weighted" if not weighted else weights_on
-
-  weight = {
-    "not-weighted": lambda _, __: 1,
-    "edges": lambda _, bias: round(bias * random.randint(0, max_edge_weight)),
-    "nodes": lambda node_id, _: node_weights[node_id],
-    "edges-and-nodes": lambda node_id, bias: (
-      node_weights[node_id] + round(bias * random.randint(0, max_edge_weight))
-    )
-  }
 
   # Iterate through all possible edges and randomly deside which to keep.
   for edge in combinations(nodes, 2):
@@ -283,12 +300,25 @@ def random_graph(num_nodes,
     edge_probability = max(0, 1 - abs(edge[0] - edge[1]) / num_nodes - 0.6)
     random_probability = random.random()
     if edge_probability > random_probability:
-      bias = _edge_weight_bias(edge, num_nodes)
-      edges.add((*edge, weight[weight_mode](edge[1], bias)))
-      adj_list[edge[0]].add((edge[1], weight[weight_mode](edge[1], bias)))
-      adj_list[edge[1]].add((edge[0], weight[weight_mode](edge[0], bias)))
+      edge_weight = _edge_weight(edge,
+                                 num_nodes,
+                                 weight_mode,
+                                 max_edge_weight,
+                                 random_seed)
+      if weights_on in ["nodes", "edges-and-nodes"]:
+        tail_node_weight = node_weights[edge[0]]
+        head_node_weight = node_weights[edge[1]]
+        adj_list[edge[0]].add((edge[1], edge_weight + head_node_weight))
+        adj_list[edge[1]].add((edge[0], edge_weight + tail_node_weight))
+      else:
+        adj_list[edge[0]].add((edge[1], edge_weight))
+        adj_list[edge[1]].add((edge[0], edge_weight))
+      edges.add((*edge, edge_weight))
 
+  G = nx.Graph()
+  G.add_nodes_from(nodes)
   G.add_weighted_edges_from(edges)
+
   return adj_list, G
 
 
@@ -306,7 +336,7 @@ def print_duration(start, end, process, time_type=None):
     else:
       prefix = f"{process} {time_type} time"
     duration = timedelta(seconds=end - start)
-    print(f"{prefix:-<30}{duration}"[:41])
+    print(f"{prefix:-<35}{duration}"[:46])
 
 
 def time_this(f):

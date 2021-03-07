@@ -84,7 +84,7 @@ def _dijkstra(adj_list,
                                     algorithm, each entry is a list:
                                     [path_cost, prev_node_id, node_id]
     goal (any hashable type)      : the goal node_id
-    visited (2D list)     : each entry is a 2-list:
+    visited (2D list)             : each entry is a 2-list:
                                     [path_cost, prev_node_id]
     saving_states (bool)          : If true, the step-wise state of the algo-
                                     rithm will be saved in an OrderedDict.
@@ -98,7 +98,7 @@ def _dijkstra(adj_list,
     avoided_nodes (list)          : (defaults to [])
 
   Returns:
-    visited (2D list)     : each entry is a 2-list for each node:
+    visited (2D list)             : each entry is a 2-list for each node:
                                     [path_cost, prev_node_id]
     dijkstra_states (OrderedDict) : each entry is the step-wise state of the
                                     algorithm as a pair:
@@ -252,7 +252,8 @@ def _adapted_path(path,
                   adj_list,
                   start,
                   goal,
-                  disconnected_nodes):
+                  disconnected_nodes=[],
+                  random_seed=None):
   if isinstance(path[0], (list, tuple)):
     path = list(list(zip(*path))[0])
   paths_data = [[path, path_cost, []]]
@@ -260,6 +261,7 @@ def _adapted_path(path,
   # In case of disconnected_nodes are not provided, pick a random node towards
   # the end of the path.
   if not disconnected_nodes:
+    random.seed(random_seed)
     disconnected_nodes = [
       path[random.randrange(len(path) // 2, len(path) - 1)]
     ]
@@ -321,6 +323,7 @@ def _adapted_path(path,
   return paths_data, visited_nodes, checkpoint_node
 
 
+@time_this
 def shortest_path(adj_list,
                   num_nodes,
                   start,
@@ -328,7 +331,8 @@ def shortest_path(adj_list,
                   num_paths=1,
                   saving_states=True,
                   adapted_path=False,
-                  disconnected_nodes=[]):
+                  disconnected_nodes=[],
+                  random_seed=None):
   """Finds the shortest path from start to goal, using the Dijkstra's algorithm
 
   Args:
@@ -378,7 +382,8 @@ def shortest_path(adj_list,
                       adj_list,
                       start,
                       goal,
-                      disconnected_nodes)
+                      disconnected_nodes,
+                      random_seed)
   else:
     if num_paths > 1:
       paths_data = _alternative_paths(num_paths,
