@@ -34,7 +34,8 @@ def plot_graph(G,
                disconnected_nodes,
                save_graph,
                show_graph,
-               layout_seed=None):
+               layout_seed=None,
+               draw_edge_weights=False):
   """Plots the graph and all the generated paths in spring_layout."""
   pos = nx.spring_layout(G, k=10 / sqrt(G.number_of_nodes()), seed=layout_seed)
 
@@ -48,6 +49,9 @@ def plot_graph(G,
   # 1. Draw the graph
   nx.draw_networkx(G, pos, node_size=450, width=0.25, alpha=0.3,
                    with_labels=False)
+  if draw_edge_weights:
+    edge_labels = nx.get_edge_attributes(G, "weight")
+    nx.draw_networkx_edge_labels(G, pos, edge_labels=edge_labels)
 
   # 2. Draw the disconnected nodes
   nx.draw_networkx_nodes(G, pos=pos, nodelist=disconnected_nodes, node_color='r',
