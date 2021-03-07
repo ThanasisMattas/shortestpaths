@@ -305,7 +305,7 @@ def random_graph(num_nodes,
                                  weight_mode,
                                  max_edge_weight,
                                  random_seed)
-      if weights_on in ["nodes", "edges-and-nodes"]:
+      if weight_mode in ["nodes", "edges-and-nodes"]:
         tail_node_weight = node_weights[edge[0]]
         head_node_weight = node_weights[edge[1]]
         adj_list[edge[0]].add((edge[1], edge_weight + head_node_weight))
