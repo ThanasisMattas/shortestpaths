@@ -334,18 +334,27 @@ def print_duration(start, end, process, time_type=None):
     if time_type is None:
       prefix = f"{process} time"
     else:
-      prefix = f"{process} {time_type} time"
+      prefix = f"{process:-<24}{time_type} time"
     duration = timedelta(seconds=end - start)
-    print(f"{prefix:-<35}{duration}"[:46])
+    print(f"{prefix:-<40}{duration}"[:51])
 
 
-def time_this(f):
+def time_this(wall_clock=None):
     """function timer decorator
 
     - Uses wraps to preserve the metadata of the decorated function
       (__name__ and __doc__)
-    - logs the duration
-    - prints the duration
+    - prints wall and CPU (user+sys) time
+
+    usage:
+      @time_this
+      def a_func(): pass
+
+      @time_this()  # wall_clock=False
+      def a_func(): pass
+
+      @time_this(wall_clock=True)
+      def a_func(): pass
 
     Args:
         f(funtion)      : the function to be decorated
@@ -353,25 +362,40 @@ def time_this(f):
     Returns:
         wrap (callable) : returns the result of the decorated function
     """
-    assert callable(f)
+    def inner_decorator(f):
+      if not callable(f):
+        raise Exception(f"{f} is not a callable and, thus, it cannot be "
+                        f"decorated with @time_this.")
 
-    @wraps(f)
-    def wrap(*args, **kwargs):
-        start_wall = timer()
+      @wraps(f)
+      def wrapper(*args, **kwargs):
+        using_wall_clock = False
+        if callable(wall_clock):
+          # Meaning that @time_this is used without ()
+          pass
+        else:
+          if wall_clock:
+            using_wall_clock = True
+            start_wall = timer()
         start_user_plus_sys = time.process_time()
         result = f(*args, **kwargs)
         end_user_plus_sys = time.process_time()
-        end_wall = timer()
-        print_duration(start_wall,
-                       end_wall,
-                       f.__name__,
-                       "wall-clock")
+        if using_wall_clock:
+          end_wall = timer()
+          print_duration(start_wall,
+                         end_wall,
+                         f.__name__,
+                         "Wall")
         print_duration(start_user_plus_sys,
                        end_user_plus_sys,
                        f.__name__,
-                       "user+sys CPU")
+                       "CPU")
         return result
-    return wrap
+      return wrapper
+
+    if callable(wall_clock):
+      return inner_decorator(wall_clock)
+    return inner_decorator
 
 
 class PythonLiteralOption(click.Option):
