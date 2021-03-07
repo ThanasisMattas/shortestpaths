@@ -20,44 +20,35 @@ from pathplanning.utils import PythonLiteralOption
 
 @click.command()
 @click.argument("num_nodes", type=click.INT)
-@click.option("--weighted/--no-weighted", "weighted",
-              default=True, show_default=True)
-@click.option("--weights-on", "weights_on",
-              default="edges-and-nodes", show_default=True,
+@click.option("--weighted/--no-weighted", default=True, show_default=True)
+@click.option("--weights-on", default="edges-and-nodes", show_default=True,
               type=click.Choice(["edges", "nodes", "edges-and-nodes"],
                                 case_sensitive=False))
 # @click.option("-p", "--probability",
 #               default=0.5, show_default=True, type=click.FloatRange(0, 1),
 #               help="the probability of edges exist (Erdős–Rényi model)")
-@click.option("--max-edge-weight", "max_edge_weight",
-              default=1000, show_default=True,
+@click.option("--max-edge-weight", default=1000, show_default=True,
               help="the max edge weight of the graph (defaults to 1000)")
-@click.option("--max-node-weight", "max_node_weight",
-              default=1000, show_default=True,
+@click.option("--max-node-weight", default=1000, show_default=True,
               help="the max nodal weight of the graph (defaults to 1000)")
-@click.option("--num-paths", "num_paths",
-              help="number of alternative paths to be generated",
-              default=1, show_default=True)
-@click.option("--adapted-path/--no-adapted-path", "adapted_path",
-              help="Generates a new path after disconnecting some nodes.",
-              default=False, show_default=True)
-@click.option("--disconnected-nodes", "disconnected_nodes",
+@click.option("--num-paths", default=1, show_default=True,
+              help="number of alternative paths to be generated")
+@click.option("--adapted-path/--no-adapted-path",
+              default=False, show_default=True,
+              help="Generates a new path after disconnecting some nodes.")
+@click.option("--disconnected-nodes",
+              cls=PythonLiteralOption, default="[]", show_default=True,
               help=("Usage:\n\n"
                     "--disconnected-nodes '[id_1, id_2, ...]'"
                     "\n\n"
                     "An alternative path will be constructed, disregarding the"
-                    " disconnected nodes."),
-              cls=PythonLiteralOption, default="[]", show_default=True)
-@click.option('-s', "--seed", "random_seed",
-              default=None, show_default=True,
+                    " disconnected nodes."))
+@click.option('-s', "--seed", "random_seed", default=None, show_default=True,
               help="If provided, a fixed random graph will be generated")
-@click.option("--layout-seed", "layout_seed",
-              default=1, show_default=True,
+@click.option("--layout-seed", default=1, show_default=True,
               help="Fixes the random initialization of the spirng_layout.")
-@click.option("--show-graph/--no-show-graph", "show_graph",
-              default=True, show_default=True)
-@click.option("--save-graph/--no-save-graph", "save_graph",
-              default=False, show_default=True)
+@click.option("--show-graph/--no-show-graph", default=True, show_default=True)
+@click.option("--save-graph/--no-save-graph", default=False, show_default=True)
 def main(num_nodes,
          weighted,
          weights_on,
