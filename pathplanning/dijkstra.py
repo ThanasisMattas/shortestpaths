@@ -69,7 +69,7 @@ def _dijkstra(adj_list,
               goal,
               visited,
               saving_states=True,
-              dijkstra_states=OrderedDict(),
+              dijkstra_states=None,
               avoided_nodes=[]):
   """Runs an adaptive Dijkstra's algorithm recursively.
 
@@ -124,6 +124,8 @@ def _dijkstra(adj_list,
   # Memoizing the algorithm step-wise states, so as to later retrieve the
   # appropriate state, in order to calculate an alternative path.
   if saving_states:
+    if dijkstra_states is None:
+      dijkstra_states = OrderedDict()
     dijkstra_states[node_id] = (copy.deepcopy(to_visit),
                                 copy.deepcopy(visited))
 
