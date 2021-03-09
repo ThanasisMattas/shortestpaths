@@ -290,23 +290,6 @@ def _adapted_path(path,
     # Disconnect the node
     del to_visit[disconnected_nodes]
 
-    for node in disconnected_nodes:
-      for neighbor in adj_list[node]:
-        # NOTE: Uncomment this, instead of the loop, in case of simple graphs.
-        #       In case of weights on nodes, the graph can be considered as a
-        #       directed multigraph, where for each edge there is one of oppo-
-        #       site direction and with different weight.
-        #       Example:
-        #         weight(a, b) = weight(b)
-        #         weight(b, a) = weight(a)
-        #
-        # adj_list[neighbor[0]].remove([node, neighbor[1]])
-        for ne in adj_list[neighbor[0]]:
-          if ne[0] == node:
-            adj_list[neighbor[0]].remove(ne)
-            break
-      adj_list[node].clear()
-
   # Continue with the algorithm execution
   new_dijkstra_output, _ = _dijkstra(adj_list,
                                      to_visit,
