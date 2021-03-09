@@ -43,6 +43,9 @@ from pathplanning.utils import PythonLiteralOption
                     "\n\n"
                     "An alternative path will be constructed, disregarding the"
                     " disconnected nodes."))
+@click.option("--saving-states/--no-saving-states",
+              default=True, show_default=True,
+              help="Whether to use dynamic programming or not.")
 @click.option('-s', "--seed", "random_seed", default=None, show_default=True,
               help="If provided, a fixed random graph will be generated")
 @click.option("--layout-seed", default=1, show_default=True,
@@ -57,6 +60,7 @@ def main(num_nodes,
          num_paths,
          adapted_path,
          disconnected_nodes,
+         saving_states,
          random_seed,
          layout_seed,
          show_graph,
@@ -84,7 +88,7 @@ def main(num_nodes,
                                       start=1,
                                       goal=num_nodes,
                                       num_paths=num_paths,
-                                      saving_states=True,
+                                      saving_states=saving_states,
                                       adapted_path=adapted_path,
                                       disconnected_nodes=disconnected_nodes,
                                       random_seed=random_seed)
