@@ -26,6 +26,7 @@ import math
 import random
 from operator import itemgetter
 import sys
+from typing import Hashable
 
 from pathplanning.priorityq import PriorityQueue
 from pathplanning import utils
@@ -34,12 +35,8 @@ from pathplanning.utils import time_this
 sys.setrecursionlimit(1500)
 
 
-def _dijkstra_init(n, source):
+def _dijkstra_init(n: int, source: Hashable):
   """Initializes the data structures that are used by Dijkstra's algorithm.
-
-  Args:
-    n (int)
-    source (Hashable)
 
   Returns:
     to_visit (PriorityQueue) : holds the data of the nodes not yet visited
@@ -79,7 +76,7 @@ def _dijkstra(adj_list,
               visited,
               saving_states=True,
               dijkstra_states=None,
-              avoided_nodes=[]):
+              avoided_nodes=None):
   """Runs an adaptive Dijkstra's algorithm recursively.
 
   This is an optimization of the Dijkstra's algorithm, using memoization, in
@@ -104,7 +101,7 @@ def _dijkstra(adj_list,
                                     NOTE: OrderedDict is used, in order to be
                                           able to retrieve the needed state at
                                           the correct order of occurance.
-    avoided_nodes (list)          : (defaults to [])
+    avoided_nodes (list)          : (defaults to None)
 
   Returns:
     visited (2D list)             : each entry is a 2-list for each node:
@@ -146,8 +143,9 @@ def _dijkstra(adj_list,
     neighbor_id = neighbor[0]
     neighbor_weight = neighbor[1]
 
-    if neighbor_id in avoided_nodes:
-      continue
+    if avoided_nodes:
+      if neighbor_id in avoided_nodes:
+        continue
 
     if neighbor_id in to_visit:
       old_path_to_neighbor_cost = to_visit[neighbor_id][0]
