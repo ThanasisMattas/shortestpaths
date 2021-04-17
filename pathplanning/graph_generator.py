@@ -14,6 +14,7 @@ Erdős-Rényi model.
 """
 
 from itertools import combinations
+import math
 import random
 
 import networkx as nx
@@ -34,6 +35,36 @@ def _edge_weight_bias(edge, n) -> float:
   bias = abs(edge[0] - edge[1]) / n
   bias = (int(bias * 10) + 1) / 10 * 2
   return bias
+
+
+def _edge_probability(edge, n, gradient=2, center_factor=0.7) -> float:
+  """Evaluates the probability an edge exists by the proximity of its nodes.
+
+  The goal is to penalize distant edges. Hence, the curve goes quickly to 1:
+    - gradient > 1
+    - center > n / 2
+  Finally, the sigmoid distribution is inverted, by subtracting it from 1.
+
+  1.0 |                               _ _ _ _ _
+      |                           .
+      |                        .
+      |                      .
+      |                     .
+      |                    .
+  0.5 |- - - - - - - - - -.
+      |                  .:
+      |                 . :
+      |                .  :
+      |               .   :
+      |             .     :
+  0.0 | _ _ _ _  .        :
+      |___________________:_______________________
+                        center   abs(head-tail) ->
+
+  """
+  center = center_factor * n
+  sigmoid = 1 / (1 + math.exp(-gradient * (abs(edge[0] - edge[1]) - center)))
+  return 1 - sigmoid
 
 
 def _edge_weight(edge,
@@ -122,7 +153,7 @@ def random_graph(n,
     # (This way, it is more realistic - edges of nearby nodes cost less - and
     # paths with too few nodes, that go straight to the sink, are avoided.)
     # Namely, distance (up) (down) edge_probability.
-    edge_probability = max(0, 1 - abs(edge[0] - edge[1]) / n - 0.6)
+    edge_probability = _edge_probability(edge, n)
     random_probability = random.random()
     if edge_probability > random_probability:
       edge_weight = _edge_weight(edge,
@@ -131,10 +162,10 @@ def random_graph(n,
                                  max_edge_weight,
                                  random_seed)
       if weight_mode in ["nodes", "edges-and-nodes"]:
-        tail_node_weight = node_weights[edge[0]]
-        head_node_weight = node_weights[edge[1]]
-        adj_list[edge[0]].add((edge[1], edge_weight + head_node_weight))
-        adj_list[edge[1]].add((edge[0], edge_weight + tail_node_weight))
+        tail_weight = node_weights[edge[0]]
+        head_weight = node_weights[edge[1]]
+        adj_list[edge[0]].add((edge[1], edge_weight + head_weight))
+        adj_list[edge[1]].add((edge[0], edge_weight + tail_weight))
       else:
         adj_list[edge[0]].add((edge[1], edge_weight))
         adj_list[edge[1]].add((edge[0], edge_weight))
