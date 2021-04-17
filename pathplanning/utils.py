@@ -192,7 +192,6 @@ def plot_adaptive_dijkstra(G,
   plt.show()
 
 
-
 def print_duration(start, end, process, time_type=None):
     """Prints the duration of a process.
 

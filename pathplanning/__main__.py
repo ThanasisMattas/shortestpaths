@@ -13,8 +13,7 @@
 
 import click
 
-from pathplanning import dijkstra
-from pathplanning import utils
+from pathplanning import graph_generator, replacement_paths, utils
 from pathplanning.utils import PythonLiteralOption
 
 
@@ -67,12 +66,12 @@ def main(num_nodes,
          save_graph):
 
   # 1. Preprocessing
-  adj_list, G = utils.random_graph(num_nodes=num_nodes,
-                                   weighted=weighted,
-                                   weights_on=weights_on,
-                                   max_edge_weight=max_edge_weight,
-                                   max_node_weight=max_node_weight,
-                                   random_seed=random_seed)
+  adj_list, G = graph_generator.random_graph(num_nodes=num_nodes,
+                                             weighted=weighted,
+                                             weights_on=weights_on,
+                                             max_edge_weight=max_edge_weight,
+                                             max_node_weight=max_node_weight,
+                                             random_seed=random_seed)
   disconnected_nodes = set(disconnected_nodes)
 
   # 2. Paths generation
@@ -83,15 +82,17 @@ def main(num_nodes,
   #  [path_2, path_2_cost, disconnected_nodes_2],
   #  ...
   # ]
-  paths_data = dijkstra.shortest_path(adj_list,
-                                      num_nodes,
-                                      start=1,
-                                      goal=num_nodes,
-                                      num_paths=num_paths,
-                                      saving_states=saving_states,
-                                      adapted_path=adapted_path,
-                                      disconnected_nodes=disconnected_nodes,
-                                      random_seed=random_seed)
+  paths_data = replacement_paths.shortest_path(
+    adj_list,
+    num_nodes,
+    start=1,
+    goal=num_nodes,
+    num_paths=num_paths,
+    saving_states=saving_states,
+    adapted_path=adapted_path,
+    disconnected_nodes=disconnected_nodes,
+    random_seed=random_seed
+  )
 
   # 3. Post-processing
   click.echo(f"disconnected nodes: {disconnected_nodes}")
