@@ -1,4 +1,4 @@
-# dijkstra.py is part of PathPlanning
+# replacement_paths.py is part of PathPlanning
 #
 # PathPlanning is free software; you may redistribute it and/or modify it
 # under the terms of the GNU General Public License as published by the
@@ -9,7 +9,16 @@
 #
 # (C) 2020 Athanasios Mattas
 # =======================================================================
-"""Implemantation of the Dijkstra's algorithm."""
+"""A bidirectional, dynamic and parallel algorithm for the replacement paths.
+
+Versions implemented:
+  - edge-exclusion
+  - node-exclusion
+  - on-line
+  - off-line
+
+Also, Yen's algorithm is implemented as a compare base algorithm.
+"""
 
 from collections import OrderedDict
 import copy
