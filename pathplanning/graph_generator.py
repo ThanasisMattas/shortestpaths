@@ -29,13 +29,9 @@ def _edge_weight_bias(edge, num_nodes) -> float:
     bias (float)    : takes values in [0, 1]
   """
   # Bias will be capped with one of [0.1, 0.2, ..., 1.0], depending on with bin
-  # it falls into.
-  bias_bins = [0.1 * i for i in range(1, 11)]
+  # it falls into, and then doubled.
   bias = abs(edge[0] - edge[1]) / num_nodes
-  for b in bias_bins:
-    if bias < b:
-      bias = b * 2
-      break
+  bias = (int(bias * 10) + 1) / 10 * 2
   return bias
 
 
