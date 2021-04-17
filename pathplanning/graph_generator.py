@@ -13,6 +13,7 @@
 Erdős–Rényi model.
 """
 
+from itertools import combinations
 import random
 
 import networkx as nx
