@@ -160,7 +160,7 @@ def random_graph(n,
                                  n,
                                  weight_mode,
                                  max_edge_weight,
-                                 random_seed)
+                                 bool(random_seed))
       if weight_mode in ["nodes", "edges-and-nodes"]:
         tail_weight = node_weights[edge[0]]
         head_weight = node_weights[edge[1]]
