@@ -37,13 +37,40 @@ def _edge_weight_bias(edge, n) -> float:
   return bias
 
 
-def _edge_probability(edge, n, gradient=2, center_factor=0.7) -> float:
-  """Evaluates the probability an edge exists by the proximity of its nodes.
+def _edge_probability(edge, n, **kwargs) -> float:
+  """Evaluates the probability an edge exists, by the "proximity" of its nodes.
 
-  The goal is to penalize distant edges. Hence, the curve goes quickly to 1:
-    - gradient > 1
-    - center > n / 2
+  This probability will be used to build the Gilbert version of the Erdős-Rényi
+  model.
+
+  This function, working as a low-pass filter, regulates how dense the graph
+  will be, to be used in different kinds of analysis. For visualization purpo-
+  ses, by forcing a more sparse graph, we will get shortest-paths with more
+  hops. For that reason, distant edges are penalized, by quickly driving the
+  sigmoid curve to 1. Hence, the attributes gradient and center regulate how
+  dense the random graph will be:
+
+    center  zero       n/2         n
+            ------------------------
+    graph   sparse   neutral   dense
+
+    gradient of the slope:
+      > 1
+        dense  -> slightly denser, adding the most distant edges
+        sparse -> almost same density, but the balance will be swifted towards
+                  the close edges
+      < 1
+        dense  -> slightly less dense, removing the most distant edges
+        sparse -> almost same density, but the balance will be swifted towards
+                  the distant edges
+
   Finally, the sigmoid distribution is inverted, by subtracting it from 1.
+
+
+                                 1
+                      -----------------------
+                           - grand (x - cent)
+                      1 + e
 
   1.0 |                               _ _ _ _ _
       |                           .
@@ -60,8 +87,10 @@ def _edge_probability(edge, n, gradient=2, center_factor=0.7) -> float:
   0.0 | _ _ _ _  .        :
       |___________________:_______________________
                         center   abs(head-tail) ->
-
   """
+  gradient = kwargs.pop("gradient", 2),
+  center_factor = kwargs.pop("center_factor", 0.3)
+
   center = center_factor * n
   sigmoid = 1 / (1 + math.exp(-gradient * (abs(edge[0] - edge[1]) - center)))
   return 1 - sigmoid
@@ -92,7 +121,8 @@ def random_graph(n,
                  weights_on="edges",
                  max_edge_weight=1000,
                  max_node_weight=1000,
-                 random_seed=None):
+                 random_seed=None,
+                 **kwargs):
   """Generates a n-nodes random graph, using the Erdős-Rényi model.
 
   The graph is represented by its adjacency list. NetworkX is used only for
@@ -153,7 +183,8 @@ def random_graph(n,
     # (This way, it is more realistic - edges of nearby nodes cost less - and
     # paths with too few nodes, that go straight to the sink, are avoided.)
     # Namely, distance (up) (down) edge_probability.
-    edge_probability = _edge_probability(edge, n)
+    edge_probability = _edge_probability(edge, n, *kwargs)
+
     random_probability = random.random()
     if edge_probability > random_probability:
       edge_weight = _edge_weight(edge,
