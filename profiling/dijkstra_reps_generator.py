@@ -15,7 +15,7 @@ from pathplanning import utils
 
 @click.command()
 @click.argument("num_graphs", type=click.INT)
-@click.argument("num_nodes", type=click.INT)
+@click.argument("n", type=click.INT, help="number of nodes")
 @click.option("--weighted/--no-weighted", default=True, show_default=True)
 @click.option("--weights-on", default="edges-and-nodes", show_default=True,
               type=click.Choice(["edges", "nodes", "edges-and-nodes"],
@@ -35,7 +35,7 @@ from pathplanning import utils
 @click.option('-s', "--seed", "random_seed", default=None, show_default=True,
               help="If provided, a fixed random graph will be generated")
 def main(num_graphs,
-         num_nodes,
+         n,
          weighted,
          weights_on,
          max_edge_weight,
@@ -47,8 +47,8 @@ def main(num_graphs,
 
   for i in range(num_graphs):
     print(f"graph #{i}")
-    num_nodes += bool(i) * 5
-    adj_list, G = utils.random_graph(num_nodes=num_nodes,
+    n += bool(i) * 5
+    adj_list, G = utils.random_graph(n=n,
                                      weighted=weighted,
                                      weights_on=weights_on,
                                      max_edge_weight=max_edge_weight,
@@ -56,9 +56,9 @@ def main(num_graphs,
                                      random_seed=i)
 
     paths_data = dijkstra.shortest_path(adj_list=adj_list,
-                                        num_nodes=num_nodes,
-                                        start=1,
-                                        goal=num_nodes,
+                                        n=n,
+                                        source=1,
+                                        sink=n,
                                         num_paths=num_paths,
                                         saving_states=saving_states,
                                         adapted_path=adapted_path,

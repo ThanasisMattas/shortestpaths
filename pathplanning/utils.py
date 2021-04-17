@@ -89,8 +89,8 @@ def plot_graph(G,
     nx.draw_networkx_nodes(G, pos=pos, nodelist=path[2], node_color=color,
                            node_shape='x', node_size=800, linewidths=3)
 
-  # Draw 'Start' & 'End' labels.
-  # labels = {paths_data[0][0][0]: "Start", paths_data[0][0][-1]: "End"}
+  # Draw 'source' & 'Sink' labels.
+  # labels = {paths_data[0][0][0]: "source", paths_data[0][0][-1]: "Sink"}
   # for node, (x, y) in pos.items():
   #   if node in labels.keys():
   #     plt.text(x + 50, y + 50, node, fontsize=14, ha='center', va='center')
@@ -174,8 +174,8 @@ def plot_adaptive_dijkstra(G,
     nx.draw_networkx_nodes(G, pos=pos, nodelist=path[2], node_color=color,
                            node_shape='x', node_size=800, linewidths=3)
 
-  # Draw 'Start' & 'End' labels.
-  # labels = {paths_data[0][0][0]: "Start", paths_data[0][0][-1]: "End"}
+  # Draw 'Source' & 'Sink' labels.
+  # labels = {paths_data[0][0][0]: "Source", paths_data[0][0][-1]: "Sink"}
   # for node, (x, y) in pos.items():
   #   if node in labels.keys():
   #     plt.text(x + 50, y + 50, node, fontsize=14, ha='center', va='center')
@@ -196,9 +196,9 @@ def print_duration(start, end, process, time_type=None):
     """Prints the duration of a process.
 
     Args:
-      start (float)    : the starting timestamp in seconds
-      end (float)      : the ending timestamp in seconds
-      process (string) : the process name
+      start (float)      : the starting timestamp in seconds
+      end (float)        : the ending timestamp in seconds
+      process (string)   : the process name
       time_type (string) : i.e. wall-clock, CPU or sys time (defaults to None)
     """
     if time_type is None:
@@ -280,7 +280,7 @@ class PythonLiteralOption(click.Option):
 def check_nodal_connection(nodes: Iterable,
                            adj_list: list,
                            disconnected_nodes: Iterable) -> Iterable:
-  """Checks for connection status of important nodes, i.e. start node and,
+  """Checks for connection status of important nodes, i.e. source node and,
   in case of a disconnected important node, it replaces it with the closest
   neighbor.
   """
@@ -296,29 +296,28 @@ def check_nodal_connection(nodes: Iterable,
   return nodes
 
 
-def extract_path(visited, start, goal, with_step_weights=False):
+def extract_path(visited, source, sink, with_step_weights=False):
   """Dijkstra's method saves the shortest path cost for each node of the graph,
   as well as its previous node on the path, so as to retrieve the path by
-  jumping through previous nodes, until the start node.
+  jumping through previous nodes, until the source node.
 
   Args:
-    visited (2D list)               : each entry is a 2-list,
-                                      [path_cost, prev_node_id]
-    start, goal (any hashable type) : the ids of start and goal nodes
-    with_step_weights (bool)        : - True : returns just the node_id's
-                                      - False: returns 2-lists:
-                                               (node_id, step_to_node_cost)
+    visited (2D list)        : each entry is a 2-list:[path_cost, prev_node_id]
+    source, sink (hashable)  : the ids of source and sink nodes
+    with_step_weights (bool) : - True : returns just the node_id's
+                               - False: returns 2-lists:
+                                        (node_id, step_to_node_cost)
 
   Returns:
-    path (list)                     : each entry is a node_id or a 2-list,
-                                      [node_id, edge-cost] (depending on the
-                                      with_step_weights argument), constituting
-                                      the consecutive nodes of the path.
+    path (list)              : each entry is a node_id or a 2-list,
+                               [node_id, edge-cost]
+                               depending on the with_step_weights argument,
+                               constituting the consecutive nodes of the path
   """
   # At this stage, edge costs are comulative.
-  path = [[goal, visited[goal][0]]]
-  node = goal
-  while node != start:
+  path = [[sink, visited[sink][0]]]
+  node = sink
+  while node != source:
     prev_node = visited[node][1]
     prev_node_cost = visited[prev_node][0]
     # Offset the cost of node with prev_node_cost, because the corresponding
@@ -326,10 +325,10 @@ def extract_path(visited, start, goal, with_step_weights=False):
     path[-1][1] -= prev_node_cost
     path.append([prev_node, prev_node_cost])
     if node == prev_node:
-      # raise Exception(f"Start node ({start}) is not connected to the"
-      #                 f" destination node ({goal}).")
-      warnings.warn(f"Start node ({start}) is not connected to the"
-                    f" destination node ({goal}).")
+      # raise Exception(f"source node ({source}) is not connected to the"
+      #                 f" destination node ({sink}).")
+      warnings.warn(f"source node ({source}) is not connected to the"
+                    f" destination node ({sink}).")
       return []
     node = prev_node
   path.reverse()

@@ -34,12 +34,12 @@ from pathplanning.utils import time_this
 sys.setrecursionlimit(1500)
 
 
-def _dijkstra_init(num_nodes, start):
+def _dijkstra_init(n, source):
   """Initializes the data structures that are used by Dijkstra's algorithm.
 
   Args:
-    num_nodes (int)
-    start (Hashable)
+    n (int)
+    source (Hashable)
 
   Returns:
     to_visit (PriorityQueue) : holds the data of the nodes not yet visited
@@ -65,17 +65,17 @@ def _dijkstra_init(num_nodes, start):
                                      [cost_to_node_n, prev_node_id_n]
                                    ]
   """
-  to_visit = [[math.inf, node, node] for node in range(1, num_nodes + 1)]
+  to_visit = [[math.inf, node, node] for node in range(1, n + 1)]
   to_visit = PriorityQueue(to_visit)
-  to_visit[start] = [0, start, start]
-  visited = [[0, None] for _ in range(num_nodes + 1)]
+  to_visit[source] = [0, source, source]
+  visited = [[0, None] for _ in range(n + 1)]
   return to_visit, visited
 
 
 # @profile
 def _dijkstra(adj_list,
               to_visit,
-              goal,
+              sink,
               visited,
               saving_states=True,
               dijkstra_states=None,
@@ -92,7 +92,7 @@ def _dijkstra(adj_list,
     to_visit (PriorityQueue)      : holds the nodes not yet visited by the
                                     algorithm, each entry is a list:
                                     [path_cost, prev_node_id, node_id]
-    goal (any hashable type)      : the goal node_id
+    sink (any hashable type)      : the sink node_id
     visited (2D list)             : each entry is a 2-list:
                                     [path_cost, prev_node_id]
     saving_states (bool)          : If true, the step-wise state of the algo-
@@ -138,7 +138,7 @@ def _dijkstra(adj_list,
     dijkstra_states[node_id] = (copy.deepcopy(to_visit),
                                 copy.deepcopy(visited))
 
-  if node_id == goal:
+  if node_id == sink:
     return visited, dijkstra_states
 
   # neighbor = (neighbor_id, weight)
@@ -159,7 +159,7 @@ def _dijkstra(adj_list,
 
   return _dijkstra(adj_list,
                    to_visit,
-                   goal,
+                   sink,
                    visited,
                    saving_states,
                    dijkstra_states,
@@ -173,8 +173,8 @@ def _alternative_paths(num_paths,
                        saving_states,
                        dijkstra_states,
                        adj_list,
-                       start,
-                       goal):
+                       source,
+                       sink):
   """Generates up to <num_paths> best alternative paths, disregarding the most
   weightful nodes.
 
@@ -186,7 +186,7 @@ def _alternative_paths(num_paths,
   paths_data = [[path_nodes, path_cost, []]]
 
   # Uncomment to sort the path nodes by cost, descending.
-  # (Exclude the start and goal nodes, because they will not be avoided.)
+  # (Exclude the source and sink nodes, because they will not be avoided.)
   # sorted_path_by_edge_cost = sorted(path[1: -1],
   #                                   key=itemgetter(1),
   #                                   reverse=True)
@@ -205,17 +205,17 @@ def _alternative_paths(num_paths,
       # Continue with the algorithm execution
       new_dijkstra_output, _ = _dijkstra(adj_list,
                                          to_visit,
-                                         goal,
+                                         sink,
                                          visited,
                                          saving_states=False,
                                          avoided_nodes=[node[0]])
-      new_path = utils.extract_path(new_dijkstra_output, start, goal)
-      new_path_cost = new_dijkstra_output[goal][0]
+      new_path = utils.extract_path(new_dijkstra_output, source, sink)
+      new_path_cost = new_dijkstra_output[sink][0]
       if new_path:
         paths_data.append([new_path, new_path_cost, [node[0]]])
   else:
     # Build a new PriorityQueue and a new output list
-    to_visit, visited = _dijkstra_init(len(adj_list) - 1, start)
+    to_visit, visited = _dijkstra_init(len(adj_list) - 1, source)
 
     for node in path[1: -1]:
       # Disconnect the node
@@ -240,11 +240,11 @@ def _alternative_paths(num_paths,
 
       new_dijkstra_output, _ = _dijkstra(new_adj_list,
                                          new_to_visit,
-                                         goal,
+                                         sink,
                                          copy.deepcopy(visited),
                                          saving_states)
-      new_path = utils.extract_path(new_dijkstra_output, start, goal)
-      new_path_cost = new_dijkstra_output[goal][0]
+      new_path = utils.extract_path(new_dijkstra_output, source, sink)
+      new_path_cost = new_dijkstra_output[sink][0]
       if new_path:
         paths_data.append([new_path, new_path_cost, [node[0]]])
 
@@ -261,8 +261,8 @@ def _adapted_path(path,
                   saving_states,
                   dijkstra_states,
                   adj_list,
-                  start,
-                  goal,
+                  source,
+                  sink,
                   disconnected_nodes=[],
                   random_seed=None):
   if isinstance(path[0], (list, tuple)):
@@ -270,16 +270,16 @@ def _adapted_path(path,
   paths_data = [[path, path_cost, []]]
 
   # In case of disconnected_nodes are not provided, pick a random node towards
-  # the end of the path.
+  # the sink.
   if not disconnected_nodes:
     random.seed(random_seed)
     disconnected_nodes = [
       path[random.randrange(len(path) // 2, len(path) - 1)]
     ]
 
-  [start, goal] = utils.check_nodal_connection([start, goal],
-                                               adj_list,
-                                               disconnected_nodes)
+  [source, sink] = utils.check_nodal_connection([source, sink],
+                                                adj_list,
+                                                disconnected_nodes)
 
   if saving_states:
     visited_nodes = list(dijkstra_states.keys())
@@ -294,7 +294,7 @@ def _adapted_path(path,
     del to_visit[disconnected_nodes]
   else:
     # Build a new PriorityQueue
-    to_visit, visited = _dijkstra_init(len(adj_list), start)
+    to_visit, visited = _dijkstra_init(len(adj_list), source)
     visited_nodes = None
     checkpoint_node = None
 
@@ -304,13 +304,13 @@ def _adapted_path(path,
   # Continue with the algorithm execution
   new_dijkstra_output, _ = _dijkstra(adj_list,
                                      to_visit,
-                                     goal,
+                                     sink,
                                      visited,
                                      saving_states=False,
                                      avoided_nodes=disconnected_nodes)
 
-  new_path = utils.extract_path(new_dijkstra_output, start, goal)
-  new_path_cost = new_dijkstra_output[goal][0]
+  new_path = utils.extract_path(new_dijkstra_output, source, sink)
+  new_path_cost = new_dijkstra_output[sink][0]
   if new_path:
     paths_data.append([new_path, new_path_cost, disconnected_nodes])
 
@@ -319,22 +319,22 @@ def _adapted_path(path,
 
 @time_this
 def shortest_path(adj_list,
-                  num_nodes,
-                  start,
-                  goal,
+                  n,
+                  source,
+                  sink,
                   num_paths=1,
                   saving_states=True,
                   adapted_path=False,
                   disconnected_nodes=[],
                   random_seed=None):
-  """Finds the shortest path from start to goal, using the Dijkstra's algorithm
+  """Finds the shortest path from source to sink, using the Dijkstra's algorithm
 
   Args:
     adj_list (list)                 : each entry is a list of 2-tuples for the
                                       neighbors of the corresponding node:
                                       (neighbor, weight)
-    num_nodes (int)                 : the number of nodes
-    start, goal (any hashable type) : the start and the goal nodes
+    n (int)                 : the number of nodes
+    source, sink (any hashable type) : the source and the sink nodes
     num_paths (int)                 : number of alternative paths to generate
                                       (defaults to 1)
     disconnected_nodes (list)       : (defaults to [])
@@ -353,18 +353,18 @@ def shortest_path(adj_list,
   # node not yet expanded, as well as its previous node, and the output list,
   # holding the found shortest path cost for each expanded node, as well as its
   # previous node in the path.
-  to_visit, visited = _dijkstra_init(num_nodes, start)
+  to_visit, visited = _dijkstra_init(n, source)
 
   # Find the absolute shortest path.
   visited, dijkstra_states = _dijkstra(adj_list,
                                        to_visit,
-                                       goal,
+                                       sink,
                                        visited,
                                        saving_states)
-  path_cost = visited[goal][0]
+  path_cost = visited[sink][0]
   path = utils.extract_path(visited,
-                            start,
-                            goal,
+                            source,
+                            sink,
                             with_step_weights=True)
 
   if adapted_path:
@@ -374,8 +374,8 @@ def shortest_path(adj_list,
                       saving_states,
                       dijkstra_states,
                       adj_list,
-                      start,
-                      goal,
+                      source,
+                      sink,
                       disconnected_nodes,
                       random_seed)
   else:
@@ -386,8 +386,8 @@ def shortest_path(adj_list,
                                       saving_states,
                                       dijkstra_states,
                                       adj_list,
-                                      start,
-                                      goal)
+                                      source,
+                                      sink)
     else:
       paths_data = [[list(list(zip(*path))[0]), path_cost, []]]
 

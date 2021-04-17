@@ -18,7 +18,7 @@ from pathplanning.utils import PythonLiteralOption
 
 
 @click.command()
-@click.argument("num_nodes", type=click.INT)
+@click.argument("n", type=click.INT, help="number of nodes")
 @click.option("--weighted/--no-weighted", default=True, show_default=True)
 @click.option("--weights-on", default="edges-and-nodes", show_default=True,
               type=click.Choice(["edges", "nodes", "edges-and-nodes"],
@@ -51,7 +51,7 @@ from pathplanning.utils import PythonLiteralOption
               help="Fixes the random initialization of the spirng_layout.")
 @click.option("--show-graph/--no-show-graph", default=True, show_default=True)
 @click.option("--save-graph/--no-save-graph", default=False, show_default=True)
-def main(num_nodes,
+def main(n,
          weighted,
          weights_on,
          max_edge_weight,
@@ -66,7 +66,7 @@ def main(num_nodes,
          save_graph):
 
   # 1. Preprocessing
-  adj_list, G = graph_generator.random_graph(num_nodes=num_nodes,
+  adj_list, G = graph_generator.random_graph(n=n,
                                              weighted=weighted,
                                              weights_on=weights_on,
                                              max_edge_weight=max_edge_weight,
@@ -84,9 +84,9 @@ def main(num_nodes,
   # ]
   paths_data = replacement_paths.shortest_path(
     adj_list,
-    num_nodes,
-    start=1,
-    goal=num_nodes,
+    n,
+    source=1,
+    sink=n,
     num_paths=num_paths,
     saving_states=saving_states,
     adapted_path=adapted_path,

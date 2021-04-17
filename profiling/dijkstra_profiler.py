@@ -34,9 +34,9 @@ def _clear(tool, dijkstra_options):
 @click.option("--num-nodes", type=click.INT, default=500, show_default=True)
 @click.option("--clear/--no-clear", default=False, show_default=True)
 @time_this(wall_clock=True)
-def main(tool, num_graphs, num_nodes, clear):
+def main(tool, num_graphs, n, clear):
   NUM_GRAPHS = num_graphs
-  NUM_NODES = num_nodes
+  N = n
 
   dijkstra_options = {"original": "--adapted-path --no-saving-states",
                       "adaptive": "--adapted-path --saving-states"}
@@ -56,7 +56,7 @@ def main(tool, num_graphs, num_nodes, clear):
       f"valgrind --tool={tool} {tool_options[tool]} "
       f"--{tool}-out-file={mode}_{tool}.txt "
       f"--log-file={mode}_{tool}.log "
-      f"python dijkstra_reps_generator.py {options} {NUM_GRAPHS} {NUM_NODES}"
+      f"python dijkstra_reps_generator.py {options} {NUM_GRAPHS} {N}"
     )
     subprocess.run(cmd.split())
     print()
@@ -101,7 +101,7 @@ def main(tool, num_graphs, num_nodes, clear):
         "------------------------------------------------------------\n"
         "\n"
         f"#graphs : {NUM_GRAPHS}\n"
-        f"#nodes  : {NUM_NODES}\n"
+        f"#nodes  : {N}\n"
         "\n"
         f"Dijkstra's algorithm          : {net_cc_original} cycles\n"
         f"Adaptive Dijkstra's algorithm : {net_cc_adaptive} cycles\n"

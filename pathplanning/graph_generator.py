@@ -19,25 +19,25 @@ import random
 import networkx as nx
 
 
-def _edge_weight_bias(edge, num_nodes) -> float:
+def _edge_weight_bias(edge, n) -> float:
   """Penalizes edges that connect distant nodes.
 
   Args:
     edge (tuple)    : (tail, head)
-    num_nodes (int) : used for normalization to 1
+    n (int) : used for normalization to 1
 
   Returns:
     bias (float)    : takes values in [0, 1]
   """
   # Bias will be capped with one of [0.1, 0.2, ..., 1.0], depending on with bin
   # it falls into, and then doubled.
-  bias = abs(edge[0] - edge[1]) / num_nodes
+  bias = abs(edge[0] - edge[1]) / n
   bias = (int(bias * 10) + 1) / 10 * 2
   return bias
 
 
 def _edge_weight(edge,
-                 num_nodes,
+                 n,
                  weight_mode,
                  max_edge_weight,
                  edgewise_consistent_seed=True):
@@ -46,7 +46,7 @@ def _edge_weight(edge,
     if edgewise_consistent_seed:
       # All edges will have consistent yet different seed.
       random.seed(edge[0] ** 2 + edge[1] ** 2 + edge[1])
-    bias = _edge_weight_bias(edge, num_nodes)
+    bias = _edge_weight_bias(edge, n)
     return round(bias * random.randint(0, max_edge_weight))
   elif weight_mode == "nodes":
     return 0
@@ -56,38 +56,39 @@ def _edge_weight(edge,
     raise Exception(f"Unknown weight-mode: {weight_mode}")
 
 
-def random_graph(num_nodes,
+def random_graph(n,
                  weighted=True,
                  weights_on="edges",
                  max_edge_weight=1000,
                  max_node_weight=1000,
                  random_seed=None):
-  """Generates a random graph of <num_nodes>, using the Erdős-Rényi model.
+  """Generates a n-nodes random graph, using the Erdős-Rényi model.
 
   The graph is represented by its adjacency list. NetworkX is used only for
   plotting.
 
   NOTE:
     When nodes are weighted:
-    1. The weight that each neighbor holds at the
-       adjacency list (the edge weight) is increased by by its node-weight.
-       Whereas this holds true in the case of the adjacency list, it is not
-       correct when adding the weighted edges to the nx.Graph object, but
-       that's ok, because the nx.Graph object is used only for plotting.
-    2. The undirected, simple graph is converted to a directed multigraph,
-       since each undirected edge breaks into two with opposite directions
+    1. The weight that each neighbor holds at the adjacency list (the edge we-
+       ight) is increased by by its node-weight. Whereas this holds true for
+       the adjacency list, it is not correct when adding the weighted edges to
+       the nx.Graph object, but that's ok, because the nx.Graph object is used
+       only for plotting.
+    2. The undirected, simple graph is converted to a directed multigraph, sin-
+       ce each undirected edge breaks into two edges with opposite directions
        and different weights. Namely,
 
                    {a, b}, weight_a, weight_b, weight_edge
-                                 becomes
-                     (a, b), weight_edge + weight_b &
+                                becomes
+                     (a, b), weight_edge + weight_b
+                                   &
                      (b, a), weight_edge + weight_a
 
-       This way each edge is related to one value, instead of three, hence
-       the Dijkstra's algorithm can operate without modifications.
+       This way each edge is related to one value, instead of three, therefore
+       Dijkstra's algorithm can operate without modifications.
 
   Args:
-    num_nodes (int)       : number of nodes
+    n (int)               : number of nodes
     weighted (bool)       : defaults to True
     weights_on (string)   : 'edges', 'nodes' or 'edges-and-nodes'
     max_edge_weight (int) : each edge has a random weight from 0 to
@@ -105,26 +106,27 @@ def random_graph(num_nodes,
   weight_mode = "unweighted" if not weighted else weights_on
   random.seed(random_seed)
 
-  nodes = list(range(1, num_nodes + 1))
-  # edges is used only for the graph visualization via networkx
+  nodes = list(range(1, n + 1))
+  # edges is used only for the graph visualization via NetworkX.
   edges = set()
-  adj_list = [set() for _ in range(num_nodes + 1)]
+  adj_list = [set() for _ in range(n + 1)]
 
   if weight_mode in ["nodes", "edges-and-nodes"]:
-    node_weights = random.choices(range(max_node_weight + 1), k=num_nodes + 1)
+    node_weights = random.choices(range(max_node_weight + 1), k=n + 1)
 
-  # Iterate through all possible edges and randomly deside which to keep.
+  # Iterate through all possible edges, randomly weight them and randomly desi-
+  # de which to keep.
   for edge in combinations(nodes, 2):
     # The closer the nodes are, the more probable it is that they are connected
-    # with an edge and the edge-weight is lower. (This way, it is more
-    # realistic - edges of nearby nodes cost less - and paths with too few
-    # nodes, that go straight to the end, are avoided.)
+    # with an edge and the edge-weight is lower.
+    # (This way, it is more realistic - edges of nearby nodes cost less - and
+    # paths with too few nodes, that go straight to the sink, are avoided.)
     # Namely, distance (up) (down) edge_probability.
-    edge_probability = max(0, 1 - abs(edge[0] - edge[1]) / num_nodes - 0.6)
+    edge_probability = max(0, 1 - abs(edge[0] - edge[1]) / n - 0.6)
     random_probability = random.random()
     if edge_probability > random_probability:
       edge_weight = _edge_weight(edge,
-                                 num_nodes,
+                                 n,
                                  weight_mode,
                                  max_edge_weight,
                                  random_seed)
