@@ -50,7 +50,7 @@ def _edge_weight(edge,
     return round(bias * random.randint(0, max_edge_weight))
   elif weight_mode == "nodes":
     return 0
-  elif weight_mode == "not-weighted":
+  elif weight_mode == "unweighted":
     return 1
   else:
     raise Exception(f"Unknown weight-mode: {weight_mode}")
@@ -102,7 +102,7 @@ def random_graph(num_nodes,
                             of the neighbors of each node
     G (Graph)             : used to plot the graph
   """
-  weight_mode = "not-weighted" if not weighted else weights_on
+  weight_mode = "unweighted" if not weighted else weights_on
   random.seed(random_seed)
 
   nodes = list(range(1, num_nodes + 1))
