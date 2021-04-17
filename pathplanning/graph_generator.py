@@ -10,7 +10,7 @@
 # (C) 2020 Athanasios Mattas
 # =======================================================================
 """Generates a pseudo-random graph, using a modified Gilbert version of the
-Erdős–Rényi model.
+Erdős-Rényi model.
 """
 
 from itertools import combinations
@@ -40,20 +40,18 @@ def _edge_weight(edge,
                  num_nodes,
                  weight_mode,
                  max_edge_weight,
-                 random_seed=None):
-  """Calculates a relative to the proximity of the nodes ranodm edge weight."""
-  bias = _edge_weight_bias(edge, num_nodes)
-
-  if random_seed is not None:
-    # Almost all edges will have consistent yet different form each other seed.
-    random.seed(sum(edge))
-
-  if weight_mode == "not-weighted":
-    return 1
-  elif weight_mode in ["edges", "edges-and-nodes"]:
+                 edgewise_consistent_seed=True):
+  """Calculates a relative to the proximity of the nodes random edge weight."""
+  if weight_mode in ["edges", "edges-and-nodes"]:
+    if edgewise_consistent_seed:
+      # All edges will have consistent yet different seed.
+      random.seed(edge[0] ** 2 + edge[1] ** 2 + edge[1])
+    bias = _edge_weight_bias(edge, num_nodes)
     return round(bias * random.randint(0, max_edge_weight))
-  elif weight_mode in ["nodes", "edges-and-nodes"]:
+  elif weight_mode == "nodes":
     return 0
+  elif weight_mode == "not-weighted":
+    return 1
   else:
     raise Exception(f"Unknown weight-mode: {weight_mode}")
 
@@ -64,7 +62,7 @@ def random_graph(num_nodes,
                  max_edge_weight=1000,
                  max_node_weight=1000,
                  random_seed=None):
-  """Generates a random graph of <num_nodes>, using the Erdős–Rényi model.
+  """Generates a random graph of <num_nodes>, using the Erdős-Rényi model.
 
   The graph is represented by its adjacency list. NetworkX is used only for
   plotting.
