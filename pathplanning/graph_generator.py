@@ -1,4 +1,4 @@
-# graph_geenrator.py is part of PathPlanning
+# graph_generator.py is part of PathPlanning
 #
 # PathPlanning is free software; you may redistribute it and/or modify it
 # under the terms of the GNU General Public License as published by the
