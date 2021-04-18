@@ -127,43 +127,57 @@ def check_nodal_connection(nodes: Iterable,
   return nodes
 
 
-def extract_path(visited, source, sink, with_step_weights=False):
-  """Dijkstra's method saves the shortest path cost for each node of the graph,
+def extract_path(visited, source, sink, with_hop_weights=False):
+  """Extracts the shortest-path from a Dijkstra's algorithm output.
+
+  Dijkstra's algorithm saves the shortest path cost for each node of the graph,
   as well as its previous node on the path, so as to retrieve the path by
   jumping through previous nodes, until the source node.
 
   Args:
-    visited (2D list)        : each entry is a 2-list:[path_cost, prev_node_id]
+    visited (2D list)        : each entry is a 2-list:
+                               [path_cost, prev_node_id]
     source, sink (hashable)  : the ids of source and sink nodes
-    with_step_weights (bool) : - True : returns just the node_id's
+    with_hop_weights (bool)  : - True : returns just the node_id's
                                - False: returns 2-lists:
-                                        (node_id, step_to_node_cost)
+                                        (node_id, hop_cost)
 
   Returns:
-    path (list)              : each entry is a node_id or a 2-list,
-                               [node_id, edge-cost]
-                               depending on the with_step_weights argument,
-                               constituting the consecutive nodes of the path
+    path (list)              : if with_hop_weights:
+                                 each entry is a 2-list,
+                                 [node_id, edge-cost]
+                               else:
+                                 list of the consecutive nodes in the path
   """
-  # At this stage, edge costs are comulative.
-  path = [[sink, visited[sink][0]]]
-  node = sink
-  while node != source:
-    prev_node = visited[node][1]
-    prev_node_cost = visited[prev_node][0]
-    # Offset the cost of node with prev_node_cost, because the corresponding
-    # costs are comulative and not edge-costs.
-    path[-1][1] -= prev_node_cost
-    path.append([prev_node, prev_node_cost])
-    if node == prev_node:
-      # raise Exception(f"source node ({source}) is not connected to the"
-      #                 f" destination node ({sink}).")
-      warnings.warn(f"source node ({source}) is not connected to the"
-                    f" destination node ({sink}).")
-      return []
-    node = prev_node
-  path.reverse()
+  if with_hop_weights:
+    path = [[sink, visited[sink][0]]]
+    node = sink
+    while node != source:
+      prev_node = visited[node][1]
+      prev_node_cost = visited[prev_node][0]
+      # The corresponding costs are path-costs. In order to get the hop-cost, we
+      # have to offset with the path-cost of the previous node in the path.
+      path[-1][1] -= prev_node_cost
+      path.append([prev_node, prev_node_cost])
+      if node == prev_node:
+        # Some node/edge failures may disconnect the graph. This can be dete-
+        # cted because at initialization prev_node_id is set to node_id. In
+        # that case, a warning is printed and we move to the next path, if any.
+        warnings.warn(f"The source ({source}) is not connected to the sink"
+                      f" ({sink}).")
+        return []
+      node = prev_node
+  else:
+    path = [sink]
+    node = sink
+    while node != source:
+      prev_node = visited[node][1]
+      path.append(prev_node)
+      if node == prev_node:
+        warnings.warn(f"The source ({source}) is not connected to the sink"
+                      f" ({sink}).")
+        return []
+      node = prev_node
 
-  if not with_step_weights:
-    path = list(list(zip(*path))[0])
+  path.reverse()
   return path
