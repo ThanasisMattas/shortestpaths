@@ -1,14 +1,14 @@
-# priorityq_test.py is part of PathPlanning
+# priorityq_test.py is part of ShortestPaths
 #
-# PathPlanning is free software; you may redistribute it and/or modify it
-# under the terms of the GNU General Public License as published by the
-# Free Software Foundation, either version 3 of the License, or (at your
-# option) any later version. You should have received a copy of the GNU
-# General Public License along with this program. If not, see
+# ShortestPaths is free software; you may redistribute it and/or modify it
+# under the terms of the GNU General Public License as published by the Free
+# Software Foundation, either version 3 of the License, or (at your option)
+# any later version. You should have received a copy of the GNU General Pu-
+# blic License along with this program. If not, see
 # <https://www.gnu.org/licenses/>.
 #
 # (C) 2020 Athanasios Mattas
-# =======================================================================
+# ==========================================================================
 """Houses all the tests for the priorityq module."""
 
 import copy
@@ -16,7 +16,7 @@ from operator import itemgetter
 
 import pytest
 
-from pathplanning.priorityq import PriorityQueue
+from shortestpaths.priorityq import PriorityQueue
 
 
 class TestPriorityQueue():
@@ -126,6 +126,12 @@ class TestPriorityQueue():
     while self.pq:
       self.pq.pop_low()
     assert self.pq.empty()
+
+  def test_peek(self):
+    entry = self.pq.peek()
+    assert entry == [1, 8, 9]
+    assert entry == self.pq[9]
+    assert len(self.pq) == self.length
 
   def test_iter(self):
     data = iter(sorted(self.data, key=itemgetter(0, 1, 2)))

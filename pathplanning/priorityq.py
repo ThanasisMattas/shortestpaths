@@ -1,14 +1,14 @@
-# priorityq.py is part of PathPlanning
+# priorityq.py is part of ShortestPaths
 #
-# PathPlanning is free software; you may redistribute it and/or modify it
-# under the terms of the GNU General Public License as published by the
-# Free Software Foundation, either version 3 of the License, or (at your
-# option) any later version. You should have received a copy of the GNU
-# General Public License along with this program. If not, see
+# ShortestPaths is free software; you may redistribute it and/or modify it
+# under the terms of the GNU General Public License as published by the Free
+# Software Foundation, either version 3 of the License, or (at your option)
+# any later version. You should have received a copy of the GNU General Pu-
+# blic License along with this program. If not, see
 # <https://www.gnu.org/licenses/>.
 #
 # (C) 2020 Athanasios Mattas
-# =======================================================================
+# ==========================================================================
 """Implementation of the priority queue data structure."""
 
 import copy
@@ -162,7 +162,15 @@ class PriorityQueue:
     raise KeyError("trying to pop from an empty priority queue")
 
   def pop_high(self):
-    pass
+    raise NotImplementedError()
+
+  def peek(self):
+    for entry in self._heapq:
+      if entry[-1] is not self._REMOVED:
+        entry_without_counter = copy.deepcopy(entry)
+        del entry_without_counter[-3]
+        return entry_without_counter
+    raise ValueError(f"The PriorityQueue {self} is empty.")
 
   def __iter__(self):
     heapq_ = copy.deepcopy(self._heapq)
