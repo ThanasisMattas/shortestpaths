@@ -26,7 +26,7 @@ from shortestpaths import core, graph_generator, post_processing
 
 @click.group(invoke_without_command=True)
 @click.pass_context
-@click.argument("n", type=click.INT, help="number of nodes")
+@click.argument("n", type=click.INT)
 @click.option("--unweighted", "weighted", is_flag=True,
               default=True, show_default="weighted")
 @click.option("--weights-on", default="edges-and-nodes", show_default=True,
