@@ -66,22 +66,9 @@ def dijkstra_init(n: int, source: Hashable):
 
 
 # @profile
-def _relax_path_cost(neighbor, to_visit, u, u_path_cost, failed_nodes):
-  v, v_weight = neighbor
-
-  # if iterable(failed_nodes):
-  if hasattr(failed_nodes, '__iter__'):
-    if v in failed_nodes:
-      return
-  else:
-    if v == failed_nodes:
-      return
-
-  if v in to_visit:
-    old_path_to_v_cost = to_visit[v][0]
-    new_path_to_v_cost = u_path_cost + v_weight
-    if new_path_to_v_cost < old_path_to_v_cost:
-      to_visit[v] = [new_path_to_v_cost, u, v]
+def _relax_path_cost(v, uv_weight, to_visit, u, u_path_cost):
+  if u_path_cost + uv_weight < to_visit[v][0]:
+    to_visit[v] = [u_path_cost + uv_weight, u, v]
 
 
 def _invert_adj_list(adj_list):
@@ -148,8 +135,9 @@ def dijkstra(adj_list,
       return visited, tape
 
     # v is the neighbor id
-    for neighbor in adj_list[u]:
-      _relax_path_cost(neighbor, to_visit, u, u_path_cost, failed_nodes)
+    for v, uv_weight in adj_list[u]:
+      if v in to_visit:
+        _relax_path_cost(v, uv_weight, to_visit, u, u_path_cost)
 
   return visited, tape
 
@@ -189,6 +177,10 @@ def biderectional_dijkstra_branch(adj_list: list,
                                {node_id: (to_visit, visited)}
                                using as key the id of the expanded node
   """
+
+  if not hasattr(failed_nodes, '__iter__'):
+    failed_nodes = [failed_nodes]
+
   while to_visit:
     u_path_cost, u_prev, u = to_visit.pop_low()
 
@@ -211,8 +203,14 @@ def biderectional_dijkstra_branch(adj_list: list,
     both_visited[u] = 1
 
     # v is the neighbor id
-    for neighbor in adj_list[u]:
-      _relax_path_cost(neighbor, to_visit, u, u_path_cost, failed_nodes)
+    for v, uv_weight in adj_list[u]:
+      # if both_visited[neighbor[0]]:
+
+      if v in failed_nodes:
+        continue
+
+      if v in to_visit:
+        _relax_path_cost(v, uv_weight, to_visit, u, u_path_cost)
 
   queue.put(visited)
 
