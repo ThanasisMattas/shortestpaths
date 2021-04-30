@@ -9,8 +9,7 @@ sys.path.insert(0, home_dir)
 
 import click
 
-from pathplanning import dijkstra
-from pathplanning import utils
+from shortestpaths import dijkstra, utils
 
 
 @click.command()

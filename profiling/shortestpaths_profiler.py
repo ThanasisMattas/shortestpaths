@@ -9,14 +9,14 @@ sys.path.insert(0, home_dir)
 
 import click
 
-from pathplanning.utils import time_this
+from shortestpaths.utils import time_this
 
 
 def _clear(tool, dijkstra_options):
   """Clears output files from pervious runs.
 
   usage:
-    $ python dijkstra_profiler --tool=<tool> --clear
+    $ python shortestpaths_profiler --tool=<tool> --clear
   """
   for mode in dijkstra_options.keys():
     input(f"Clearing {tool} output. Press ENTER to proceed...")
@@ -56,7 +56,7 @@ def main(tool, num_graphs, n, clear):
       f"valgrind --tool={tool} {tool_options[tool]} "
       f"--{tool}-out-file={mode}_{tool}.txt "
       f"--log-file={mode}_{tool}.log "
-      f"python dijkstra_reps_generator.py {options} {NUM_GRAPHS} {N}"
+      f"python shortestpaths_reps.py {options} {NUM_GRAPHS} {N}"
     )
     subprocess.run(cmd.split())
     print()

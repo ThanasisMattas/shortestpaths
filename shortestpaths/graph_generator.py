@@ -1,14 +1,14 @@
-# graph_generator.py is part of PathPlanning
+# graph_generator.py is part of ShortestPaths
 #
-# PathPlanning is free software; you may redistribute it and/or modify it
-# under the terms of the GNU General Public License as published by the
-# Free Software Foundation, either version 3 of the License, or (at your
-# option) any later version. You should have received a copy of the GNU
-# General Public License along with this program. If not, see
+# ShortestPaths is free software; you may redistribute it and/or modify it
+# under the terms of the GNU General Public License as published by the Free
+# Software Foundation, either version 3 of the License, or (at your option)
+# any later version. You should have received a copy of the GNU General Pu-
+# blic License along with this program. If not, see
 # <https://www.gnu.org/licenses/>.
 #
 # (C) 2020 Athanasios Mattas
-# =======================================================================
+# ==========================================================================
 """Generates a pseudo-random graph, using a modified Gilbert version of the
 Erdős-Rényi model.
 """
@@ -37,7 +37,10 @@ def _edge_weight_bias(edge, n) -> float:
   return bias
 
 
-def _edge_probability(edge, n, **kwargs) -> float:
+def _edge_probability(edge,
+                      gradient=1,
+                      center=None,
+                      offset=0.7) -> float:
   """Evaluates the probability an edge exists, by the "proximity" of its nodes.
 
   This probability will be used to build the Gilbert version of the Erdős-Rényi
@@ -47,24 +50,27 @@ def _edge_probability(edge, n, **kwargs) -> float:
   will be, to be used in different kinds of analysis. For visualization purpo-
   ses, by forcing a more sparse graph, we will get shortest-paths with more
   hops. For that reason, distant edges are penalized, by quickly driving the
-  sigmoid curve to 1. Hence, the attributes gradient and center regulate how
-  dense the random graph will be:
+  sigmoid curve to 1. Hence, the attributes gradient, center and offset regula-
+  te how dense the random graph will be:
 
-    center  zero       n/2         n
-            ------------------------
-    graph   sparse   neutral   dense
+    * center:
+        center  zero       n/2         n
+                ------------------------
+        graph   sparse   neutral   dense
+    * gradient:
+        > 1
+          dense  -> slightly denser, adding the most distant edges
+          sparse -> almost same density, but the balance will be swifted towards
+                    the close edges
+        < 1
+          dense  -> slightly less dense, removing the most distant edges
+          sparse -> almost same density, but the balance will be swifted towards
+                    the distant edges
+    * offset:
+        offest (up) (up) sparsity
 
-    gradient of the slope:
-      > 1
-        dense  -> slightly denser, adding the most distant edges
-        sparse -> almost same density, but the balance will be swifted towards
-                  the close edges
-      < 1
-        dense  -> slightly less dense, removing the most distant edges
-        sparse -> almost same density, but the balance will be swifted towards
-                  the distant edges
-
-  Finally, the sigmoid distribution is inverted, by subtracting it from 1.
+  Note that the sigmoid distribution is inverted, by subtracting it from 1, to
+  shift the lower probability to distant edges.
 
 
                                  1
@@ -88,26 +94,23 @@ def _edge_probability(edge, n, **kwargs) -> float:
       |___________________:_______________________
                         center   abs(head-tail) ->
   """
-  gradient = kwargs.pop("gradient", 2),
-  center_factor = kwargs.pop("center_factor", 0.3)
-
-  center = center_factor * n
-  sigmoid = 1 / (1 + math.exp(-gradient * (abs(edge[0] - edge[1]) - center)))
-  return 1 - sigmoid
+  exponent = -gradient * (abs(edge[0] - edge[1]) - center)
+  if abs(exponent) >= 4:
+    # sigmoid = 0
+    return 1 - offset
+  else:
+    sigmoid = 1 / (1 + math.exp(exponent))
+    return 1 - sigmoid - offset
 
 
 def _edge_weight(edge,
                  n,
                  weight_mode,
-                 max_edge_weight,
-                 edgewise_consistent_seed=True):
+                 edge_initial_weight):
   """Calculates a relative to the proximity of the nodes random edge weight."""
   if weight_mode in ["edges", "edges-and-nodes"]:
-    if edgewise_consistent_seed:
-      # All edges will have consistent yet different seed.
-      random.seed(edge[0] ** 2 + edge[1] ** 2 + edge[1])
     bias = _edge_weight_bias(edge, n)
-    return round(bias * random.randint(0, max_edge_weight))
+    return round(bias * edge_initial_weight)
   elif weight_mode == "nodes":
     return 0
   elif weight_mode == "unweighted":
@@ -116,6 +119,10 @@ def _edge_weight(edge,
     raise Exception(f"Unknown weight-mode: {weight_mode}")
 
 
+from shortestpaths.utils import time_this
+
+
+@time_this
 def random_graph(n,
                  weighted=True,
                  weights_on="edges",
@@ -139,7 +146,7 @@ def random_graph(n,
        ce each undirected edge breaks into two edges with opposite directions
        and different weights. Namely,
 
-                   {a, b}, weight_a, weight_b, weight_edge
+                 {a, b}, weight_a, weight_b, weight_edge
                                 becomes
                      (a, b), weight_edge + weight_b
                                    &
@@ -174,24 +181,30 @@ def random_graph(n,
 
   if weight_mode in ["nodes", "edges-and-nodes"]:
     node_weights = random.choices(range(max_node_weight + 1), k=n + 1)
+  edge_weights = random.choices(range(max_edge_weight + 1), k=n * (n - 1) // 2)
+  center_factor = 0.4
+  center = center_factor * n
 
   # Iterate through all possible edges, randomly weight them and randomly desi-
   # de which to keep.
-  for edge in combinations(nodes, 2):
+  for i, edge in enumerate(combinations(nodes, 2)):
     # The closer the nodes are, the more probable it is that they are connected
     # with an edge and the edge-weight is lower.
     # (This way, it is more realistic - edges of nearby nodes cost less - and
     # paths with too few nodes, that go straight to the sink, are avoided.)
     # Namely, distance (up) (down) edge_probability.
-    edge_probability = _edge_probability(edge, n, *kwargs)
+    edge_probability = _edge_probability(edge,
+                                         gradient=1,
+                                         center=center,
+                                         offset=0.7)
+    edge_initial_weight = edge_weights[i]
 
     random_probability = random.random()
     if edge_probability > random_probability:
       edge_weight = _edge_weight(edge,
                                  n,
                                  weight_mode,
-                                 max_edge_weight,
-                                 bool(random_seed))
+                                 edge_initial_weight)
       if weight_mode in ["nodes", "edges-and-nodes"]:
         tail_weight = node_weights[edge[0]]
         head_weight = node_weights[edge[1]]

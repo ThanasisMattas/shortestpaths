@@ -16,7 +16,7 @@ here = os.path.abspath(os.path.dirname(__file__))
 
 # Pull info from __init__.py.
 about = {}
-with open(os.path.join(here, 'pathplanning', '__init__.py'), 'r') as fr:
+with open(os.path.join(here, 'ShortestPaths', '__init__.py'), 'r') as fr:
   exec(fr.read(), about)
 
 # Assign long_description with the README.md content.
@@ -49,7 +49,7 @@ setup(
   ],
   entry_points={
     "console_scripts": [
-      "pathplanning=pathplanning.__main__:main",
+      "ShortestPaths=ShortestPaths.__main__:main",
     ]
   },
 )

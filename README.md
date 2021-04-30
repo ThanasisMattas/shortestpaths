@@ -1,4 +1,4 @@
-# PathPlanning
+# ShortestPaths
 
 <br />
 
@@ -24,21 +24,21 @@ An adaptive version of Dijkstra's algorithm, using dynamic programming.
 ```bash
 $ conda create --name pathp python=3
 $ conda activate pathp
-$ git clone https://github.com/ThanasisMattas/pathplanning.git
-$ cd pathplanning
+$ git clone https://github.com/ThanasisMattas/ShortestPaths.git
+$ cd ShortestPaths
 $ python setup.py install
-$ pathplanning <num_nodes>
+$ ShortestPaths <num_nodes>
 ```
 
 1. venv
 
 ```bash
-$ git clone https://github.com/ThanasisMattas/pathplanning.git
-$ cd pathplanning
+$ git clone https://github.com/ThanasisMattas/ShortestPaths.git
+$ cd ShortestPaths
 $ python3 -m venv pathp
 $ source pathp/bin/activate
 $ python setup.py install
-$ pathplanning <num_nodes>
+$ ShortestPaths <num_nodes>
 ```
 
 ## Brief overview
