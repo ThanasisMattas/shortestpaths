@@ -40,7 +40,7 @@ def _edge_weight_bias(edge, n) -> float:
 def _edge_probability(edge,
                       gradient=1,
                       center=None,
-                      offset=0.7) -> float:
+                      cap=0.7) -> float:
   """Evaluates the probability an edge exists, by the "proximity" of its nodes.
 
   This probability will be used to build the Gilbert version of the Erdős-Rényi
@@ -95,12 +95,14 @@ def _edge_probability(edge,
                         center   abs(head-tail) ->
   """
   exponent = -gradient * (abs(edge[0] - edge[1]) - center)
-  if abs(exponent) >= 4:
-    # sigmoid = 0
-    return 1 - offset
+  if exponent >= 5:
+    return min(1, cap)
+  elif exponent <= -5:
+    return 0
   else:
     sigmoid = 1 / (1 + math.exp(exponent))
-    return 1 - sigmoid - offset
+    # return min(1 - sigmoid, cap)
+    return min(1 - sigmoid, cap)
 
 
 def _edge_weight(edge,
@@ -179,11 +181,16 @@ def random_graph(n,
   edges = set()
   adj_list = [set() for _ in range(n + 1)]
 
+  # Generate random weights for all nodes and edges.
   if weight_mode in ["nodes", "edges-and-nodes"]:
     node_weights = random.choices(range(max_node_weight + 1), k=n + 1)
+  # Number of edges of the complete graph: n * (n - 1) // 2
   edge_weights = random.choices(range(max_edge_weight + 1), k=n * (n - 1) // 2)
-  center_factor = 0.4
+  center_factor = 0.3
   center = center_factor * n
+
+  # probs = [0.1 for _ in range(n * (n - 1) // 2)]
+  # edge_lengths = [0.1 for _ in range(n * (n - 1) // 2)]
 
   # Iterate through all possible edges, randomly weight them and randomly desi-
   # de which to keep.
@@ -194,9 +201,11 @@ def random_graph(n,
     # paths with too few nodes, that go straight to the sink, are avoided.)
     # Namely, distance (up) (down) edge_probability.
     edge_probability = _edge_probability(edge,
-                                         gradient=1,
+                                         gradient=0.2,
                                          center=center,
-                                         offset=0.7)
+                                         cap=0.7)
+    # probs[i] = edge_probability
+    # edge_lengths[i] = abs(edge[0] - edge[1])
     edge_initial_weight = edge_weights[i]
 
     random_probability = random.random()
@@ -219,4 +228,7 @@ def random_graph(n,
   G.add_nodes_from(nodes)
   G.add_weighted_edges_from(edges)
 
+  # import matplotlib.pyplot as plt
+  # plt.scatter(edge_lengths, probs)
+  # plt.show()
   return adj_list, G
