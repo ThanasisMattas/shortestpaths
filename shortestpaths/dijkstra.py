@@ -115,6 +115,9 @@ def dijkstra(adj_list,
                                {node_id: (to_visit, visited)}
                                using as key the id of the expanded node
   """
+  if not hasattr(failed_nodes, '__iter__'):
+    failed_nodes = [failed_nodes]
+
   if memoize_states:
     tape = OrderedDict()
   else:
@@ -136,6 +139,10 @@ def dijkstra(adj_list,
 
     # v is the neighbor id
     for v, uv_weight in adj_list[u]:
+
+      if v in failed_nodes:
+        continue
+
       if v in to_visit:
         _relax_path_cost(v, uv_weight, to_visit, u, u_path_cost)
 
@@ -161,6 +168,7 @@ def biderectional_dijkstra_branch(adj_list: list,
                                (neighbor_id, weight)
     sink (hashable)          : The sink node id
     to_visit (PriorityQueue) : The nodes not yet visited by the algorithm.
+        _relax_path_cost(v, uv_weight, to_visit, u, u_path_cost)
                                Each entry is a list:
                                [path_cost, prev_node_id, node_id]
     visited (2D list)        : Each entry is a 2-list:
@@ -177,7 +185,6 @@ def biderectional_dijkstra_branch(adj_list: list,
                                {node_id: (to_visit, visited)}
                                using as key the id of the expanded node
   """
-
   if not hasattr(failed_nodes, '__iter__'):
     failed_nodes = [failed_nodes]
 
