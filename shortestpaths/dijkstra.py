@@ -16,13 +16,12 @@ import copy
 import logging
 import math
 from multiprocessing import (Array,
+                             current_process,
                              Event,
                              get_logger,
                              Lock,
                              log_to_stderr,
-                             Process,
-                             Queue,
-                             Value)
+                             Process)
 from typing import Hashable
 import warnings
 
@@ -66,7 +65,7 @@ def dijkstra_init(n: int, source: Hashable):
 
 
 # @profile
-def _relax_path_cost(v, uv_weight, to_visit, u, u_path_cost):
+def _relax_path_cost(v, u, uv_weight, u_path_cost, to_visit):
   if u_path_cost + uv_weight < to_visit[v][0]:
     to_visit[v] = [u_path_cost + uv_weight, u, v]
 
@@ -144,21 +143,37 @@ def dijkstra(adj_list,
         continue
 
       if v in to_visit:
-        _relax_path_cost(v, uv_weight, to_visit, u, u_path_cost)
+        _relax_path_cost(v, u, uv_weight, u_path_cost, to_visit)
 
   return visited, tape
 
 
-def biderectional_dijkstra_branch(adj_list: list,
-                                  sink: Hashable,
-                                  to_visit: PriorityQueue,
-                                  visited: list,
-                                  both_visited: Array,
-                                  failed_nodes: list = None,
-                                  lock: Lock = None,
-                                  we_ve_met: Event = None,
-                                  meeting_node: Value = None,
-                                  queue: Queue = None):
+def _visited_offsets(n):
+  process_name = current_process().name
+  if process_name == "forward_search":
+    forward = True
+    visited_offset = 0
+    opposite_visited_offset = n
+  elif process_name == "reverse_search":
+    forward = False
+    visited_offset = n
+    opposite_visited_offset = 0
+  else:
+    raise Exception(f"Unknown process: {process_name}")
+  return forward, visited_offset, opposite_visited_offset
+
+
+def _biderectional_dijkstra_branch(adj_list: list,
+                                   sink: int,
+                                   n: int,
+                                   to_visit: PriorityQueue,
+                                   visited_costs: Array,
+                                   visited_prev_nodes: Array,
+                                   prospect: Array,
+                                   priorityq_top: Array,
+                                   kill: Event,
+                                   locks: dict,
+                                   failed_nodes: list = None):
   """Dijkstra's algorithm
 
   Args:
@@ -166,14 +181,14 @@ def biderectional_dijkstra_branch(adj_list: list,
                                to its index and comprises a list of 2-tuples,
                                each for one neighbor of the index-node:
                                (neighbor_id, weight)
-    sink (hashable)          : The sink node id
+    sink (int)               : The sink node id
     to_visit (PriorityQueue) : The nodes not yet visited by the algorithm.
-        _relax_path_cost(v, uv_weight, to_visit, u, u_path_cost)
+        _relax_path_cost(v, u, uv_weight, u_path_cost, to_visit)
                                Each entry is a list:
                                [path_cost, prev_node_id, node_id]
     visited (2D list)        : Each entry is a 2-list:
                                [path_cost, prev_node_id]
-    memoize_states (bool)  : If true, the step-wise state of the algorithm
+    memoize_states (bool)    : If true, the step-wise state of the algorithm
                                will be saved in an OrderedDict.
     failed_nodes (list)      : Nodes to avoid (defaults to None)
 
@@ -185,129 +200,170 @@ def biderectional_dijkstra_branch(adj_list: list,
                                {node_id: (to_visit, visited)}
                                using as key the id of the expanded node
   """
-  if not hasattr(failed_nodes, '__iter__'):
-    failed_nodes = [failed_nodes]
+  forward, visited_offset, opposite_visited_offset = _visited_offsets(n)
 
   while to_visit:
     u_path_cost, u_prev, u = to_visit.pop_low()
 
     # -1 denotes an unconnected node and, in that case, node and previous node
     # are the same by initialization.
-    visited[u][0] = u_path_cost if u_path_cost != math.inf else -1
-    visited[u][1] = u_prev
+    locks["visited"].acquire()
+    visited_costs[u + visited_offset] = \
+        u_path_cost if u_path_cost != math.inf else -1
+    visited_prev_nodes[u + visited_offset] = u_prev
+    locks["visited"].release()
+
+    pq_top = to_visit.peek()[0]
+    pq_top = 0 if pq_top == math.inf else pq_top
+    locks["priorityq_top"].acquire()
+    priorityq_top[int(not forward)] = pq_top
+    # print(f"{current_process().name}  {priorityq_top[int(not forward)]}")
+    locks["priorityq_top"].release()
 
     # Check if the opposite search already found u. So, we are checking whe-
     # ther prev_node of u is still u or it is updated.
-    lock.acquire()
-    if (we_ve_met.is_set() or both_visited[u] or (u == sink)):
-      if not we_ve_met.is_set():
-        meeting_node.value = u
-      we_ve_met.set()
-      queue.put(visited)
-      lock.release()
+    locks["kill"].acquire()
+    if (kill.is_set()) or (u == sink):
+      kill.set()
+      locks["kill"].release()
       return
-    lock.release()
-    both_visited[u] = 1
+    locks["kill"].release()
 
-    # v is the neighbor id
     for v, uv_weight in adj_list[u]:
-      # if both_visited[neighbor[0]]:
 
       if v in failed_nodes:
         continue
 
+      locks["visited"].acquire()
+      locks["prospect"].acquire()
       if v in to_visit:
-        _relax_path_cost(v, uv_weight, to_visit, u, u_path_cost)
+        # Check if v is visited by the other process and, if yes, construct the
+        # prospect path.
+        if visited_prev_nodes[v + opposite_visited_offset] != v:
+          # print(f"{current_process().name}: u: {u}  v: {v}   visited_prev_nodes[v + opposite_visited_offset]: {visited_prev_nodes[v + opposite_visited_offset]}")
+          uv_prospect_cost = (u_path_cost
+                              + uv_weight
+                              + visited_costs[v + opposite_visited_offset])
+          if (sum(prospect) == 0) or (uv_prospect_cost < prospect[0]):
+            # then this is the 1st prospect or the shortest yet
+            prospect[0] = uv_prospect_cost
+            if forward:
+              prospect[1] = u
+              prospect[2] = v
+            else:
+              prospect[1] = v
+              prospect[2] = u
+            # print(f"{current_process().name}: {prospect[0]}  {prospect[1]}  {prospect[2]}\n")
+        _relax_path_cost(v, u, uv_weight, u_path_cost, to_visit)
+      locks["prospect"].release()
+      locks["visited"].release()
 
-  queue.put(visited)
+    # Termination condition
+    locks["prospect"].acquire()
+    locks["priorityq_top"].acquire()
+    # print(f"prospect[0]: {prospect[0]} topf+topr: {pq_top + priorityq_top[int(forward)]}")
+    if pq_top + priorityq_top[int(forward)] >= prospect[0] != 0:
+      locks["kill"].acquire()
+      kill.set()
+      locks["kill"].release()
+      locks["priorityq_top"].release()
+      locks["prospect"].release()
+      # print("returningggg")
+      return
+    locks["priorityq_top"].release()
+    locks["prospect"].release()
 
 
 def bidirectional_dijkstra(adj_list,
+                           source,
                            sink,
                            to_visit,
-                           visited,
                            memoize_states=False,
                            failed_nodes=None,
                            verbose=False):
-  source = to_visit.peek()[-1]
+  if not hasattr(failed_nodes, '__iter__'):
+    failed_nodes = [failed_nodes]
   inverted_adj_list = _invert_adj_list(adj_list)
-  inverted_visited = copy.deepcopy(visited)
   inverted_to_visit = copy.deepcopy(to_visit)
   inverted_to_visit[source] = [math.inf, source, source]
   inverted_to_visit[sink] = [0, sink, sink]
+  n = len(adj_list) - 1
 
   if verbose:
     log_to_stderr()
     logger = get_logger()
     logger.setLevel(logging.INFO)
 
-  # This will hold visited and inverted_visited, after the 2 searches meet.
-  queue = Queue()
-  # A shared list with the visited status of each node. When a process visits a
-  # node, it will first check if this node was already visited by the other
-  # process; if yes, it will exit there, if no, it will render the node visited
-  # by setting its value in the list at 1 and proceed with the search.
-  both_visited = Array('i', [0 for _ in range(len(adj_list))], lock=False)
+  # A shared list with the visited status of each node. Each entry is a 2-list,
+  # where the first item corresponds to the forward search and the second to
+  # the reverse search. When a process visits a node, it will render the node
+  # visited by setting the corresponding value to the node's path_cost. This
+  # information is needed in order for the prospect paths to be evaluated.
+  visited_costs = Array('i', [0 for _ in range(2 * n + 1)], lock=False)
+  visited_prev_nodes = [i for i in range(n + 1)] + [i for i in range(1, n + 1)]
+  visited_prev_nodes = Array('i', visited_prev_nodes, lock=False)
+  # The prospect shortest path:
+  # (path_cost, forward_search_node, backward_search_node)
+  prospect = Array('i', [0, 0, 0], lock=False)
+  priorityq_top = Array('i', [0, 0], lock=False)
   # When a process visites a node already visited by the other process, it will
   # will set this flag to notify the other process that they 've met.
-  we_ve_met = Event()
-  meeting_node = Value('i', 0)
-  lock = Lock()
+  kill = Event()
+  shared_vars = ["visited", "priorityq_top", "prospect", "kill"]
+  locks = {var: Lock() for var in shared_vars}
 
-  forward_process = Process(name="forward_search",
-                            target=biderectional_dijkstra_branch,
-                            args=(adj_list,
-                                  sink,
-                                  to_visit,
-                                  visited,
-                                  both_visited,
-                                  failed_nodes,
-                                  lock,
-                                  we_ve_met,
-                                  meeting_node,
-                                  queue))
-  backwards_process = Process(name="backwards_search",
-                              target=biderectional_dijkstra_branch,
-                              args=(inverted_adj_list,
-                                    source,
-                                    inverted_to_visit,
-                                    inverted_visited,
-                                    both_visited,
-                                    failed_nodes,
-                                    lock,
-                                    we_ve_met,
-                                    meeting_node,
-                                    queue))
-  forward_process.start()
-  backwards_process.start()
-  forward_process.join()
-  backwards_process.join()
+  forward_search = Process(name="forward_search",
+                           target=_biderectional_dijkstra_branch,
+                           args=(adj_list,
+                                 sink,
+                                 n,
+                                 to_visit,
+                                 visited_costs,
+                                 visited_prev_nodes,
+                                 prospect,
+                                 priorityq_top,
+                                 kill,
+                                 locks,
+                                 failed_nodes))
+  reverse_search = Process(name="reverse_search",
+                           target=_biderectional_dijkstra_branch,
+                           args=(inverted_adj_list,
+                                 source,
+                                 n,
+                                 inverted_to_visit,
+                                 visited_costs,
+                                 visited_prev_nodes,
+                                 prospect,
+                                 priorityq_top,
+                                 kill,
+                                 locks,
+                                 failed_nodes))
+  forward_search.start()
+  reverse_search.start()
+  forward_search.join()
+  reverse_search.join()
 
-  v1 = queue.get()
-  v2 = queue.get()
-  if v1[source][1] == source:
-    visited, inverted_visited = v1, v2
-  else:
-    visited, inverted_visited = v2, v1
-  path_cost = (visited[meeting_node.value][0]
-               + inverted_visited[meeting_node.value][0])
-  path = extract_bidirectional_path(visited,
-                                    inverted_visited,
-                                    source,
+  path_cost = prospect[0]
+  path = extract_bidirectional_path(source,
                                     sink,
-                                    meeting_node.value)
+                                    n,
+                                    visited_costs,
+                                    visited_prev_nodes,
+                                    prospect)
   return [path, path_cost, failed_nodes]
 
 
-def extract_bidirectional_path(visited,
-                               inverted_visited,
-                               source,
+def extract_bidirectional_path(source,
                                sink,
-                               meeting_node,
-                               failed=None):
-  path = extract_path(visited, source, meeting_node)
-  backwards_path = extract_path(inverted_visited, sink, meeting_node)
-  path += reversed(backwards_path[:-1])
+                               n,
+                               visited_costs,
+                               visited_prev_nodes,
+                               prospect_path):
+  visited = list(zip(visited_costs, visited_prev_nodes))
+  path = extract_path(visited[:n + 1], source, prospect_path[1])
+  # The slice starts from n to account for 0th index.
+  backwards_path = extract_path(visited[n:], sink, prospect_path[2])
+  path += reversed(backwards_path)
   return path
 
 

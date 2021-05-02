@@ -34,7 +34,7 @@ from shortestpaths import core, graph_generator, post_processing
                                 case_sensitive=False))
 @click.option("--max-edge-weight", default=1000, show_default=True)
 @click.option("--max-node-weight", default=50, show_default=True)
-@click.option("-k", "--num-paths", default=1, show_default=True,
+@click.option("-k", type=click.INT, default=1, show_default=True,
               help="number of shortest paths to be generated")
 # @click.option("--disconnected-nodes",
 #               cls=PythonLiteralOption, default="[]", show_default=True,
