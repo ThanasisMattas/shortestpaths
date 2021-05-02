@@ -19,6 +19,8 @@ import random
 
 import networkx as nx
 
+from shortestpaths.utils import time_this
+
 
 def _edge_weight_bias(edge, n) -> float:
   """Penalizes edges that connect distant nodes.
@@ -119,9 +121,6 @@ def _edge_weight(edge,
     return 1
   else:
     raise Exception(f"Unknown weight-mode: {weight_mode}")
-
-
-from shortestpaths.utils import time_this
 
 
 @time_this

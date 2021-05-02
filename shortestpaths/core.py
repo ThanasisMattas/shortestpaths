@@ -23,7 +23,6 @@ Yen's algorithm is implemented as a compare base algorithm.
 
 import copy
 from functools import partial
-# from multiprocessing import Pool
 from concurrent.futures import ProcessPoolExecutor as Pool
 import math
 from shortestpaths.priorityq import PriorityQueue
@@ -48,16 +47,16 @@ def _replacement_path(failed_index: int,
       return
     if bidirectional:
       r_path_data = dijkstra.bidirectional_dijkstra(adj_list,
+                                                    source,
                                                     sink,
-                                                    copy.deepcopy(to_visit),
-                                                    copy.deepcopy(visited),
+                                                    to_visit,
                                                     failed_nodes=[failed])
       return r_path_data
     else:
       r_visited, _ = dijkstra.dijkstra(adj_list,
                                        sink,
-                                       copy.deepcopy(to_visit),
-                                       copy.deepcopy(visited),
+                                       to_visit,
+                                       visited,
                                        failed_nodes=[failed])
       r_path_cost = r_visited[sink][0]
       r_path = dijkstra.extract_path(r_visited,
@@ -74,8 +73,8 @@ def _replacement_path(failed_index: int,
         # Find the replacement path.
         r_visited, _ = dijkstra.dijkstra(adj_list,
                                          sink,
-                                         copy.deepcopy(to_visit),
-                                         copy.deepcopy(visited))
+                                         to_visit,
+                                         visited)
         r_path_cost = r_visited[sink][0]
         r_path = dijkstra.extract_path(r_visited,
                                        source,
@@ -116,20 +115,20 @@ def replacement_paths(adj_list,
   if bidirectional:
     [shortest_path, shortest_path_cost, _] = dijkstra.bidirectional_dijkstra(
       adj_list,
+      source,
       sink,
-      to_visit,
-      visited,
-      memoize_states=False,
+      copy.deepcopy(to_visit),
+      memoize_states=memoize_states,
       failed_nodes=None,
       verbose=False
     )
   else:
-    visited, _ = dijkstra.dijkstra(adj_list,
-                                   sink,
-                                   copy.deepcopy(to_visit),
-                                   copy.deepcopy(visited))
-    shortest_path_cost = visited[sink][0]
-    shortest_path = dijkstra.extract_path(visited,
+    i_visited, _ = dijkstra.dijkstra(adj_list,
+                                     sink,
+                                     copy.deepcopy(to_visit),
+                                     copy.deepcopy(visited))
+    shortest_path_cost = i_visited[sink][0]
+    shortest_path = dijkstra.extract_path(i_visited,
                                           source,
                                           sink,
                                           with_hop_weights=False)
@@ -162,8 +161,8 @@ def replacement_paths(adj_list,
                                  adj_list,
                                  source,
                                  sink,
-                                 to_visit,
-                                 visited,
+                                 copy.deepcopy(to_visit),
+                                 copy.deepcopy(visited),
                                  bidirectional)
       if r_path is not None:
         r_paths.append(r_path)
@@ -178,8 +177,7 @@ def k_shortest_paths(adj_list,
                      k,
                      bidirectional=False,
                      parallel=False,
-                     memoize_states=False,
-                     random_seed=None):
+                     memoize_states=False):
   """Generates k_shortest_paths
 
   Returns:
@@ -189,17 +187,16 @@ def k_shortest_paths(adj_list,
   to_visit, visited = dijkstra.dijkstra_init(n, source)
   # Find the absolute shortest path.
   if bidirectional:
-    path_data = dijkstra.bidirectional_dijkstra(adj_list,
-                                                sink,
-                                                copy.deepcopy(to_visit),
-                                                copy.deepcopy(visited))
-    # shortest_path_cost = visited[sink][0]
-    # shortest_path = dijkstra.extract_path(visited,
-    #                                       source,
-    #                                       sink,
-    #                                       with_hop_weights=False)
-
-    k_paths = [path_data]
+    [shortest_path, shortest_path_cost, _] = dijkstra.bidirectional_dijkstra(
+      adj_list,
+      source,
+      sink,
+      copy.deepcopy(to_visit),
+      memoize_states=memoize_states,
+      failed_nodes=None,
+      verbose=False
+    )
+    # __import__('ipdb').set_trace(context=9)
   else:
     visited, _ = dijkstra.dijkstra(adj_list,
                                    sink,
@@ -211,7 +208,7 @@ def k_shortest_paths(adj_list,
                                           sink,
                                           with_hop_weights=False)
 
-    k_paths = [[shortest_path, shortest_path_cost, None]]
+  k_paths = [[shortest_path, shortest_path_cost, None]]
 
   if k == 1:
     return k_paths
