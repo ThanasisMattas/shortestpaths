@@ -71,15 +71,23 @@ def _replacement_path(failed_index: int,
         adj_list[tail].remove(neighbor)
         adj_list[tail].add((neighbor[0], math.inf))
         # Find the replacement path.
-        r_visited, _ = dijkstra.dijkstra(adj_list,
+        if bidirectional:
+          [r_path, r_path_cost, failed] = dijkstra.bidirectional_dijkstra(
+            adj_list,
+            source,
+            sink,
+            copy.deepcopy(to_visit),
+          )
+        else:
+          r_visited, _ = dijkstra.dijkstra(adj_list,
+                                           sink,
+                                           to_visit,
+                                           visited)
+          r_path_cost = r_visited[sink][0]
+          r_path = dijkstra.extract_path(r_visited,
+                                         source,
                                          sink,
-                                         to_visit,
-                                         visited)
-        r_path_cost = r_visited[sink][0]
-        r_path = dijkstra.extract_path(r_visited,
-                                       source,
-                                       sink,
-                                       with_hop_weights=False)
+                                         with_hop_weights=False)
         # Restore the failed edge weight
         adj_list[tail].remove((neighbor[0], math.inf))
         adj_list[tail].add(neighbor)
