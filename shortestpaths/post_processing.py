@@ -158,10 +158,17 @@ def plot_graph(G,
 
 
 def print_paths(k_paths, failing=None):
+  path_str_len = 0
+  cost_str_len = 0
+  for path in k_paths:
+    path_str_len = max(path_str_len, len(str(path[0])))
+    cost_str_len = max(cost_str_len, len(str(path[1])))
+
   for k, path in enumerate(k_paths):
-    msg = f"path {k + 1}: {path[0]}   cost: {path[1]}"
+    msg = (f"path {k + 1}: {str(path[0]):{path_str_len}}   "
+           f"cost: {path[1]:>{cost_str_len}}")
     if failing:
-      msg += f"   failed {failing[-1]}: {path[2]}"
+      msg += f"   failed {failing[:-1]}: {path[2]}"
     click.echo(msg)
 
 
