@@ -45,7 +45,7 @@ def main(num_graphs,
          k,
          bidirectional,
          parallel,
-         memoize_states,
+         dynamic,
          random_seed):
 
   steps = 50
@@ -76,7 +76,7 @@ def main(num_graphs,
                                       k=k,
                                       bidirectional=False,
                                       parallel=parallel,
-                                      memoize_states=memoize_states,
+                                      dynamic=dynamic,
                                       random_seed=random_seed)
       un_time[i] = process_time() - un_start
 
@@ -87,7 +87,7 @@ def main(num_graphs,
                                       k=k,
                                       bidirectional=True,
                                       parallel=parallel,
-                                      memoize_states=memoize_states,
+                                      dynamic=dynamic,
                                       random_seed=random_seed)
       bi_time[i] = process_time() - bi_start
 

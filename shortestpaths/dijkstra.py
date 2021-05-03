@@ -87,7 +87,7 @@ def dijkstra(adj_list,
              sink,
              to_visit,
              visited,
-             memoize_states=False,
+             recording=False,
              failed_nodes=None):
   """Dijkstra's algorithm
 
@@ -102,8 +102,8 @@ def dijkstra(adj_list,
                                [path_cost, prev_node_id, node_id]
     visited (2D list)        : Each entry is a 2-list:
                                [path_cost, prev_node_id]
-    memoize_states (bool)    : If true, the step-wise state of the algorithm
-                               will be saved in an OrderedDict.
+    recording (bool)         : If true, the step-wise state of the algorithm
+                               will be recorded on a tape.
     failed_nodes (list)      : Nodes to avoid (defaults to None)
 
   Returns:
@@ -117,10 +117,8 @@ def dijkstra(adj_list,
   if not hasattr(failed_nodes, '__iter__'):
     failed_nodes = [failed_nodes]
 
-  if memoize_states:
-    tape = OrderedDict()
-  else:
-    tape = None
+  tape = [] if recording else None
+  relax_tape = [] if recording else None
 
   while to_visit:
     u_path_cost, u_prev, u = to_visit.pop_low()
@@ -188,7 +186,7 @@ def _biderectional_dijkstra_branch(adj_list: list,
                                [path_cost, prev_node_id, node_id]
     visited (2D list)        : Each entry is a 2-list:
                                [path_cost, prev_node_id]
-    memoize_states (bool)    : If true, the step-wise state of the algorithm
+    dynamic (bool)    : If true, the step-wise state of the algorithm
                                will be saved in an OrderedDict.
     failed_nodes (list)      : Nodes to avoid (defaults to None)
 
@@ -278,7 +276,7 @@ def bidirectional_dijkstra(adj_list,
                            source,
                            sink,
                            to_visit,
-                           memoize_states=False,
+                           dynamic=False,
                            failed_nodes=None,
                            verbose=False):
   if not hasattr(failed_nodes, '__iter__'):

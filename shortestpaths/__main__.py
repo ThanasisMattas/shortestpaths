@@ -47,7 +47,7 @@ from shortestpaths import core, graph_generator, post_processing
               help="bidirectional shortest path search (uses 2 processes)")
 @click.option('-p', "--parallel", is_flag=True,
               help="whether to use multiprocessing or not")
-@click.option('-m', "--memoize-states", is_flag=True,
+@click.option('-d', "--dynamic", is_flag=True,
               help="whether to use dynamic programming or not")
 @click.option('-s', "--seed", "random_seed", type=click.INT,
               default=None, show_default=True,
@@ -65,7 +65,7 @@ def main(ctx,
          k,
          bidirectional,
          parallel,
-         memoize_states,
+         dynamic,
          random_seed,
          layout_seed,
          show_graph,
@@ -87,7 +87,7 @@ def main(ctx,
       "n": n,
       "bidirectional": bidirectional,
       "parallel": parallel,
-      "memoize_states": memoize_states,
+      "dynamic": dynamic,
       "layout_seed": layout_seed,
       "show_graph": show_graph,
       "save_graph": save_graph
@@ -104,7 +104,7 @@ def main(ctx,
                                   k=k,
                                   bidirectional=bidirectional,
                                   parallel=parallel,
-                                  memoize_states=memoize_states,
+                                  dynamic=dynamic,
                                   random_seed=random_seed)
 
   # 3. Post-processing
@@ -133,7 +133,7 @@ def replacement_paths(ctx, failing):
     failing=failing,
     bidirectional=ctx.obj.pop("bidirectional"),
     parallel=ctx.obj.pop("parallel"),
-    memoize_states=ctx.obj.pop("memoize_states")
+    dynamic=ctx.obj.pop("dynamic")
   )
 
   post_processing.print_paths(r_paths)

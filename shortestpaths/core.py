@@ -106,7 +106,7 @@ def replacement_paths(adj_list,
                       failing="edges",
                       bidirectional=False,
                       parallel=False,
-                      memoize_states=False):
+                      dynamic=False):
   """Generates the replacement paths.
 
   Returns:
@@ -126,7 +126,7 @@ def replacement_paths(adj_list,
       source,
       sink,
       copy.deepcopy(to_visit),
-      memoize_states=memoize_states,
+      dynamic=dynamic,
       failed_nodes=None,
       verbose=False
     )
@@ -185,7 +185,7 @@ def k_shortest_paths(adj_list,
                      k,
                      bidirectional=False,
                      parallel=False,
-                     memoize_states=False):
+                     dynamic=False):
   """Generates k_shortest_paths
 
   Returns:
@@ -200,7 +200,7 @@ def k_shortest_paths(adj_list,
       source,
       sink,
       copy.deepcopy(to_visit),
-      memoize_states=memoize_states,
+      dynamic=dynamic,
       failed_nodes=None,
       verbose=False
     )
