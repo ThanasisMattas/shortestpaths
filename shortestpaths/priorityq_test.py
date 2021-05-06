@@ -99,13 +99,22 @@ class TestPriorityQueue():
         print(self.pq[item])
 
   @pytest.mark.parametrize(
-    "entry_id, entry, length",
-    [(12, [6, 2, 12], 6), (6, [1, 1, 6], 7)]
+    "entry_id, entry, length_diff",
+    [(12, [6, 2, 12], 0), (6, [1, 1, 6], 1)]
   )
-  def test_setitem(self, entry_id, entry, length):
+  def test_setitem(self, entry_id, entry, length_diff):
     self.pq[entry_id] = entry.copy()
     assert self.pq[entry_id] == entry
-    assert len(self.pq) == length
+    assert len(self.pq) == self.length + length_diff
+
+  @pytest.mark.parametrize(
+    "entry, length_diff",
+    [([6, 2, 12], 0), ([1, 1, 6], 1)]
+  )
+  def test_add(self, entry, length_diff):
+    self.pq.add(entry.copy())
+    assert self.pq[entry[-1]] == entry
+    assert len(self.pq) == self.length + length_diff
 
   def test_contains(self):
     assert 5 in self.pq

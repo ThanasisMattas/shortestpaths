@@ -141,6 +141,9 @@ class PriorityQueue:
     self._entry_finder[entry_id] = entry
     heapq.heappush(self._heapq, entry)
 
+  def add(self, entry):
+    self[entry[-1]] = entry
+
   def __contains__(self, entry_id):
     if entry_id in self._entry_finder:
       return True
