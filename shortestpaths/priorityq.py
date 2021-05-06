@@ -162,18 +162,18 @@ class PriorityQueue:
         del self._entry_finder[entry[-1]]
         del entry[-3]
         return entry
-    raise KeyError("trying to pop from an empty priority queue")
+    raise KeyError("Trying to pop from an empty PriorityQueue.")
 
   def pop_high(self):
     raise NotImplementedError()
 
   def peek(self):
-    for entry in self._heapq:
-      if entry[-1] is not self._REMOVED:
-        entry_without_counter = copy.deepcopy(entry)
-        del entry_without_counter[-3]
-        return entry_without_counter
-    raise ValueError(f"The PriorityQueue {self} is empty.")
+    try:
+      entry = self.pop_low()
+    except KeyError:
+      raise KeyError("Trying to peek an empty PriorityQueue.")
+    self.add(entry.copy())
+    return entry
 
   def __iter__(self):
     heapq_ = copy.deepcopy(self._heapq)

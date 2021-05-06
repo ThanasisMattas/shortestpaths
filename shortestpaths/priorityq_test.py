@@ -135,12 +135,17 @@ class TestPriorityQueue():
     while self.pq:
       self.pq.pop_low()
     assert self.pq.empty()
+    with pytest.raises(KeyError) as ke:
+      self.pq.pop_low()
 
   def test_peek(self):
     entry = self.pq.peek()
     assert entry == [1, 8, 9]
     assert entry == self.pq[9]
     assert len(self.pq) == self.length
+    self.pq.clear()
+    with pytest.raises(KeyError) as ke:
+      self.pq.peek()
 
   def test_iter(self):
     data = iter(sorted(self.data, key=itemgetter(0, 1, 2)))
