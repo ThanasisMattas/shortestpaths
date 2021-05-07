@@ -158,7 +158,7 @@ class PriorityQueue:
     """Pop the lowest weighted node. Raise KeyError if empty."""
     while self._heapq:
       entry = heapq.heappop(self._heapq)
-      if entry[-1] is not self._REMOVED:
+      if entry[-1] != self._REMOVED:
         del self._entry_finder[entry[-1]]
         del entry[-3]
         return entry
