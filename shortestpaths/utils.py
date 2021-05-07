@@ -14,7 +14,9 @@
 import ast
 from datetime import timedelta
 from functools import wraps
+from inspect import currentframe
 from operator import itemgetter
+from os.path import basename, realpath
 import time
 from timeit import default_timer as timer
 from typing import Iterable
@@ -124,3 +126,31 @@ def check_nodal_connection(nodes: Iterable,
           nodes[i] = neighbor[1]
           break
   return nodes
+
+
+def deb_trace(msg=None, condition=None):
+  """Plants a debugging trace on the line.
+
+  Usage:
+
+  29 deb_trace()
+  # prints: <file_name>::<func_name>::29
+
+   7 deb_trace("A descriptive message")
+  # prints: <file_name>::<func_name>::7:: A descriptive message
+
+  45 deb_trace("Another descriptive message", <False condition>)
+  # prints nothing
+
+  Args:
+    msg (str)        : An optional msg to be printed after the trace info
+    condition (bool) : if (condition is None) or (condition) : print trace
+                       (defauls to None)
+  """
+  if (condition is None) or (condition):
+    # NOTE: f_back is key to move one frame back to the call-stack.
+    #       It can be chained to get more frames or even the full call-stack.
+    print(f"{basename(realpath(currentframe().f_back.f_code.co_filename))}::"
+          f"{currentframe().f_back.f_code.co_name}::"
+          f"{currentframe().f_back.f_lineno}"
+          + (f":: {msg}" if msg else ''))
