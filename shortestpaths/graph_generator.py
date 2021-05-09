@@ -123,7 +123,7 @@ def _edge_weight(edge,
     raise Exception(f"Unknown weight-mode: {weight_mode}")
 
 
-@time_this
+# @time_this
 def random_graph(n,
                  weighted=True,
                  weights_on="edges",

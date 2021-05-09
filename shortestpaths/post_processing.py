@@ -43,6 +43,22 @@ def path_label(path, path_number, failing):
   return label
 
 
+def _node_sizes(G):
+  if G.number_of_nodes() < 400:
+    node_size = 450
+    path_node_size = 600
+    failed_node_size = 800
+  elif G.number_of_nodes() < 2200:
+    node_size = 450 - G.number_of_nodes() // 5
+    path_node_size = 600 - G.number_of_nodes() // 10
+    failed_node_size = 800 - G.number_of_nodes() // 10
+  else:
+    node_size = 10
+    path_node_size = 350
+    failed_node_size = 550
+  return node_size, path_node_size, failed_node_size
+
+
 def plot_graph(G,
                paths_data,
                failing: Literal["edges", "nodes", None]="edges",  # noqa: E252
@@ -66,18 +82,7 @@ def plot_graph(G,
   # spiral_layout                <--
 
   # 1. Draw the graph
-  if G.number_of_nodes() < 400:
-    node_size = 450
-    path_node_size = 600
-    failed_node_size = 800
-  elif G.number_of_nodes() < 2200:
-    node_size = 450 - G.number_of_nodes() // 5
-    path_node_size = 600 - G.number_of_nodes() // 10
-    failed_node_size = 800 - G.number_of_nodes() // 10
-  else:
-    node_size = 10
-    path_node_size = 350
-    failed_node_size = 550
+  node_size, path_node_size, failed_node_size = _node_sizes(G)
   nx.draw_networkx(G, pos, node_size=node_size, width=0.25, alpha=0.3,
                    with_labels=False, arrows=False)
   if draw_edge_weights:
@@ -246,5 +251,38 @@ def plot_adaptive_dijkstra(G,
   if disconnected_nodes:
     frame_title += f"\ndisconnected nodes: {list(disconnected_nodes)}"
   plt.title(frame_title)
+  plt.legend()
+  plt.show()
+
+
+def state_vis(to_visit, visited, layout_seed=1, G=None):
+  to_visit_nodes = to_visit.keys()
+  visited_nodes = G.nodes.difference(to_visit_nodes)
+  height = []
+  for node in visited:
+    if visited[0] == 0:
+      height.append(to_visit[node[1]][0])
+    else:
+      height.append(visited[0])
+
+  if G is not None:
+    fig, ax = plt.subplots(2, 1)
+    ax[0].bar(range(G.number_of_nodes), height[1:])
+
+    pos = nx.spring_layout(G, seed=layout_seed)
+    node_size, path_node_size, failed_node_size = _node_sizes(G)
+    nx.draw_networkx(G, pos, node_size=node_size, width=0.25, alpha=0.3,
+                     arrows=False, ax=ax[1])  # with_labels=False,
+    nx.draw_networkx_nodes(G, pos=pos, nodelist=visited_nodes, edgecolors='k',
+                           node_size=path_node_size, node_color="deepskyblue",
+                           label="visited nodes")
+    nx.draw_networkx_nodes(G, pos=pos, nodelist=to_visit_nodes, edgecolors='k',
+                           node_size=path_node_size, node_color="r",
+                           label="not visited nodes")
+  else:
+    fig, ax = plt.subplots()
+  ax.bar(range(G.number_of_nodes), height[1:])
+
+  plt.title("State visualization")
   plt.legend()
   plt.show()

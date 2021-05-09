@@ -23,7 +23,7 @@ Yen's algorithm is implemented as a compare base algorithm.
 
 import copy
 from functools import partial
-from concurrent.futures import ProcessPoolExecutor as Pool
+from concurrent.futures import ProcessPoolExecutor
 import math
 from shortestpaths.priorityq import PriorityQueue
 from typing import Hashable, Literal
@@ -32,81 +32,95 @@ from shortestpaths import dijkstra
 from shortestpaths.utils import time_this
 
 
-def _replacement_path(failed_index: int,
+# @time_this(wall_clock=True)
+def _replacement_path(failed_path_idx: int,
                       failed: Hashable,
                       failing: Literal["nodes", "edges"],
                       shortest_path: list,
                       adj_list: list,
                       source: Hashable,
                       sink: Hashable,
-                      to_visit: PriorityQueue,
-                      visited: list,
-                      bidirectional: bool) -> list:
+                      to_visit: PriorityQueue = None,
+                      to_visit_reverse: PriorityQueue = None,
+                      visited: list = None,
+                      bidirectional: bool = False,
+                      inverted_adj_list: list = None,
+                      tapes: list = None) -> list:
   if failing == "nodes":
     if failed == source:
       return
+
     if bidirectional:
-      r_path_data = dijkstra.bidirectional_dijkstra(adj_list,
-                                                    source,
-                                                    sink,
-                                                    to_visit,
-                                                    failed_nodes=[failed])
-      return r_path_data
+      path_data = dijkstra.bidirectional_dijkstra(
+        adj_list,
+        inverted_adj_list,
+        source,
+        sink,
+        to_visit,
+        to_visit_reverse,
+        failed_path_idx=failed_path_idx,
+        failed=failed,
+        tapes=tapes
+      )
+      return path_data
     else:
-      r_visited, _ = dijkstra.dijkstra(adj_list,
+      repl_visited = dijkstra.dijkstra(adj_list,
                                        sink,
                                        to_visit,
                                        visited,
-                                       failed_nodes=[failed])
-      r_path_cost = r_visited[sink][0]
-      r_path = dijkstra.extract_path(r_visited,
-                                     source,
-                                     sink,
-                                     with_hop_weights=False)
+                                       failed)
+      repl_path_cost = repl_visited[sink][0]
+      repl_path = dijkstra.extract_path(source,
+                                        sink,
+                                        repl_visited,
+                                        with_hop_weights=False)
   elif failing == "edges":
     tail = failed
+    head = shortest_path[failed_path_idx + 1]
     # Fail the edge, by setting its weight to inf.
     for neighbor in adj_list[tail]:
-      if neighbor[0] == shortest_path[failed_index + 1]:
+      if neighbor[0] == head:
         adj_list[tail].remove(neighbor)
         adj_list[tail].add((neighbor[0], math.inf))
         # Find the replacement path.
         if bidirectional:
-          [r_path, r_path_cost, failed] = dijkstra.bidirectional_dijkstra(
-            adj_list,
-            source,
-            sink,
-            copy.deepcopy(to_visit),
-          )
+          [repl_path, repl_path_cost, failed] = \
+            dijkstra.bidirectional_dijkstra(adj_list,
+                                            source,
+                                            sink,
+                                            to_visit,
+                                            tapes=tapes)
         else:
-          r_visited, _ = dijkstra.dijkstra(adj_list,
+          repl_visited = dijkstra.dijkstra(adj_list,
                                            sink,
                                            to_visit,
                                            visited)
-          r_path_cost = r_visited[sink][0]
-          r_path = dijkstra.extract_path(r_visited,
-                                         source,
-                                         sink,
-                                         with_hop_weights=False)
+          repl_path_cost = repl_visited[sink][0]
+          repl_path = dijkstra.extract_path(source,
+                                            sink,
+                                            repl_visited,
+                                            with_hop_weights=False)
         # Restore the failed edge weight
         adj_list[tail].remove((neighbor[0], math.inf))
         adj_list[tail].add(neighbor)
-        failed = (tail, shortest_path[failed_index + 1])
+        failed = (tail, head)
         break
   else:
     raise ValueError(f"Unexpected value for failing: <{failing}>. It should"
                      " be either 'edges' or 'nodes'.")
-  return [r_path, r_path_cost, failed]
+  return [repl_path, repl_path_cost, failed]
 
 
-@time_this
+# @time_this(wall_clock=True)
 def replacement_paths(adj_list,
+                      n,
                       source,
                       sink,
-                      failing="edges",
+                      failing="nodes",
                       bidirectional=False,
                       parallel=False,
-                      dynamic=False):
+                      dynamic=False,
+                      verbose=0):
   """Generates the replacement paths.
 
   Returns:
@@ -117,65 +131,129 @@ def replacement_paths(adj_list,
                                   ...
                                 ]
   """
-  n = len(adj_list) - 1
-  to_visit, visited = dijkstra.dijkstra_init(n, source)
+  to_visit, visited, to_visit_reverse = dijkstra.dijkstra_init(n,
+                                                               source,
+                                                               sink,
+                                                               bidirectional)
   # Find the absolute shortest path.
   if bidirectional:
-    [shortest_path, shortest_path_cost, _] = dijkstra.bidirectional_dijkstra(
-      adj_list,
-      source,
-      sink,
-      copy.deepcopy(to_visit),
-      dynamic=dynamic,
-      failed_nodes=None,
-      verbose=False
-    )
-  else:
-    i_visited, _ = dijkstra.dijkstra(adj_list,
-                                     sink,
-                                     copy.deepcopy(to_visit),
-                                     copy.deepcopy(visited))
-    shortest_path_cost = i_visited[sink][0]
-    shortest_path = dijkstra.extract_path(i_visited,
+    inverted_adj_list = dijkstra.invert_adj_list(adj_list)
+
+    # If dynamic, 2 recording sessions are executed. At the first, the absolute
+    # shortest path will be generated, as well as the visited nodes sequence
+    # will be recorded on a tape. At the second, for all the intermediate nodes
+    # of the path, the state that corresponds to the immediately proceding vi-
+    # sited node will be recorded on a tape, during both searches.
+    if dynamic:
+      path_data, tapes = dijkstra.bidirectional_recording(adj_list,
+                                                          inverted_adj_list,
+                                                          source,
+                                                          sink,
+                                                          to_visit,
+                                                          to_visit_reverse,
+                                                          visited,
+                                                          verbose=verbose)
+    else:
+      path_data = \
+          dijkstra.bidirectional_dijkstra(adj_list,
+                                          inverted_adj_list,
                                           source,
                                           sink,
-                                          with_hop_weights=False)
-    # The key for each replacement path is the failed edge. The value is the
-    # tuple (path: list, path_cost: int). replacement_paths list is initialized
-    # with the shortest path.
-    # r_paths = OrderedDict()
-    # r_paths[(sink, None)] = (shortest_path, shortest_path_cost)
-  r_paths = [[shortest_path, shortest_path_cost, None]]
+                                          copy.deepcopy(to_visit),
+                                          copy.deepcopy(to_visit_reverse),
+                                          copy.deepcopy(visited),
+                                          verbose=verbose)
+  else:
+    inverted_adj_list = None
+    initial_visited = dijkstra.dijkstra(adj_list,
+                                        sink,
+                                        copy.deepcopy(to_visit),
+                                        copy.deepcopy(visited))
+    shortest_path_cost = initial_visited[sink][0]
+    shortest_path = dijkstra.extract_path(source, sink, initial_visited)
+    path_data = [shortest_path, shortest_path_cost, None]
 
+  repl_paths = [path_data]
+
+  # Next, find the replacement paths.
+  shortest_path = path_data[0]
   if parallel:
-    _r_path = partial(_replacement_path,
-                      failing=failing,
-                      shortest_path=shortest_path,
-                      adj_list=adj_list,
-                      source=source,
-                      sink=sink,
-                      to_visit=to_visit,
-                      visited=visited,
-                      bidirectional=bidirectional)
-    with Pool() as p:
-      r_paths += p.map(_r_path, range(len(shortest_path) - 1), shortest_path[:-1])
-      r_paths = filter(None, r_paths)
+    if dynamic:
+      if failing == "edges":
+        to_visit_values = \
+            ([copy.deepcopy(to_visit)]
+             + [None for _ in range(len(shortest_path) - 2)])
+        to_visit_reverse_values = \
+            ([copy.deepcopy(to_visit_reverse)]
+             + [None for _ in range(len(shortest_path) - 2)])
+        visited_values = \
+            ([copy.deepcopy(visited)]
+             + [None for _ in range(len(shortest_path) - 2)])
+      else:
+        to_visit_values = None
+        to_visit_reverse_values = None
+        visited_values = None
+    else:
+      to_visit_values = to_visit
+      to_visit_reverse_values = to_visit_reverse
+      visited_values = visited
+      tapes = None
+
+    _repl_path = partial(_replacement_path,
+                         failing=failing,
+                         shortest_path=shortest_path,
+                         adj_list=adj_list,
+                         source=source,
+                         sink=sink,
+                         to_visit=to_visit_values,
+                         to_visit_reverse=to_visit_reverse_values,
+                         visited=visited_values,
+                         bidirectional=bidirectional,
+                         inverted_adj_list=inverted_adj_list,
+                         tapes=tapes)
+
+    with ProcessPoolExecutor() as p:
+      repl_paths += p.map(_repl_path,
+                          range(len(shortest_path) - 1),
+                          shortest_path[:-1])
+      repl_paths = list(filter(None, repl_paths))
+
   else:
     for i, node in enumerate(shortest_path[:-1]):
-      r_path = _replacement_path(i,
-                                 node,
-                                 failing,
-                                 shortest_path,
-                                 adj_list,
-                                 source,
-                                 sink,
-                                 copy.deepcopy(to_visit),
-                                 copy.deepcopy(visited),
-                                 bidirectional)
-      if r_path is not None:
-        r_paths.append(r_path)
+      # The source cannot fail, but when failing == "edges", the source consti-
+      # tudes the tail of the 1st edge that will fail.
+      if (failing == "nodes") and (i == 0):
+        continue
 
-  return r_paths
+      if (not dynamic) or ((failing == "edges") and (i == 0)):
+        repl_path = _replacement_path(i,
+                                      node,
+                                      failing,
+                                      shortest_path,
+                                      adj_list,
+                                      source,
+                                      sink,
+                                      copy.deepcopy(to_visit),
+                                      copy.deepcopy(to_visit_reverse),
+                                      copy.deepcopy(visited),
+                                      bidirectional,
+                                      inverted_adj_list)
+      else:
+        repl_path = _replacement_path(i,
+                                      node,
+                                      failing,
+                                      shortest_path,
+                                      adj_list,
+                                      source,
+                                      sink,
+                                      bidirectional=bidirectional,
+                                      inverted_adj_list=inverted_adj_list,
+                                      tapes=tapes)
+
+      if repl_path is not None:
+        repl_paths.append(repl_path)
+
+  return repl_paths
 
 
 @time_this
@@ -192,7 +270,10 @@ def k_shortest_paths(adj_list,
     k_paths (list) : [[path: list, path_cost: int, failed_edge: tuple],]
   """
   n = len(adj_list) - 1
-  to_visit, visited = dijkstra.dijkstra_init(n, source)
+  to_visit, visited, to_visit_reverse = dijkstra.dijkstra_init(n,
+                                                               source,
+                                                               sink,
+                                                               bidirectional)
   # Find the absolute shortest path.
   if bidirectional:
     [shortest_path, shortest_path_cost, _] = dijkstra.bidirectional_dijkstra(
@@ -200,20 +281,17 @@ def k_shortest_paths(adj_list,
       source,
       sink,
       copy.deepcopy(to_visit),
-      dynamic=dynamic,
-      failed_nodes=None,
-      verbose=False
+      recording=False,
     )
-    # __import__('ipdb').set_trace(context=9)
   else:
-    visited, _ = dijkstra.dijkstra(adj_list,
-                                   sink,
-                                   copy.deepcopy(to_visit),
-                                   copy.deepcopy(visited))
-    shortest_path_cost = visited[sink][0]
-    shortest_path = dijkstra.extract_path(visited,
-                                          source,
+    new_visited = dijkstra.dijkstra(adj_list,
+                                    sink,
+                                    copy.deepcopy(to_visit),
+                                    copy.deepcopy(visited))
+    shortest_path_cost = new_visited[sink][0]
+    shortest_path = dijkstra.extract_path(source,
                                           sink,
+                                          new_visited,
                                           with_hop_weights=False)
 
   k_paths = [[shortest_path, shortest_path_cost, None]]

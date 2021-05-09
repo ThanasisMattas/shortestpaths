@@ -14,14 +14,16 @@
 Usage: shortestpaths [OPTIONS] N COMMAND [OPTIONS]
 
 Examples:
-shortestpaths -s 2 --layout-seed 1 200
-shortestpaths --seed 2 --layout-seed 1 -k 5 200
-shortestpaths -s 1 --layout-seed 3 200 replacement-paths --failing edges
+shortestpaths 100
+shortestpaths -s 0 --layout-seed 1 -k 5 200
+shortestpaths 200 replacement-paths --failing edges
+shortestpaths -b -p 300 replacement-paths -f nodes
+shortestpaths -d 300 replacement-paths -f nodes
 """
 
 import click
 
-from shortestpaths import core, graph_generator, post_processing
+from shortestpaths import core, graph_generator, post_processing, utils
 
 
 @click.group(invoke_without_command=True)
@@ -50,12 +52,13 @@ from shortestpaths import core, graph_generator, post_processing
 @click.option('-d', "--dynamic", is_flag=True,
               help="whether to use dynamic programming or not")
 @click.option('-s', "--seed", "random_seed", type=click.INT,
-              default=None, show_default=True,
+              default=4, show_default=True,
               help="If provided, a fixed random graph will be generated.")
-@click.option("--layout-seed", type=click.INT, default=None, show_default=True,
+@click.option("--layout-seed", type=click.INT, default=1, show_default=True,
               help="Fixes the random initialization of the spirng_layout.")
 @click.option("--show-graph", is_flag=True)
 @click.option("--save-graph", is_flag=True)
+@click.option('-v', "--verbose", count=True)
 def main(ctx,
          n,
          weighted,
@@ -69,7 +72,8 @@ def main(ctx,
          random_seed,
          layout_seed,
          show_graph,
-         save_graph):
+         save_graph,
+         verbose):
 
   # 1. Preprocessing
   adj_list, G = graph_generator.random_graph(n=n,
@@ -90,7 +94,8 @@ def main(ctx,
       "dynamic": dynamic,
       "layout_seed": layout_seed,
       "show_graph": show_graph,
-      "save_graph": save_graph
+      "save_graph": save_graph,
+      "verbose": verbose
     }
     if ctx.invoked_subcommand == "dynamic_graph_demo":
       ctx_config["random_seed"] = random_seed
@@ -104,8 +109,7 @@ def main(ctx,
                                   k=k,
                                   bidirectional=bidirectional,
                                   parallel=parallel,
-                                  dynamic=dynamic,
-                                  random_seed=random_seed)
+                                  dynamic=dynamic)
 
   # 3. Post-processing
   post_processing.print_paths(k_paths)
@@ -120,23 +124,36 @@ def main(ctx,
 
 @main.command()
 @click.pass_context
-@click.option('-f', "--failing", default="edges", show_default=True,
+@click.option('-f', "--failing", default="nodes", show_default=True,
               type=click.Choice(["edges", "nodes"], case_sensitive=False),
-              help="Setting what to fail, edges or nodes, in order to produce"
-                   " the replacement paths.")
+              help="Setting what to fail, path edges or path nodes, in order"
+                   " to produce the replacement paths.")
+@utils.time_this(wall_clock=True)
 def replacement_paths(ctx, failing):
-  """Finds the replacement paths of a given path, failing edges or nodes."""
+  """CLI command for the replacement paths
+
+  Args:
+    ctx(click.core.Context) : has obj dict with the parameters of the group
+    failing (str)           : "edges" or "nodes" (CLI option)
+  """
+  verbose = ctx.obj.pop("verbose", 0)
+  if ctx.obj.get("dynamic", False):
+    ctx.obj["bidirectional"] = True
+
   r_paths = core.replacement_paths(
     ctx.obj.pop("adj_list"),
+    n=ctx.obj.get("n", 100),
     source=1,
-    sink=ctx.obj.pop("n"),
+    sink=ctx.obj.pop("n", 100),
     failing=failing,
-    bidirectional=ctx.obj.pop("bidirectional"),
-    parallel=ctx.obj.pop("parallel"),
-    dynamic=ctx.obj.pop("dynamic")
+    bidirectional=ctx.obj.pop("bidirectional", False),
+    parallel=ctx.obj.pop("parallel", False),
+    dynamic=ctx.obj.pop("dynamic", False),
+    verbose=verbose
   )
 
-  post_processing.print_paths(r_paths)
+  if verbose:
+    post_processing.print_paths(r_paths, failing)
   if ctx.obj["save_graph"] or ctx.obj["show_graph"]:
     post_processing.plot_graph(paths_data=r_paths,
                                failing=failing,

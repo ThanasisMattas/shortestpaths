@@ -11,7 +11,6 @@
 # ==========================================================================
 """Bidirectional and dynamic implementations of Dijkstra's algorithm"""
 
-from collections import OrderedDict
 import copy
 import logging
 import math
@@ -21,47 +20,94 @@ from multiprocessing import (Array,
                              get_logger,
                              Lock,
                              log_to_stderr,
-                             Process)
+                             Process,
+                             Queue)
 from typing import Hashable
 import warnings
 
-# from networkx.utils.misc import iterable
+from networkx.exception import PowerIterationFailedConvergence
 
 from shortestpaths.priorityq import PriorityQueue
+from shortestpaths.utils import time_this  # noqa: F401
 
 
-def dijkstra_init(n: int, source: Hashable):
+def _was_visited(visited, u):
+  if (visited[u][0] != 0) and (visited[u][1] != u):
+    return True
+  return False
+
+
+def _initialize_prospect_path(n,
+                              to_visit,
+                              to_visit_reverse,
+                              visited,
+                              visited_reverse,
+                              discovered_forward,
+                              discovered_reverse):
+  prospect_cost = math.inf
+  prospect = [0, 0, 0]
+  for u in range(1, n + 1):
+    if _was_visited(visited, u):
+      if _was_visited(visited_reverse, u):
+        new_prospect_cost = visited[u][0] + visited_reverse[u][0]
+        if new_prospect_cost < prospect_cost:
+          prospect = [new_prospect_cost, u, u]
+          prospect_cost = new_prospect_cost
+
+      if u in discovered_reverse:
+        v = to_visit_reverse[u][-2]
+        uv_weight = to_visit_reverse[u][0] - visited_reverse[v][0]
+        new_prospect_cost = (visited[u][0]
+                             + uv_weight
+                             + visited_reverse[v][0])
+        if new_prospect_cost < prospect_cost:
+          prospect = [new_prospect_cost, u, v]
+          prospect_cost = new_prospect_cost
+    if _was_visited(visited_reverse, u):
+      if u in discovered_forward:
+        v = to_visit[u][-2]
+        uv_weight = to_visit[u][0] - visited[v][0]
+        new_prospect_cost = (visited[v][0]
+                             + uv_weight
+                             + visited_reverse[u][0])
+        if new_prospect_cost < prospect_cost:
+          prospect = [new_prospect_cost, v, u]
+          prospect_cost = new_prospect_cost
+  return prospect
+
+
+def dijkstra_init(n, source, sink, bidirectional):
   """Initializes the data structures that are used by Dijkstra's algorithm.
 
   Returns:
-    to_visit (PriorityQueue) : holds the data of the nodes not yet visited
-                               - costs initialized to inf
+    to_visit (PriorityQueue) : Holds the data of the nodes not yet visited,
+                               sorted by path-cost.
+                               - path-costs initialized to inf
+                               - u_prev initialized to u
+                               - format: [[u_path_cost, u_prev, u],]
+    visited (list)           : Holds the data of the visited nodes.
+                               - path-costs initialized to 0
                                - u_prev initialized to u
                                - format:
                                    [
-                                     [cost_to_node_x, u_prev_x, x],
-                                     [cost_to_node_y, u_prev_y, y],
+                                     [0, 0]
+                                     [1_path_cost, 1_prev],
+                                     [2_path_cost, 2_prev],
                                      ...
-                                   ]
-                              where cost_to_node_x <= cost_to_node_y
-
-    visited (list)           : holds the data of the visited nodes
-                               - costs initialized to 0
-                               - u_prev initialized to None
-                               - format:
-                                   [
-                                     [0, None]
-                                     [cost_to_node_1, u_prev_1],
-                                     [cost_to_node_2, u_prev_2],
-                                     ...
-                                     [cost_to_node_n, u_prev_n]
+                                     [n_path_cost, n_prev]
                                    ]
   """
   to_visit = [[math.inf, node, node] for node in range(1, n + 1)]
   to_visit = PriorityQueue(to_visit)
   to_visit[source] = [0, source, source]
-  visited = [[0, None] for _ in range(n + 1)]
-  return to_visit, visited
+  visited = [[0, node] for node in range(n + 1)]
+  if bidirectional:
+    to_visit_reverse = copy.deepcopy(to_visit)
+    to_visit_reverse[source] = [math.inf, source, source]
+    to_visit_reverse[sink] = [0, sink, sink]
+  else:
+    to_visit_reverse = None
+  return to_visit, visited, to_visit_reverse
 
 
 # @profile
@@ -70,7 +116,7 @@ def _relax_path_cost(v, u, uv_weight, u_path_cost, to_visit):
     to_visit[v] = [u_path_cost + uv_weight, u, v]
 
 
-def _invert_adj_list(adj_list):
+def invert_adj_list(adj_list):
   """Creates the adj_list of the inverted graph in O(n^2).
 
   The inverted graph is the same with the direct, but with inverted edges
@@ -87,8 +133,10 @@ def dijkstra(adj_list,
              sink,
              to_visit,
              visited,
+             failed=None,
              recording=False,
-             failed_nodes=None):
+             tapes_queue=None,
+             checkpoints=None):
   """Dijkstra's algorithm
 
   Args:
@@ -96,15 +144,15 @@ def dijkstra(adj_list,
                                to its index and comprises a list of 2-tuples,
                                each for one neighbor of the index-node:
                                (neighbor_id, weight)
-    sink (hashable)          : The sink node id
+    sink (Hashable)          : The sink node id
     to_visit (PriorityQueue) : The nodes not yet visited by the algorithm.
                                Each entry is a list:
                                [path_cost, prev_node_id, node_id]
     visited (2D list)        : Each entry is a 2-list:
                                [path_cost, prev_node_id]
-    recording (bool)         : If true, the step-wise state of the algorithm
+    dynamic (bool)           : If true, the step-wise state of the algorithm
                                will be recorded on a tape.
-    failed_nodes (list)      : Nodes to avoid (defaults to None)
+    failed (Hashable)        : Nodes to avoid (defaults to None)
 
   Returns:
     visited (2D list)        : Each entry is a 2-list for each node:
@@ -114,11 +162,16 @@ def dijkstra(adj_list,
                                {node_id: (to_visit, visited)}
                                using as key the id of the expanded node
   """
-  if not hasattr(failed_nodes, '__iter__'):
-    failed_nodes = [failed_nodes]
-
-  tape = [] if recording else None
-  relax_tape = [] if recording else None
+  if recording:
+    if checkpoints:
+      tape = []
+      cps = iter(checkpoints)
+      cp = next(cps)
+      discovered = {to_visit.peek()[-1]}
+    else:
+      n = max(sink, to_visit.peek()[-1])
+      visited_nodes_sequence = [0 for _ in range(n)]
+      it = 0
 
   while to_visit:
     u_path_cost, u_prev, u = to_visit.pop_low()
@@ -128,37 +181,193 @@ def dijkstra(adj_list,
     visited[u][0] = u_path_cost if u_path_cost != math.inf else -1
     visited[u][1] = u_prev
 
-    if memoize_states:
-      tape[u] = (copy.deepcopy(to_visit), copy.deepcopy(visited))
+    if recording:
+      if checkpoints:
+        # u is now visited
+        discovered.remove(u)
+      else:
+        # visited_nodes_sequence.append(u)
+        visited_nodes_sequence[it] = u
+        it += 1
 
     if u == sink:
-      return visited, tape
+      if recording:
+        if checkpoints:
+          raise Exception("The states (2nd) recording reached the sink."
+                          f" Process: {current_process().name}")
+        else:
+          # Here exits the 1st recording session (visited nodes sequence).
+          tapes_queue.put((visited, visited_nodes_sequence[:it]))
+          return
+      else:
+        return visited
 
-    # v is the neighbor id
     for v, uv_weight in adj_list[u]:
 
-      if v in failed_nodes:
+      if v == failed:
         continue
 
       if v in to_visit:
         _relax_path_cost(v, u, uv_weight, u_path_cost, to_visit)
+        if recording and checkpoints:
+          # print(f"{current_process().name} disovered: {v}")
+          discovered.add(v)
 
-  return visited, tape
+    if recording and checkpoints:
+      if u == cp:
+        # print(f"{current_process().name} cp: {cp}")
+        tape.append([copy.deepcopy(to_visit),
+                     copy.deepcopy(visited),
+                     copy.deepcopy(discovered)])
+        try:
+          cp = next(cps)
+        except StopIteration:
+          # Here exits the 2nd recording session (Dijkstra states).
+          if current_process().name == "reverse_search":
+            # Reverse back to the failing nodes sequence.
+            tape.reverse()
+          tapes_queue.put(tape)
+          # print(f"{current_process().name} putting tape")
+          return
+
+  return visited
+
+
+# @time_this
+# @profile
+def bidirectional_recording(adj_list,
+                            inverted_adj_list,
+                            source,
+                            sink,
+                            to_visit,
+                            to_visit_reverse,
+                            visited,
+                            checkpoints=None,
+                            verbose=0):
+  """Memoizes the needed states of the algorithm on a tape.
+
+  Two recordings are taking place on both directions. The 1st one records the
+  visited nodes sequence, so as to get the immediate previously visited node
+  for each internal node of the absolute shortest path. The 2nd recording uses
+  those nodes as checkpoints, in order to save the corresponding states of the
+  algorithm.
+  """
+  if verbose >= 2:
+    log_to_stderr()
+    logger = get_logger()
+    logger.setLevel(logging.INFO)
+
+  tapes_queue = Queue()
+
+  if checkpoints:
+    cps_forward = checkpoints[0]
+    cps_reverse = checkpoints[1]
+    # __import__("shortestpaths.utils").deb_trace(f"cps forward: {cps_forward}")
+    # __import__("shortestpaths.utils").deb_trace(f"cps reverse: {cps_reverse}")
+  else:
+    cps_forward = None
+    cps_reverse = None
+
+  # Visited nodes sequence will be recorded for both directions, in order to
+  # extract the appropriate checkpoint nodes.
+  forward_search = Process(name="forward_search",
+                           target=dijkstra,
+                           args=(adj_list,
+                                 sink,
+                                 to_visit,
+                                 visited,
+                                 None,
+                                 True,
+                                 tapes_queue,
+                                 cps_forward))
+  reverse_search = Process(name="reverse_search",
+                           target=dijkstra,
+                           args=(inverted_adj_list,
+                                 source,
+                                 to_visit_reverse,
+                                 visited,
+                                 None,
+                                 True,
+                                 tapes_queue,
+                                 cps_reverse))
+
+  forward_search.daemon = True
+  reverse_search.daemon = True
+  forward_search.start()
+  reverse_search.start()
+  # We need to use the consumer before joining the processes, because the data
+  # is quite big. The underlying thread that pops fromt the dequeue and makes
+  # data available, usues a pipe or a Unix socket, which have a limited capaci-
+  # ty. When the pipe or socket are full, the thread blocks on the syscall and
+  # we get a deadlock, because join waits for the thread to terminate.
+  if checkpoints:  # then this is the 2nd recording (Dijsktra states)
+    tape_1 = tapes_queue.get()
+    tape_2 = tapes_queue.get()
+    # Find out which is which.
+    if sink in tape_1[0][0]:
+      return tape_1, tape_2
+    else:
+      return tape_2, tape_1
+
+  # The rest refer to the 1st recording (visited nodes sequence)
+  visited_1, visited_nodes_sequence_1 = tapes_queue.get()
+  visited_2, visited_nodes_sequence_2 = tapes_queue.get()
+  forward_search.join()
+  reverse_search.join()
+
+  # Find out which is which.
+  if visited_1[source][0] == 0:  # then 1 is the forward search
+    visited_forward = visited_1
+    forward_seq, reverse_seq = \
+        visited_nodes_sequence_1, visited_nodes_sequence_2
+  else:  # then 1 is the reverse search
+    visited_forward = visited_2
+    forward_seq, reverse_seq = \
+        visited_nodes_sequence_2, visited_nodes_sequence_1
+  shortest_path_cost = visited_forward[sink][0]
+  shortest_path = extract_path(source, sink, visited_forward)
+  path_data = [shortest_path, shortest_path_cost, None]
+
+  # Now, record the tapes.
+  checkpoints_forward = []
+  checkpoints_reverse = []
+  for node in shortest_path[1: -1]:
+    checkpoints_forward.append(forward_seq[forward_seq.index(node) - 1])
+    checkpoints_reverse.append(reverse_seq[reverse_seq.index(node) - 1])
+  # Although the sequence of the failed nodes are the same for both searches,
+  # when constructing the corresponding replacement path, when recording, the
+  # reverse search will visit them in reversed order, thus the reverse check-
+  # point list has to be reversed and the reverse tape has to be reversed
+  # back, to match the failing sequence.
+  checkpoints_reverse.reverse()
+  checkpoints = (checkpoints_forward, checkpoints_reverse)
+
+  tapes = bidirectional_recording(adj_list,
+                                  inverted_adj_list,
+                                  source,
+                                  sink,
+                                  to_visit,
+                                  to_visit_reverse,
+                                  visited,
+                                  checkpoints,
+                                  verbose=verbose)
+
+  return path_data, tapes
 
 
 def _visited_offsets(n):
   process_name = current_process().name
   if process_name == "forward_search":
-    forward = True
+    is_forward = True
     visited_offset = 0
     opposite_visited_offset = n
   elif process_name == "reverse_search":
-    forward = False
+    is_forward = False
     visited_offset = n
     opposite_visited_offset = 0
   else:
     raise Exception(f"Unknown process: {process_name}")
-  return forward, visited_offset, opposite_visited_offset
+  return is_forward, visited_offset, opposite_visited_offset
 
 
 def _biderectional_dijkstra_branch(adj_list: list,
@@ -171,34 +380,10 @@ def _biderectional_dijkstra_branch(adj_list: list,
                                    priorityq_top: Array,
                                    kill: Event,
                                    locks: dict,
-                                   failed_nodes: list = None):
-  """Dijkstra's algorithm
-
-  Args:
-    adj_list (list)          : Each entry refers to the node that corresponds
-                               to its index and comprises a list of 2-tuples,
-                               each for one neighbor of the index-node:
-                               (neighbor_id, weight)
-    sink (int)               : The sink node id
-    to_visit (PriorityQueue) : The nodes not yet visited by the algorithm.
-        _relax_path_cost(v, u, uv_weight, u_path_cost, to_visit)
-                               Each entry is a list:
-                               [path_cost, prev_node_id, node_id]
-    visited (2D list)        : Each entry is a 2-list:
-                               [path_cost, prev_node_id]
-    dynamic (bool)    : If true, the step-wise state of the algorithm
-                               will be saved in an OrderedDict.
-    failed_nodes (list)      : Nodes to avoid (defaults to None)
-
-  Returns:
-    visited (2D list)        : Each entry is a 2-list for each node:
-                               [path_cost, prev_node_id]
-    tape (OrderedDict)       : Each entry is the step-wise state of the
-                               algorithm as a pair:
-                               {node_id: (to_visit, visited)}
-                               using as key the id of the expanded node
-  """
-  forward, visited_offset, opposite_visited_offset = _visited_offsets(n)
+                                   failed: Hashable = None):
+  # visited_costs and visited_prev_nodes are a single vector shared by both
+  # searches, thus each search has to work with the proper slice.
+  is_forward, visited_offset, opposite_visited_offset = _visited_offsets(n)
 
   while to_visit:
     u_path_cost, u_prev, u = to_visit.pop_low()
@@ -214,12 +399,10 @@ def _biderectional_dijkstra_branch(adj_list: list,
     pq_top = to_visit.peek()[0]
     pq_top = 0 if pq_top == math.inf else pq_top
     locks["priorityq_top"].acquire()
-    priorityq_top[int(not forward)] = pq_top
-    # print(f"{current_process().name}  {priorityq_top[int(not forward)]}")
+    priorityq_top[int(not is_forward)] = pq_top
+    # print(f"{current_process().name}  {priorityq_top[int(not is_forward)]}")
     locks["priorityq_top"].release()
 
-    # Check if the opposite search already found u. So, we are checking whe-
-    # ther prev_node of u is still u or it is updated.
     locks["kill"].acquire()
     if (kill.is_set()) or (u == sink):
       kill.set()
@@ -229,11 +412,10 @@ def _biderectional_dijkstra_branch(adj_list: list,
 
     for v, uv_weight in adj_list[u]:
 
-      if v in failed_nodes:
+      if v == failed:
         continue
 
       locks["visited"].acquire()
-      locks["prospect"].acquire()
       if v in to_visit:
         # Check if v is visited by the other process and, if yes, construct the
         # prospect path.
@@ -242,49 +424,47 @@ def _biderectional_dijkstra_branch(adj_list: list,
           uv_prospect_cost = (u_path_cost
                               + uv_weight
                               + visited_costs[v + opposite_visited_offset])
-          if (sum(prospect) == 0) or (uv_prospect_cost < prospect[0]):
-            # then this is the 1st prospect or the shortest yet
+          locks["prospect"].acquire()
+          if (uv_prospect_cost < prospect[0]) or (sum(prospect) == 0):
+            # then this is the shortest prospect yet or the 1st one.
             prospect[0] = uv_prospect_cost
-            if forward:
+            if is_forward:
               prospect[1] = u
               prospect[2] = v
             else:
               prospect[1] = v
               prospect[2] = u
             # print(f"{current_process().name}: {prospect[0]}  {prospect[1]}  {prospect[2]}\n")
+          locks["prospect"].release()
         _relax_path_cost(v, u, uv_weight, u_path_cost, to_visit)
-      locks["prospect"].release()
       locks["visited"].release()
 
     # Termination condition
     locks["prospect"].acquire()
     locks["priorityq_top"].acquire()
-    # print(f"prospect[0]: {prospect[0]} topf+topr: {pq_top + priorityq_top[int(forward)]}")
-    if pq_top + priorityq_top[int(forward)] >= prospect[0] != 0:
+    # print(f"prospect[0]: {prospect[0]} topf+topr: {pq_top + priorityq_top[int(is_forward)]}")
+    if sum(priorityq_top) >= prospect[0] != 0:
       locks["kill"].acquire()
       kill.set()
       locks["kill"].release()
       locks["priorityq_top"].release()
       locks["prospect"].release()
-      # print("returningggg")
       return
     locks["priorityq_top"].release()
     locks["prospect"].release()
 
 
+# @time_this
 def bidirectional_dijkstra(adj_list,
+                           inverted_adj_list,
                            source,
                            sink,
-                           to_visit,
-                           dynamic=False,
-                           failed_nodes=None,
+                           to_visit=None,
+                           to_visit_reverse=None,
+                           failed_path_idx=None,
+                           failed=None,
+                           tapes=None,
                            verbose=False):
-  if not hasattr(failed_nodes, '__iter__'):
-    failed_nodes = [failed_nodes]
-  inverted_adj_list = _invert_adj_list(adj_list)
-  inverted_to_visit = copy.deepcopy(to_visit)
-  inverted_to_visit[source] = [math.inf, source, source]
-  inverted_to_visit[sink] = [0, sink, sink]
   n = len(adj_list) - 1
 
   if verbose:
@@ -292,20 +472,63 @@ def bidirectional_dijkstra(adj_list,
     logger = get_logger()
     logger.setLevel(logging.INFO)
 
-  # A shared list with the visited status of each node. Each entry is a 2-list,
-  # where the first item corresponds to the forward search and the second to
-  # the reverse search. When a process visits a node, it will render the node
-  # visited by setting the corresponding value to the node's path_cost. This
-  # information is needed in order for the prospect paths to be evaluated.
-  visited_costs = Array('i', [0 for _ in range(2 * n + 1)], lock=False)
-  visited_prev_nodes = [i for i in range(n + 1)] + [i for i in range(1, n + 1)]
+  if tapes:
+    # Retrieve the forward and reverse states.
+    # NOTE: tapes start from the 2nd path-node, so the path_idx is offset by 1.
+    tape_forward, tape_reverse = tapes
+    [to_visit, visited, discovered_forward] = \
+        tape_forward[failed_path_idx - 1]
+    [to_visit_reverse, visited_reverse, discovered_reverse] = \
+        tape_reverse[failed_path_idx - 1]
+
+    to_visit_reverse[failed] = [math.inf, failed, failed]
+    to_visit[failed] = [math.inf, failed, failed]
+
+    # Retrieve the prospect path of the state.
+    # prospect: [path_cost, forward_search_node, backward_search_node]
+    prospect = _initialize_prospect_path(n,
+                                         to_visit,
+                                         to_visit_reverse,
+                                         visited,
+                                         visited_reverse,
+                                         discovered_forward,
+                                         discovered_reverse)
+
+    # Check if termination condition is already met.
+    top_f = to_visit.peek()[0]
+    top_r = to_visit_reverse.peek()[0]
+    prospect = Array('i', prospect, lock=False)
+
+    if (top_f + top_r >= prospect[0]) and (sum(prospect) != 0):
+      path_cost = prospect[0]
+
+      path = extract_bidirectional_path(source,
+                                        sink,
+                                        n,
+                                        prospect,
+                                        visited=visited,
+                                        visited_reverse=visited_reverse)
+      return [path, path_cost, failed]
+
+    # visited_costs and visited_prev_nodes are being concatenated, because they
+    # have to be shared between the 2 searches and multiplocessing.Array() only
+    # accepts single dimension arrays of one type.
+    visited_forward_zip = list(zip(*visited))
+    visited_backward_zip = list(zip(*visited_reverse))
+    visited_costs = (list(visited_forward_zip[0])
+                     + list(visited_backward_zip[0][1:]))
+    visited_prev_nodes = (list(visited_forward_zip[1])
+                          + list(visited_backward_zip[1][1:]))
+    priorityq_top = Array('i', [top_f, top_r], lock=False)
+  else:  # not tapes
+    visited_costs = [0 for _ in range(2 * n + 1)]
+    visited_prev_nodes = ([i for i in range(n + 1)]
+                          + [i for i in range(1, n + 1)])
+    prospect = Array('i', [0, 0, 0], lock=False)
+    priorityq_top = Array('i', [0, 0], lock=False)
+
+  visited_costs = Array('i', visited_costs, lock=False)
   visited_prev_nodes = Array('i', visited_prev_nodes, lock=False)
-  # The prospect shortest path:
-  # (path_cost, forward_search_node, backward_search_node)
-  prospect = Array('i', [0, 0, 0], lock=False)
-  priorityq_top = Array('i', [0, 0], lock=False)
-  # When a process visites a node already visited by the other process, it will
-  # will set this flag to notify the other process that they 've met.
   kill = Event()
   shared_vars = ["visited", "priorityq_top", "prospect", "kill"]
   locks = {var: Lock() for var in shared_vars}
@@ -322,20 +545,21 @@ def bidirectional_dijkstra(adj_list,
                                  priorityq_top,
                                  kill,
                                  locks,
-                                 failed_nodes))
+                                 failed))
   reverse_search = Process(name="reverse_search",
                            target=_biderectional_dijkstra_branch,
                            args=(inverted_adj_list,
                                  source,
                                  n,
-                                 inverted_to_visit,
+                                 to_visit_reverse,
                                  visited_costs,
                                  visited_prev_nodes,
                                  prospect,
                                  priorityq_top,
                                  kill,
                                  locks,
-                                 failed_nodes))
+                                 failed))
+
   forward_search.start()
   reverse_search.start()
   forward_search.join()
@@ -345,27 +569,35 @@ def bidirectional_dijkstra(adj_list,
   path = extract_bidirectional_path(source,
                                     sink,
                                     n,
+                                    prospect,
                                     visited_costs,
-                                    visited_prev_nodes,
-                                    prospect)
-  return [path, path_cost, failed_nodes]
+                                    visited_prev_nodes)
+  return [path, path_cost, failed]
 
 
 def extract_bidirectional_path(source,
                                sink,
                                n,
-                               visited_costs,
-                               visited_prev_nodes,
-                               prospect_path):
-  visited = list(zip(visited_costs, visited_prev_nodes))
-  path = extract_path(visited[:n + 1], source, prospect_path[1])
+                               prospect,
+                               visited_costs=None,
+                               visited_prev_nodes=None,
+                               visited=None,
+                               visited_reverse=None):
+  if (visited is None) and (visited_reverse is None):
+    visited_concatenated = list(zip(visited_costs, visited_prev_nodes))
+    visited = visited_concatenated[:n + 1]
+    visited_reverse = visited_concatenated[n:]
+  path = extract_path(source, prospect[1], visited)
   # The slice starts from n to account for 0th index.
-  backwards_path = extract_path(visited[n:], sink, prospect_path[2])
-  path += reversed(backwards_path)
+  backwards_path = extract_path(sink, prospect[2], visited_reverse)
+  if prospect[1] == prospect[2]:
+    path += reversed(backwards_path[:-1])
+  else:
+    path += reversed(backwards_path)
   return path
 
 
-def extract_path(visited, source, sink, with_hop_weights=False):
+def extract_path(source, sink, visited, with_hop_weights=False):
   """Extracts the shortest-path from a Dijkstra's algorithm output.
 
   Dijkstra's algorithm saves the shortest path cost for each node of the graph,
