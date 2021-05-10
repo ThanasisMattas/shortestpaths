@@ -25,8 +25,6 @@ from multiprocessing import (Array,
 from typing import Hashable
 import warnings
 
-from networkx.exception import PowerIterationFailedConvergence
-
 from shortestpaths.priorityq import PriorityQueue
 from shortestpaths.utils import time_this  # noqa: F401
 
@@ -597,7 +595,11 @@ def extract_bidirectional_path(source,
   return path
 
 
-def extract_path(source, sink, visited, with_hop_weights=False):
+def extract_path(source,
+                 sink,
+                 visited,
+                 with_hop_weights=False,
+                 cumulative=False):
   """Extracts the shortest-path from a Dijkstra's algorithm output.
 
   Dijkstra's algorithm saves the shortest path cost for each node of the graph,
@@ -605,19 +607,17 @@ def extract_path(source, sink, visited, with_hop_weights=False):
   jumping through previous nodes, until the source node.
 
   Args:
-    visited (2D list)        : each entry is a 2-list:
-                               [path_cost, u_prev]
-    source, sink (hashable)  : the ids of source and sink nodes
-    with_hop_weights (bool)  : - True : returns just the u's
-                               - False: returns 2-lists:
-                                        (u, hop_cost)
+    visited (2D list)       : each entry is a 2-list: [path_cost, u_prev]
+    source, sink (hashable) : the ids of source and sink nodes
+    with_hop_weights (bool) : - True : returns a list with the path-nodes
+                              - False: returns 2-lists: [u, hop-weight]
+    cumulative (bool)       : if True, hop-weights become path-weights
 
   Returns:
-    path (list)              : if with_hop_weights:
-                                 each entry is a 2-list,
-                                 [u, edge-cost]
-                               else:
-                                 list of the consecutive nodes in the path
+    path (list)             : if with_hop_weights:
+                                each entry is a 2-list: [u, hop-weight]
+                              else:
+                                list of the consecutive nodes in the path
   """
   if with_hop_weights:
     path = [[sink, visited[sink][0]]]
@@ -627,7 +627,8 @@ def extract_path(source, sink, visited, with_hop_weights=False):
       prev_node_cost = visited[prev_node][0]
       # The corresponding costs are path-costs. In order to get the hop-cost, we
       # have to offset with the path-cost of the previous node in the path.
-      path[-1][1] -= prev_node_cost
+      if not cumulative:
+        path[-1][1] -= prev_node_cost
       path.append([prev_node, prev_node_cost])
       if node == prev_node:
         # Some node/edge failures may disconnect the graph. This can be dete-
