@@ -290,11 +290,11 @@ def k_shortest_paths(adj_list,
                                     copy.deepcopy(to_visit),
                                     copy.deepcopy(visited))
     shortest_path_cost = new_visited[sink][0]
-    shortest_path = dijkstra.extract_path(source,
-                                          sink,
-                                          new_visited,
-                                          with_hop_weights=True,
-                                          cumulative=True)
+    shortest_path, hop_weights = dijkstra.extract_path(source,
+                                                       sink,
+                                                       new_visited,
+                                                       with_hop_weights=True,
+                                                       cumulative=True)
 
   k_paths = [[shortest_path, shortest_path_cost, None]]
 
@@ -306,56 +306,56 @@ def k_shortest_paths(adj_list,
   for _ in range(k - 1):
     # Construct the deviation paths of the last found shortest path.
     last_path = k_paths[-1][0]
-    [last_path_no_weights, path_cum_weights] = list(zip(*last_path))
-    k_paths[-1][0] = last_path_no_weights
-    for i in range(len(last_path[:-1])):
-      spur_node = last_path_no_weights[i]
+    for i, u in enumerate(last_path[:-1]):
 
       # Fail the (i, i + 1) edges of all found shortest paths.
+      # {head: (head, edge_cost)}
       failed_edges = dict()
       for j in k_paths:
-        if j[0][:i + 1] == last_path_no_weights[:i + 1]:
+        if j[0][:i + 1] == last_path[:i + 1]:
           failed_edges[j[0][i + 1]] = None
-      for neighbor in adj_list[spur_node]:
-        if neighbor[0] in failed_edges.keys():
-          failed_edges[neighbor[0]] = neighbor
-      adj_list[spur_node] = adj_list[spur_node] - set(failed_edges.values())
-      for key in failed_edges.keys():
-        adj_list[spur_node].add((key, math.inf))
+      for v, uv_weight in adj_list[u]:
+        if v in failed_edges.keys():
+          failed_edges[v] = (v, uv_weight)
+      adj_list[u] = adj_list[u] - set(failed_edges.values())  # Check without set() !!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      for v in failed_edges.keys():
+        adj_list[u].add((v, math.inf))
 
       # Remove the Root path nodes from the to_visit PriorityQueue.
       new_to_visit = copy.deepcopy(to_visit)
-      for node in last_path_no_weights[:i]:
-        del new_to_visit[node]
+      for root_u in last_path[:i]:
+        del new_to_visit[root_u]
 
       # Set i as source and find the i-sink path.
-      new_to_visit[spur_node] = [0, spur_node, spur_node]
+      new_to_visit[u] = [0, u, u]
       new_visited = dijkstra.dijkstra(adj_list,
                                       sink,
                                       new_to_visit,
                                       copy.deepcopy(visited))
-      prospect_path_cost = new_visited[sink][0] + path_cum_weights[i]
-      prospect_path = dijkstra.extract_path(spur_node,
-                                            sink,
-                                            new_visited,
-                                            with_hop_weights=True,
-                                            cumulative=True)
-      if prospect_path:
-        # __import__('ipdb').set_trace(context=9)
-        [prospect_path_no_weights, __] = list(zip(*prospect_path))
-        prospect_path_no_weights = last_path_no_weights[:i] + prospect_path_no_weights
+      i_sink_cost = new_visited[sink][0] + hop_weights[i]
+      i_sink_path, i_sink_hop_weights = dijkstra.extract_path(
+        u,
+        sink,
+        new_visited,
+        with_hop_weights=True,
+        cumulative=True
+      )
+      if i_sink_path:
+        prospect = last_path[:i] + i_sink_path
+        prospect_cost = hop_weights[i] + i_sink_cost
+        prospect_hop_weights = hop_weights[:i] + i_sink_hop_weights
 
-        prospects.append((prospect_path_cost, last_path_no_weights[:i] + tuple(prospect_path)))
+        # NOTE: prospects is a heap
+        prospects.append((prospect_cost, prospect, prospect_hop_weights))
       # Restore the failed edges.
-      for ke, va in failed_edges.items():
-        adj_list[spur_node].remove((ke, math.inf))
-        adj_list[spur_node].add(va)
+      for v, edge in failed_edges.items():
+        adj_list[u].remove((v, math.inf))
+        adj_list[u].add(edge)
       failed_edges.clear()
     # Add the best prospect to the k_paths list
     if prospects:
-      kth_path_cost, kth_path = heapq.heappop(prospects)
+      kth_path_cost, kth_path, hop_weights = heapq.heappop(prospects)
       k_paths.append([kth_path, kth_path_cost, None])
     else:
       break
-  k_paths[-1][0] = prospect_path_no_weights
   return k_paths

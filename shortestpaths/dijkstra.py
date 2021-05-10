@@ -631,9 +631,7 @@ def extract_path(source,
         # that case, a warning is printed and we move to the next path, if any.
         warnings.warn(f"The source ({source}) is not connected to the sink"
                       f" ({sink}).")
-        if with_hop_weights:
-          return [], []
-        return []
+        return [], []
       # The corresponding costs are path-costs. In order to get the hop-cost,
       # we have to offset with the path-cost of the previous node in the path.
       if not cumulative:
@@ -641,7 +639,9 @@ def extract_path(source,
       path.append(u_prev)
       hop_weights.append(u_prev_cost)
       u = u_prev
+    path.reverse()
     hop_weights.reverse()
+    return path, hop_weights
   else:
     path = [sink]
     u = sink
@@ -653,6 +653,5 @@ def extract_path(source,
                       f" ({sink}).")
         return []
       u = u_prev
-
-  path.reverse()
-  return path
+    path.reverse()
+    return path
