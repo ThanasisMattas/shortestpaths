@@ -14,6 +14,7 @@
 import ast
 from datetime import timedelta
 from functools import wraps
+import heapq
 from inspect import currentframe
 from operator import itemgetter
 from os.path import basename, realpath
@@ -154,3 +155,18 @@ def deb_trace(msg=None, condition=None):
           f"{currentframe().f_back.f_code.co_name}::"
           f"{currentframe().f_back.f_lineno}"
           + (f":: {msg}" if msg else ''))
+
+
+def print_heap(h):
+  """Prints the items of a heap.
+
+  Returns:
+    temp_h (heap) : a copy of h
+  """
+  temp_h = []
+  while h:
+    entry = heapq.heappop(h)
+    temp_h.append(entry)
+    print(entry)
+  heapq.heapify(temp_h)
+  return temp_h
