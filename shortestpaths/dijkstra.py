@@ -609,46 +609,50 @@ def extract_path(source,
   Args:
     visited (2D list)       : each entry is a 2-list: [path_cost, u_prev]
     source, sink (hashable) : the ids of source and sink nodes
-    with_hop_weights (bool) : - True : returns a list with the path-nodes
-                              - False: returns 2-lists: [u, hop-weight]
+    with_hop_weights (bool) : if True, returns 2 lists, the path and the hop-
+                              weights
     cumulative (bool)       : if True, hop-weights become path-weights
 
   Returns:
-    path (list)             : if with_hop_weights:
-                                each entry is a 2-list: [u, hop-weight]
-                              else:
-                                list of the consecutive nodes in the path
+    path (list)             : list of the consecutive nodes in the path
+    hop_weights (list)      : a list with the corresponding hop weights
+                              (see Args: with_hop_weights, cumulative)
   """
   if with_hop_weights:
-    path = [[sink, visited[sink][0]]]
-    node = sink
-    while node != source:
-      prev_node = visited[node][1]
-      prev_node_cost = visited[prev_node][0]
-      # The corresponding costs are path-costs. In order to get the hop-cost, we
-      # have to offset with the path-cost of the previous node in the path.
-      if not cumulative:
-        path[-1][1] -= prev_node_cost
-      path.append([prev_node, prev_node_cost])
-      if node == prev_node:
+    hop_weights = [visited[sink][0]]
+    path = [sink]
+    u = sink
+    while u != source:
+      u_prev = visited[u][1]
+      u_prev_cost = visited[u_prev][0]
+      if u == u_prev:
         # Some node/edge failures may disconnect the graph. This can be dete-
         # cted because at initialization u_prev is set to u. In
         # that case, a warning is printed and we move to the next path, if any.
         warnings.warn(f"The source ({source}) is not connected to the sink"
                       f" ({sink}).")
+        if with_hop_weights:
+          return [], []
         return []
-      node = prev_node
+      # The corresponding costs are path-costs. In order to get the hop-cost,
+      # we have to offset with the path-cost of the previous node in the path.
+      if not cumulative:
+        hop_weights[-1][1] -= u_prev_cost
+      path.append(u_prev)
+      hop_weights.append(u_prev_cost)
+      u = u_prev
+    hop_weights.reverse()
   else:
     path = [sink]
-    node = sink
-    while node != source:
-      prev_node = visited[node][1]
-      path.append(prev_node)
-      if node == prev_node:
+    u = sink
+    while u != source:
+      u_prev = visited[u][1]
+      path.append(u_prev)
+      if u == u_prev:
         warnings.warn(f"The source ({source}) is not connected to the sink"
                       f" ({sink}).")
         return []
-      node = prev_node
+      u = u_prev
 
   path.reverse()
   return path
