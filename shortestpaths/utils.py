@@ -164,9 +164,9 @@ def print_heap(h):
     temp_h (heap) : a copy of h
   """
   temp_h = []
+  heapq.heapify(temp_h)
   while h:
     entry = heapq.heappop(h)
-    temp_h.append(entry)
+    heapq.heappush(temp_h, entry)
     print(entry)
-  heapq.heapify(temp_h)
   return temp_h
