@@ -599,7 +599,8 @@ def extract_path(source,
                  sink,
                  visited,
                  with_hop_weights=False,
-                 cumulative=False):
+                 cumulative=False,
+                 verbose=0):
   """Extracts the shortest-path from a Dijkstra's algorithm output.
 
   Dijkstra's algorithm saves the shortest path cost for each node of the graph,
@@ -629,8 +630,9 @@ def extract_path(source,
         # Some node/edge failures may disconnect the graph. This can be dete-
         # cted because at initialization u_prev is set to u. In
         # that case, a warning is printed and we move to the next path, if any.
-        warnings.warn(f"The source ({source}) is not connected to the sink"
-                      f" ({sink}).")
+        if verbose >= 2:
+          warnings.warn(f"The source ({source}) is not connected to the sink"
+                        f" ({sink}).")
         return [], []
       # The corresponding costs are path-costs. In order to get the hop-cost,
       # we have to offset with the path-cost of the previous node in the path.
@@ -649,8 +651,9 @@ def extract_path(source,
       u_prev = visited[u][1]
       path.append(u_prev)
       if u == u_prev:
-        warnings.warn(f"The source ({source}) is not connected to the sink"
-                      f" ({sink}).")
+        if verbose >= 2:
+          warnings.warn(f"The source ({source}) is not connected to the sink"
+                        f" ({sink}).")
         return []
       u = u_prev
     path.reverse()

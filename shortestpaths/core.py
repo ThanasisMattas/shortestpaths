@@ -26,7 +26,7 @@ import copy
 from functools import partial
 import heapq
 import math
-from typing import Hashable, Literal
+from typing import Hashable, Literal, Type
 
 from shortestpaths import dijkstra
 from shortestpaths.priorityq import PriorityQueue
@@ -257,6 +257,85 @@ def replacement_paths(adj_list,
   return repl_paths
 
 
+def yen(sink,
+        adj_list,
+        to_visit,
+        visited,
+        k,
+        shortest_path,
+        shortest_path_cost,
+        cum_hop_weights):
+  k_paths = [[shortest_path, shortest_path_cost, None]]
+  # This is the B list of the Yen's algorithm, holding the potential shortest
+  # paths.
+  prospects = []
+  heapq.heapify(prospects)
+  for k_it in range(1, k):
+    # Construct the deviation paths of the last found shortest path.
+    last_path = k_paths[-1][0]
+    for i, u in enumerate(last_path[:-1]):
+      # Fail the (i, i + 1) edges of all found shortest paths.
+      # {head: (head, edge_cost)}
+      failed_edges = dict()
+      for j in k_paths:
+        if j[0][:i + 1] == last_path[:i + 1]:
+          failed_edges[j[0][i + 1]] = None
+      for v, uv_weight in adj_list[u]:
+        if v in failed_edges.keys():
+          failed_edges[v] = (v, uv_weight)
+      for v, edge in failed_edges.items():
+        adj_list[u].remove(edge)
+        adj_list[u].add((v, math.inf))
+
+      # Remove the Root path nodes from the to_visit PriorityQueue.
+      new_to_visit = copy.deepcopy(to_visit)
+      for root_u in last_path[:i]:
+        del new_to_visit[root_u]
+
+      # Set i as source and initialize it's path cost to source-i path cost.
+      new_to_visit[u] = [cum_hop_weights[i], u, u]
+      new_visited = dijkstra.dijkstra(adj_list,
+                                      sink,
+                                      new_to_visit,
+                                      copy.deepcopy(visited))
+      prospect_cost = new_visited[sink][0]
+      i_sink_path, i_sink_hop_weights = dijkstra.extract_path(
+        u,
+        sink,
+        new_visited,
+        with_hop_weights=True,
+        cumulative=True
+      )
+      if i_sink_path:
+        prospect = last_path[:i] + i_sink_path
+        prospect_hop_weights = cum_hop_weights[:i] + i_sink_hop_weights
+
+        if ((len(prospects) < k - k_it)
+                or (prospect_cost
+                    < heapq.nsmallest(k - k_it, prospects)[-1][0])):
+          # Check if the prospect is already found
+          prospect_already_found = False
+          for p_cost, p, p_hop_weights in prospects:
+            if (p_cost == prospect_cost) and (p == prospect):
+              prospect_already_found = True
+              break
+          if not prospect_already_found:
+            heapq.heappush(prospects,
+                           (prospect_cost, prospect, prospect_hop_weights))
+      # Restore the failed edges.
+      for v, edge in failed_edges.items():
+        adj_list[u].remove((v, math.inf))
+        adj_list[u].add(edge)
+      failed_edges.clear()
+    # Add the best prospect to the k_paths list
+    if prospects:
+      kth_path_cost, kth_path, cum_hop_weights = heapq.heappop(prospects)
+      k_paths.append([kth_path, kth_path_cost, None])
+    else:
+      break
+  return k_paths
+
+
 @time_this
 def k_shortest_paths(adj_list,
                      source,
@@ -290,72 +369,20 @@ def k_shortest_paths(adj_list,
                                     copy.deepcopy(to_visit),
                                     copy.deepcopy(visited))
     shortest_path_cost = new_visited[sink][0]
-    shortest_path, hop_weights = dijkstra.extract_path(source,
-                                                       sink,
-                                                       new_visited,
-                                                       with_hop_weights=True,
-                                                       cumulative=True)
+    shortest_path, cum_hop_weights = dijkstra.extract_path(
+      source,
+      sink,
+      new_visited,
+      with_hop_weights=True,
+      cumulative=True
+    )
 
-  k_paths = [[shortest_path, shortest_path_cost, None]]
-
-  # This is the B list of the Yen's algorithm, holding the potential shortest
-  # paths.
-  prospects = []
-  heapq.heapify(prospects)
-  for _ in range(k - 1):
-    # Construct the deviation paths of the last found shortest path.
-    last_path = k_paths[-1][0]
-    for i, u in enumerate(last_path[:-1]):
-
-      # Fail the (i, i + 1) edges of all found shortest paths.
-      # {head: (head, edge_cost)}
-      failed_edges = dict()
-      for j in k_paths:
-        if j[0][:i + 1] == last_path[:i + 1]:
-          failed_edges[j[0][i + 1]] = None
-      for v, uv_weight in adj_list[u]:
-        if v in failed_edges.keys():
-          failed_edges[v] = (v, uv_weight)
-      for v, edge in failed_edges.items():
-        adj_list[u].remove(edge)
-        adj_list[u].add((v, math.inf))
-
-      # Remove the Root path nodes from the to_visit PriorityQueue.
-      new_to_visit = copy.deepcopy(to_visit)
-      for root_u in last_path[:i]:
-        del new_to_visit[root_u]
-
-      # Set i as source and initialize it's path cost to source-i path cost.
-      new_to_visit[u] = [hop_weights[i], u, u]
-      new_visited = dijkstra.dijkstra(adj_list,
-                                      sink,
-                                      new_to_visit,
-                                      copy.deepcopy(visited))
-      prospect_cost = new_visited[sink][0]
-      i_sink_path, i_sink_hop_weights = dijkstra.extract_path(
-        u,
-        sink,
-        new_visited,
-        with_hop_weights=True,
-        cumulative=True
-      )
-      if i_sink_path:
-        prospect = last_path[:i] + i_sink_path
-        prospect_hop_weights = hop_weights[:i] + i_sink_hop_weights
-
-        # NOTE: prospects is a heap
-        heapq.heappush(prospects, (prospect_cost, prospect, prospect_hop_weights))
-        # __import__('ipdb').set_trace(context=9)
-      # Restore the failed edges.
-      for v, edge in failed_edges.items():
-        adj_list[u].remove((v, math.inf))
-        adj_list[u].add(edge)
-      failed_edges.clear()
-    # Add the best prospect to the k_paths list
-    if prospects:
-      # __import__('ipdb').set_trace(context=9)
-      kth_path_cost, kth_path, hop_weights = heapq.heappop(prospects)
-      k_paths.append([kth_path, kth_path_cost, None])
-    else:
-      break
+  k_paths = yen(sink,
+                adj_list,
+                to_visit,
+                visited,
+                k,
+                shortest_path,
+                shortest_path_cost,
+                cum_hop_weights)
   return k_paths
