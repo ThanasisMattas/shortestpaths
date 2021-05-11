@@ -241,6 +241,7 @@ def bidirectional_recording(adj_list,
                             to_visit_reverse,
                             visited,
                             checkpoints=None,
+                            mode="k_shortest_paths",
                             verbose=0):
   """Memoizes the needed states of the algorithm on a tape.
 
@@ -323,8 +324,16 @@ def bidirectional_recording(adj_list,
     forward_seq, reverse_seq = \
         visited_nodes_sequence_2, visited_nodes_sequence_1
   shortest_path_cost = visited_forward[sink][0]
-  shortest_path = extract_path(source, sink, visited_forward)
-  path_data = [shortest_path, shortest_path_cost, None]
+  shortest_path, cum_hop_weights = extract_path(
+    source,
+    sink,
+    visited_forward,
+    cum_hop_weights=(mode == "k_shortest_paths"),
+    verbose=verbose)
+  if mode == "k_shortest_paths":
+    path_data = [shortest_path, cum_hop_weights, shortest_path_cost]
+  else:
+    path_data = [shortest_path, shortest_path_cost, None]
 
   # Now, record the tapes.
   checkpoints_forward = []
@@ -462,10 +471,11 @@ def bidirectional_dijkstra(adj_list,
                            failed_path_idx=None,
                            failed=None,
                            tapes=None,
-                           verbose=False):
+                           mode="k_shortest_paths",
+                           verbose=0):
   n = len(adj_list) - 1
 
-  if verbose:
+  if verbose > 2:
     log_to_stderr()
     logger = get_logger()
     logger.setLevel(logging.INFO)
@@ -564,13 +574,19 @@ def bidirectional_dijkstra(adj_list,
   reverse_search.join()
 
   path_cost = prospect[0]
-  path = extract_bidirectional_path(source,
-                                    sink,
-                                    n,
-                                    prospect,
-                                    visited_costs,
-                                    visited_prev_nodes)
-  return [path, path_cost, failed]
+  path, cum_hop_weights = extract_bidirectional_path(
+    source,
+    sink,
+    n,
+    prospect,
+    visited_costs,
+    visited_prev_nodes,
+    cum_hop_weights=(mode == "k_shortest_paths"),
+    verbose=verbose)
+  if mode == "k_shortest_paths":
+    return [path, cum_hop_weights, path_cost, failed]
+  else:
+    return [path, path_cost, failed]
 
 
 def extract_bidirectional_path(source,
@@ -580,26 +596,39 @@ def extract_bidirectional_path(source,
                                visited_costs=None,
                                visited_prev_nodes=None,
                                visited=None,
-                               visited_reverse=None):
+                               visited_reverse=None,
+                               cum_hop_weights=False,
+                               verbose=0):
   if (visited is None) and (visited_reverse is None):
     visited_concatenated = list(zip(visited_costs, visited_prev_nodes))
     visited = visited_concatenated[:n + 1]
     visited_reverse = visited_concatenated[n:]
-  path = extract_path(source, prospect[1], visited)
+  path, weights = extract_path(source,
+                               prospect[1],
+                               visited,
+                               cum_hop_weights,
+                               verbose)
   # The slice starts from n to account for 0th index.
-  backwards_path = extract_path(sink, prospect[2], visited_reverse)
+  reverse_path, reverse_weights = extract_path(sink,
+                                               prospect[2],
+                                               visited_reverse,
+                                               cum_hop_weights,
+                                               verbose)
   if prospect[1] == prospect[2]:
-    path += reversed(backwards_path[:-1])
+    path += reversed(reverse_path[:-1])
+    if cum_hop_weights:
+      weights += reversed(reverse_weights[:-1])
   else:
-    path += reversed(backwards_path)
-  return path
+    path += reversed(reverse_path)
+    if cum_hop_weights:
+      weights += reversed(reverse_weights)
+  return path, weights
 
 
 def extract_path(source,
                  sink,
                  visited,
-                 with_hop_weights=False,
-                 cumulative=False,
+                 cum_hop_weights=False,
                  verbose=0):
   """Extracts the shortest-path from a Dijkstra's algorithm output.
 
@@ -610,17 +639,15 @@ def extract_path(source,
   Args:
     visited (2D list)       : each entry is a 2-list: [path_cost, u_prev]
     source, sink (hashable) : the ids of source and sink nodes
-    with_hop_weights (bool) : if True, returns 2 lists, the path and the hop-
-                              weights
-    cumulative (bool)       : if True, hop-weights become path-weights
+    cum_hop_weights (bool)  : if True, returns 2 lists, the path and the cumu-
+                              lative hop-weights
 
   Returns:
     path (list)             : list of the consecutive nodes in the path
-    hop_weights (list)      : a list with the corresponding hop weights
-                              (see Args: with_hop_weights, cumulative)
+    weights (list)          : the comulative hop-weights (if cum_hop_weights)
   """
-  if with_hop_weights:
-    hop_weights = [visited[sink][0]]
+  if cum_hop_weights:
+    weights = [visited[sink][0]]
     path = [sink]
     u = sink
     while u != source:
@@ -636,14 +663,12 @@ def extract_path(source,
         return [], []
       # The corresponding costs are path-costs. In order to get the hop-cost,
       # we have to offset with the path-cost of the previous node in the path.
-      if not cumulative:
-        hop_weights[-1][1] -= u_prev_cost
       path.append(u_prev)
-      hop_weights.append(u_prev_cost)
+      weights.append(u_prev_cost)
       u = u_prev
     path.reverse()
-    hop_weights.reverse()
-    return path, hop_weights
+    weights.reverse()
+    return path, weights
   else:
     path = [sink]
     u = sink
@@ -657,4 +682,4 @@ def extract_path(source,
         return []
       u = u_prev
     path.reverse()
-    return path
+    return path, None
