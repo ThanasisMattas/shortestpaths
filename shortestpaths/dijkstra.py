@@ -679,7 +679,7 @@ def extract_path(source,
         if verbose >= 2:
           warnings.warn(f"The source ({source}) is not connected to the sink"
                         f" ({sink}).")
-        return []
+        return [], None
       u = u_prev
     path.reverse()
     return path, None
