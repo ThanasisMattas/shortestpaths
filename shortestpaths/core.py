@@ -305,7 +305,8 @@ def _yen(sink,
          K,
          shortest_path,
          shortest_path_cost,
-         cum_hop_weights):
+         cum_hop_weights,
+         lawler=True):
   """Implementation of Yen's algorithm with improvements.
 
   Improvements:
@@ -320,17 +321,24 @@ def _yen(sink,
   # paths.
   prospects = []
   heapq.heapify(prospects)
+  kth_u_idx = 0
+
   for k in range(1, K):
     last_path = k_paths[-1][0]
 
+    if not lawler:
+      kth_u_idx = 0
+
     # Construct the deviation paths of the last found shortest path.
-    for i, u in enumerate(last_path[:-1]):
+    # (u is the spur node)
+    for i, u in enumerate(last_path[kth_u_idx: -1]):
+      u_idx = i + kth_u_idx
       # Fail the (i, i + 1) edges of all found shortest paths.
       # {head: (head, edge_cost)}
       failed_edges = dict()
       for j in k_paths:
-        if j[0][:i + 1] == last_path[:i + 1]:
-          failed_edges[j[0][i + 1]] = None
+        if j[0][:u_idx + 1] == last_path[:u_idx + 1]:
+          failed_edges[j[0][u_idx + 1]] = None
       for v, uv_weight in adj_list[u]:
         if v in failed_edges.keys():
           failed_edges[v] = (v, uv_weight)
@@ -340,38 +348,40 @@ def _yen(sink,
 
       # Remove the Root path nodes from the to_visit PriorityQueue.
       new_to_visit = copy.deepcopy(to_visit)
-      for root_node in last_path[:i]:
+      for root_node in last_path[:u_idx]:
         del new_to_visit[root_node]
 
       # Set i as source and initialize it's path cost to source-i path cost.
-      new_to_visit[u] = [cum_hop_weights[i], u, u]
+      new_to_visit[u] = [cum_hop_weights[u_idx], u, u]
       new_visited = dijkstra.dijkstra(adj_list,
                                       sink,
                                       new_to_visit,
                                       copy.deepcopy(visited))
       prospect_cost = new_visited[sink][0]
-      i_sink_path, i_sink_hop_weights = dijkstra.extract_path(
+      spur, spur_hop_weights = dijkstra.extract_path(
         u,
         sink,
         new_visited,
         cum_hop_weights=True,
       )
-      if i_sink_path:
-        prospect = last_path[:i] + i_sink_path
-        prospect_hop_weights = cum_hop_weights[:i] + i_sink_hop_weights
+      if spur:
+        prospect = last_path[:u_idx] + spur
+        prospect_hop_weights = cum_hop_weights[:u_idx] + spur_hop_weights
 
         if ((len(prospects) < K - k)
                 or (prospect_cost
                     < heapq.nsmallest(K - k, prospects)[-1][0])):
           # Check if the prospect is already found
           prospect_already_found = False
-          for p_cost, p, _ in prospects:
+          for p_cost, p, c, d in prospects:
             if (p_cost == prospect_cost) and (p == prospect):
               prospect_already_found = True
               break
           if not prospect_already_found:
-            heapq.heappush(prospects,
-                           (prospect_cost, prospect, prospect_hop_weights))
+            heapq.heappush(
+              prospects,
+              (prospect_cost, prospect, prospect_hop_weights, u_idx)
+            )
 
       # Restore the failed edges.
       for v, edge in failed_edges.items():
@@ -386,10 +396,11 @@ def _yen(sink,
       if ((len(prospects) >= K - k)
               and heapq.nsmallest(K - k, prospects)[-1][0] == last_path[0]):
         for _ in range(K - k):
-          kth_path_cost, kth_path, cum_hop_weights = heapq.heappop(prospects)
+          kth_path_cost, kth_path, c, d = heapq.heappop(prospects)
           k_paths.append([kth_path, kth_path_cost, None])
         break
-      kth_path_cost, kth_path, cum_hop_weights = heapq.heappop(prospects)
+      kth_path_cost, kth_path, cum_hop_weights, kth_u_idx = \
+          heapq.heappop(prospects)
       k_paths.append([kth_path, kth_path_cost, None])
     else:
       break
