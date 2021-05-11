@@ -18,7 +18,6 @@ from multiprocessing import (Array,
                              current_process,
                              Event,
                              get_logger,
-                             Lock,
                              log_to_stderr,
                              Process,
                              Queue)
@@ -388,7 +387,7 @@ def _biderectional_dijkstra_branch(adj_list: list,
                                    kill: Event,
                                    failed: Hashable = None):
   # visited_costs and visited_prev_nodes are a single vector shared by both
-  # searches, thus each search has to work with the proper slice.
+  # searches; thus, each search has to work with the proper slice.
   is_forward, visited_offset, opposite_visited_offset = _visited_offsets(n)
 
   while to_visit:
@@ -446,7 +445,7 @@ def _biderectional_dijkstra_branch(adj_list: list,
       with priorityq_top.get_lock():
         if sum(priorityq_top) >= prospect[0] != 0:
           kill.set()
-        return
+          return
 
 
 # @time_this
@@ -568,7 +567,7 @@ def bidirectional_dijkstra(adj_list,
     cum_hop_weights=(mode == "k_shortest_paths"),
     verbose=verbose)
   if mode == "k_shortest_paths":
-    return [path, cum_hop_weights, path_cost, failed]
+    return [path, cum_hop_weights, path_cost]
   else:
     return [path, path_cost, failed]
 

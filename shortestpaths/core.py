@@ -383,13 +383,18 @@ def k_shortest_paths(adj_list,
                      k,
                      bidirectional=False,
                      parallel=False,
-                     dynamic=False):
+                     dynamic=False,
+                     verbose=0):
   """Generates k_shortest_paths
 
   Returns:
     k_paths (list) : [[path: list, path_cost: int, failed_edge: tuple],]
   """
   n = len(adj_list) - 1
+  if bidirectional:
+    inverted_adj_list = dijkstra.invert_adj_list(adj_list)
+  else:
+    inverted_adj_list = None
   to_visit, visited, to_visit_reverse = dijkstra.dijkstra_init(n,
                                                                source,
                                                                sink,
@@ -401,7 +406,12 @@ def k_shortest_paths(adj_list,
                            sink,
                            to_visit,
                            to_visit_reverse,
-                           visited)
+                           visited,
+                           inverted_adj_list,
+                           bidirectional,
+                           dynamic,
+                           mode="k_shortest_paths",
+                           verbose=verbose)
 
   k_paths = _yen(sink,
                  adj_list,
