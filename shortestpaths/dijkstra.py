@@ -386,7 +386,6 @@ def _biderectional_dijkstra_branch(adj_list: list,
                                    prospect: Array,
                                    priorityq_top: Array,
                                    kill: Event,
-                                   locks: dict,
                                    failed: Hashable = None):
   # visited_costs and visited_prev_nodes are a single vector shared by both
   # searches, thus each search has to work with the proper slice.
@@ -397,68 +396,57 @@ def _biderectional_dijkstra_branch(adj_list: list,
 
     # -1 denotes an unconnected node and, in that case, node and previous node
     # are the same by initialization.
-    locks["visited"].acquire()
-    visited_costs[u + visited_offset] = \
-        u_path_cost if u_path_cost != math.inf else -1
-    visited_prev_nodes[u + visited_offset] = u_prev
-    locks["visited"].release()
+    with visited_costs.get_lock():
+      visited_costs[u + visited_offset] = \
+          u_path_cost if u_path_cost != math.inf else -1
+    with visited_prev_nodes.get_lock():
+      visited_prev_nodes[u + visited_offset] = u_prev
 
     pq_top = to_visit.peek()[0]
     pq_top = 0 if pq_top == math.inf else pq_top
-    locks["priorityq_top"].acquire()
-    priorityq_top[int(not is_forward)] = pq_top
+    with priorityq_top.get_lock():
+      priorityq_top[int(not is_forward)] = pq_top
     # print(f"{current_process().name}  {priorityq_top[int(not is_forward)]}")
-    locks["priorityq_top"].release()
 
-    locks["kill"].acquire()
     if (kill.is_set()) or (u == sink):
       kill.set()
-      locks["kill"].release()
       return
-    locks["kill"].release()
 
     for v, uv_weight in adj_list[u]:
 
       if v == failed:
         continue
 
-      locks["visited"].acquire()
       if v in to_visit:
         # Check if v is visited by the other process and, if yes, construct the
         # prospect path.
-        if visited_prev_nodes[v + opposite_visited_offset] != v:
-          # print(f"{current_process().name}: u: {u}  v: {v}   visited_prev_nodes[v + opposite_visited_offset]: {visited_prev_nodes[v + opposite_visited_offset]}")
-          uv_prospect_cost = (u_path_cost
-                              + uv_weight
-                              + visited_costs[v + opposite_visited_offset])
-          locks["prospect"].acquire()
-          if (uv_prospect_cost < prospect[0]) or (sum(prospect) == 0):
-            # then this is the shortest prospect yet or the 1st one.
-            prospect[0] = uv_prospect_cost
-            if is_forward:
-              prospect[1] = u
-              prospect[2] = v
-            else:
-              prospect[1] = v
-              prospect[2] = u
-            # print(f"{current_process().name}: {prospect[0]}  {prospect[1]}  {prospect[2]}\n")
-          locks["prospect"].release()
+        with visited_prev_nodes.get_lock():
+          if visited_prev_nodes[v + opposite_visited_offset] != v:
+            # print(f"{current_process().name}: u: {u}  v: {v}   visited_prev_nodes[v + opposite_visited_offset]: {visited_prev_nodes[v + opposite_visited_offset]}")
+            uv_prospect_cost = (u_path_cost
+                                + uv_weight
+                                + visited_costs[v + opposite_visited_offset])
+            with prospect.get_lock():
+              if (uv_prospect_cost < prospect[0]) or (sum(prospect) == 0):
+                # then this is the shortest prospect yet or the 1st one.
+                prospect[0] = uv_prospect_cost
+                if is_forward:
+                  prospect[1] = u
+                  prospect[2] = v
+                else:
+                  prospect[1] = v
+                  prospect[2] = u
+                # print(f"{current_process().name}: {prospect[0]}  {prospect[1]}  {prospect[2]}\n")
+
         _relax_path_cost(v, u, uv_weight, u_path_cost, to_visit)
-      locks["visited"].release()
 
     # Termination condition
-    locks["prospect"].acquire()
-    locks["priorityq_top"].acquire()
     # print(f"prospect[0]: {prospect[0]} topf+topr: {pq_top + priorityq_top[int(is_forward)]}")
-    if sum(priorityq_top) >= prospect[0] != 0:
-      locks["kill"].acquire()
-      kill.set()
-      locks["kill"].release()
-      locks["priorityq_top"].release()
-      locks["prospect"].release()
-      return
-    locks["priorityq_top"].release()
-    locks["prospect"].release()
+    with prospect.get_lock():
+      with priorityq_top.get_lock():
+        if sum(priorityq_top) >= prospect[0] != 0:
+          kill.set()
+        return
 
 
 # @time_this
@@ -505,7 +493,7 @@ def bidirectional_dijkstra(adj_list,
     # Check if termination condition is already met.
     top_f = to_visit.peek()[0]
     top_r = to_visit_reverse.peek()[0]
-    prospect = Array('i', prospect, lock=False)
+    prospect = Array('i', prospect)
 
     if (top_f + top_r >= prospect[0]) and (sum(prospect) != 0):
       path_cost = prospect[0]
@@ -527,19 +515,17 @@ def bidirectional_dijkstra(adj_list,
                      + list(visited_backward_zip[0][1:]))
     visited_prev_nodes = (list(visited_forward_zip[1])
                           + list(visited_backward_zip[1][1:]))
-    priorityq_top = Array('i', [top_f, top_r], lock=False)
+    priorityq_top = Array('i', [top_f, top_r])
   else:  # not tapes
     visited_costs = [0 for _ in range(2 * n + 1)]
     visited_prev_nodes = ([i for i in range(n + 1)]
                           + [i for i in range(1, n + 1)])
-    prospect = Array('i', [0, 0, 0], lock=False)
-    priorityq_top = Array('i', [0, 0], lock=False)
+    prospect = Array('i', [0, 0, 0])
+    priorityq_top = Array('i', [0, 0])
 
-  visited_costs = Array('i', visited_costs, lock=False)
-  visited_prev_nodes = Array('i', visited_prev_nodes, lock=False)
+  visited_costs = Array('i', visited_costs)
+  visited_prev_nodes = Array('i', visited_prev_nodes)
   kill = Event()
-  shared_vars = ["visited", "priorityq_top", "prospect", "kill"]
-  locks = {var: Lock() for var in shared_vars}
 
   forward_search = Process(name="forward_search",
                            target=_biderectional_dijkstra_branch,
@@ -552,7 +538,6 @@ def bidirectional_dijkstra(adj_list,
                                  prospect,
                                  priorityq_top,
                                  kill,
-                                 locks,
                                  failed))
   reverse_search = Process(name="reverse_search",
                            target=_biderectional_dijkstra_branch,
@@ -565,7 +550,6 @@ def bidirectional_dijkstra(adj_list,
                                  prospect,
                                  priorityq_top,
                                  kill,
-                                 locks,
                                  failed))
 
   forward_search.start()
