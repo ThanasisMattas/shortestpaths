@@ -302,7 +302,7 @@ def _yen(sink,
          adj_list,
          to_visit,
          visited,
-         k,
+         K,
          shortest_path,
          shortest_path_cost,
          cum_hop_weights):
@@ -311,7 +311,7 @@ def _yen(sink,
   # paths.
   prospects = []
   heapq.heapify(prospects)
-  for k_it in range(1, k):
+  for k in range(1, K):
     # Construct the deviation paths of the last found shortest path.
     last_path = k_paths[-1][0]
     for i, u in enumerate(last_path[:-1]):
@@ -350,9 +350,9 @@ def _yen(sink,
         prospect = last_path[:i] + i_sink_path
         prospect_hop_weights = cum_hop_weights[:i] + i_sink_hop_weights
 
-        if ((len(prospects) < k - k_it)
+        if ((len(prospects) < K - k)
                 or (prospect_cost
-                    < heapq.nsmallest(k - k_it, prospects)[-1][0])):
+                    < heapq.nsmallest(K - k, prospects)[-1][0])):
           # Check if the prospect is already found
           prospect_already_found = False
           for p_cost, p, p_hop_weights in prospects:
@@ -380,7 +380,7 @@ def _yen(sink,
 def k_shortest_paths(adj_list,
                      source,
                      sink,
-                     k,
+                     K,
                      bidirectional=False,
                      parallel=False,
                      dynamic=False,
@@ -417,7 +417,7 @@ def k_shortest_paths(adj_list,
                  adj_list,
                  to_visit,
                  visited,
-                 k,
+                 K,
                  shortest_path,
                  shortest_path_cost,
                  cum_hop_weights)

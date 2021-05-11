@@ -36,7 +36,7 @@ from shortestpaths import core, graph_generator, post_processing, utils
                                 case_sensitive=False))
 @click.option("--max-edge-weight", default=1000, show_default=True)
 @click.option("--max-node-weight", default=50, show_default=True)
-@click.option("-k", type=click.INT, default=1, show_default=True,
+@click.option('-k', 'K', type=click.INT, default=1, show_default=True,
               help="number of shortest paths to be generated")
 # @click.option("--disconnected-nodes",
 #               cls=PythonLiteralOption, default="[]", show_default=True,
@@ -59,13 +59,14 @@ from shortestpaths import core, graph_generator, post_processing, utils
 @click.option("--show-graph", is_flag=True)
 @click.option("--save-graph", is_flag=True)
 @click.option('-v', "--verbose", count=True)
+@utils.time_this(wall_clock=True)
 def main(ctx,
          n,
          weighted,
          weights_on,
          max_edge_weight,
          max_node_weight,
-         k,
+         K,
          bidirectional,
          parallel,
          dynamic,
@@ -106,7 +107,7 @@ def main(ctx,
   k_paths = core.k_shortest_paths(adj_list=adj_list,
                                   source=1,
                                   sink=n,
-                                  k=k,
+                                  K=K,
                                   bidirectional=bidirectional,
                                   parallel=parallel,
                                   dynamic=dynamic)
