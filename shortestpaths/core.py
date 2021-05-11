@@ -125,7 +125,6 @@ def _replacement_path(failed_path_idx: int,
         mode="replacement-paths",
         verbose=verbose
       )
-      return path_data
     else:
       repl_visited = dijkstra.dijkstra(adj_list,
                                        sink,
@@ -136,7 +135,9 @@ def _replacement_path(failed_path_idx: int,
       repl_path, _ = dijkstra.extract_path(source,
                                            sink,
                                            repl_visited,
-                                           cum_hop_weights=False)
+                                           cum_hop_weights=False,
+                                           verbose=verbose)
+      path_data = [repl_path, repl_path_cost, failed]
   elif failing == "edges":
     tail = failed
     head = shortest_path[failed_path_idx + 1]
@@ -144,15 +145,31 @@ def _replacement_path(failed_path_idx: int,
     for neighbor in adj_list[tail]:
       if neighbor[0] == head:
         adj_list[tail].remove(neighbor)
-        adj_list[tail].add((neighbor[0], math.inf))
+        adj_list[tail].add((head, math.inf))
         # Find the replacement path.
         if bidirectional:
-          [repl_path, repl_path_cost, failed] = \
-            dijkstra.bidirectional_dijkstra(adj_list,
-                                            source,
-                                            sink,
-                                            to_visit,
-                                            tapes=tapes)
+          # Fail the edge on the inverted_adj_list.
+          for ne in inverted_adj_list[head]:
+            if ne[0] == tail:
+              inverted_adj_list[head].remove(ne)
+              inverted_adj_list[head].add((tail, math.inf))
+              path_data = dijkstra.bidirectional_dijkstra(
+                adj_list,
+                inverted_adj_list,
+                source,
+                sink,
+                to_visit,
+                to_visit_reverse,
+                failed_path_idx=(failed_path_idx, failed_path_idx + 1),
+                failed=None,  # (tail, head)
+                tapes=tapes,
+                mode="replacement-paths",
+                verbose=verbose
+              )
+              # Reconnect the failed edge.
+              inverted_adj_list[head].remove((tail, math.inf))
+              inverted_adj_list[head].add(ne)
+              break
         else:
           repl_visited = dijkstra.dijkstra(adj_list,
                                            sink,
@@ -162,16 +179,17 @@ def _replacement_path(failed_path_idx: int,
           repl_path, _ = dijkstra.extract_path(source,
                                                sink,
                                                repl_visited,
-                                               cum_hop_weights=False)
-        # Restore the failed edge weight
-        adj_list[tail].remove((neighbor[0], math.inf))
+                                               cum_hop_weights=False,
+                                               verbose=verbose)
+          path_data = [repl_path, repl_path_cost, (tail, head)]
+        # Reconnect the failed edge.
+        adj_list[tail].remove((head, math.inf))
         adj_list[tail].add(neighbor)
-        failed = (tail, head)
         break
   else:
     raise ValueError(f"Unexpected value for failing: <{failing}>. It should"
                      " be either 'edges' or 'nodes'.")
-  return [repl_path, repl_path_cost, failed]
+  return path_data
 
 
 # @time_this(wall_clock=True)
@@ -258,7 +276,13 @@ def replacement_paths(adj_list,
       repl_paths += p.map(_repl_path,
                           range(len(shortest_path) - 1),
                           shortest_path[:-1])
-      repl_paths = list(filter(None, repl_paths))
+
+      def _is_path(path):
+        if path[0]:
+          return True
+        return False
+
+      repl_paths = list(filter(_is_path, repl_paths))
 
   else:  # not parallel
     for i, node in enumerate(shortest_path[:-1]):
@@ -292,7 +316,7 @@ def replacement_paths(adj_list,
                                     inverted_adj_list,
                                     tapes)
 
-      if repl_path is not None:
+      if repl_path[0]:
         repl_paths.append(repl_path)
 
   return repl_paths
