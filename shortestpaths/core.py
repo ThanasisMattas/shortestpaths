@@ -381,6 +381,14 @@ def _yen(sink,
 
     # Add the best prospect to the k_paths list
     if prospects:
+      # Check if at least K - k prospects with the same cost as the (k - 1)th
+      # path were already found.
+      if ((len(prospects) >= K - k)
+              and heapq.nsmallest(K - k, prospects)[-1][0] == last_path[0]):
+        for _ in range(K - k):
+          kth_path_cost, kth_path, cum_hop_weights = heapq.heappop(prospects)
+          k_paths.append([kth_path, kth_path_cost, None])
+        break
       kth_path_cost, kth_path, cum_hop_weights = heapq.heappop(prospects)
       k_paths.append([kth_path, kth_path_cost, None])
     else:
