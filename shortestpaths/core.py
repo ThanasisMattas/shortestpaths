@@ -306,14 +306,24 @@ def _yen(sink,
          shortest_path,
          shortest_path_cost,
          cum_hop_weights):
+  """Implementation of Yen's algorithm with improvements.
+
+  Improvements:
+    - Not searching for deviation paths already found. (Lawler 1972)
+    - Using a heap instead of list (Yen's B), to store candidate paths.
+    - If at least K - k candidates with the same cost as the (k - 1)th path
+      were already found, append them to the k_paths list (Yen's A) and return.
+    (For the last two, see Brander-Sinclair 1996)
+  """
   k_paths = [[shortest_path, shortest_path_cost, None]]
   # This is the B list of the Yen's algorithm, holding the potential shortest
   # paths.
   prospects = []
   heapq.heapify(prospects)
   for k in range(1, K):
-    # Construct the deviation paths of the last found shortest path.
     last_path = k_paths[-1][0]
+
+    # Construct the deviation paths of the last found shortest path.
     for i, u in enumerate(last_path[:-1]):
       # Fail the (i, i + 1) edges of all found shortest paths.
       # {head: (head, edge_cost)}
@@ -330,8 +340,8 @@ def _yen(sink,
 
       # Remove the Root path nodes from the to_visit PriorityQueue.
       new_to_visit = copy.deepcopy(to_visit)
-      for root_u in last_path[:i]:
-        del new_to_visit[root_u]
+      for root_node in last_path[:i]:
+        del new_to_visit[root_node]
 
       # Set i as source and initialize it's path cost to source-i path cost.
       new_to_visit[u] = [cum_hop_weights[i], u, u]
@@ -355,18 +365,20 @@ def _yen(sink,
                     < heapq.nsmallest(K - k, prospects)[-1][0])):
           # Check if the prospect is already found
           prospect_already_found = False
-          for p_cost, p, p_hop_weights in prospects:
+          for p_cost, p, _ in prospects:
             if (p_cost == prospect_cost) and (p == prospect):
               prospect_already_found = True
               break
           if not prospect_already_found:
             heapq.heappush(prospects,
                            (prospect_cost, prospect, prospect_hop_weights))
+
       # Restore the failed edges.
       for v, edge in failed_edges.items():
         adj_list[u].remove((v, math.inf))
         adj_list[u].add(edge)
       failed_edges.clear()
+
     # Add the best prospect to the k_paths list
     if prospects:
       kth_path_cost, kth_path, cum_hop_weights = heapq.heappop(prospects)
