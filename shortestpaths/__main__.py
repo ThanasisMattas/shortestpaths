@@ -23,7 +23,7 @@ shortestpaths -d 300 replacement-paths -f nodes
 
 import click
 
-from shortestpaths import core, graph_generator, post_processing, utils
+from shortestpaths import core, graph_generator, post_processing, utils  # noqa F401
 
 
 @click.group(invoke_without_command=True)
@@ -59,7 +59,7 @@ from shortestpaths import core, graph_generator, post_processing, utils
 @click.option("--show-graph", is_flag=True)
 @click.option("--save-graph", is_flag=True)
 @click.option('-v', "--verbose", count=True)
-@utils.time_this(wall_clock=True)
+# @utils.time_this(wall_clock=True)
 def main(ctx,
          n,
          weighted,
@@ -129,8 +129,11 @@ def main(ctx,
               type=click.Choice(["edges", "nodes"], case_sensitive=False),
               help="Setting what to fail, path edges or path nodes, in order"
                    " to produce the replacement paths.")
-@utils.time_this(wall_clock=True)
-def replacement_paths(ctx, failing):
+@click.option("--online", is_flag=True,
+              help="Each replacement path is forced to contain the root sub-"
+                   "path, till the previous node of the failed node/edge.")
+# @utils.time_this(wall_clock=True)
+def replacement_paths(ctx, failing, online):
   """CLI command for the replacement paths
 
   Args:
@@ -150,6 +153,7 @@ def replacement_paths(ctx, failing):
     bidirectional=ctx.obj.pop("bidirectional", False),
     parallel=ctx.obj.pop("parallel", False),
     dynamic=ctx.obj.pop("dynamic", False),
+    online=online,
     verbose=verbose
   )
 

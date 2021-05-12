@@ -43,6 +43,7 @@ def _first_shortest_path(adj_list,
                          bidirectional=False,
                          dynamic=False,
                          mode="k_shortest_paths",
+                         online=False,
                          verbose=0):
   tapes = None
   if bidirectional:
@@ -71,6 +72,7 @@ def _first_shortest_path(adj_list,
                                           copy.deepcopy(to_visit_reverse),
                                           copy.deepcopy(visited),
                                           mode=mode,
+                                          online=online,
                                           verbose=verbose)
   else:
     initial_visited = dijkstra.dijkstra(adj_list,
@@ -78,13 +80,15 @@ def _first_shortest_path(adj_list,
                                         copy.deepcopy(to_visit),
                                         copy.deepcopy(visited))
     shortest_path_cost = initial_visited[sink][0]
+
     shortest_path, cum_hop_weights = dijkstra.extract_path(
       source,
       sink,
       initial_visited,
-      cum_hop_weights=(mode == "k_shortest_paths"),
+      cum_hop_weights=(mode == "k_shortest_paths") or (online),
       verbose=verbose)
-    if mode == "k_shortest_paths":
+
+    if cum_hop_weights:
       path_data = [shortest_path, cum_hop_weights, shortest_path_cost]
     else:
       path_data = [shortest_path, shortest_path_cost, None]
@@ -106,12 +110,27 @@ def _replacement_path(failed_path_idx: int,
                       bidirectional: bool = False,
                       inverted_adj_list: list = None,
                       tapes: list = None,
+                      online: bool = False,
+                      cum_hop_weights: list = None,
                       verbose: int = 0) -> list:
   if failing == "nodes":
     if failed == source:
       return
 
+    if online:
+      # Delete the nodes of the root path from the PrirityQueue.
+      for u in shortest_path[:failed_path_idx - 1]:
+        del to_visit[u]
+      # The spur node becomes the source.
+      source = shortest_path[failed_path_idx - 1]
+      to_visit[source] = [0, source, source]
+      # Initialize the path cost with the root_cost.
+
     if bidirectional:
+      # Delete the nodes of the root path from the reverse PrirityQueue.
+      for u in shortest_path[:failed_path_idx - 1]:
+        del to_visit_reverse[u]
+
       path_data = dijkstra.bidirectional_dijkstra(
         adj_list,
         inverted_adj_list,
@@ -138,6 +157,9 @@ def _replacement_path(failed_path_idx: int,
                                            cum_hop_weights=False,
                                            verbose=verbose)
       path_data = [repl_path, repl_path_cost, failed]
+    if online:
+      path_data[0] = shortest_path[: failed_path_idx - 1] + path_data[0]
+      path_data[1] += cum_hop_weights[failed_path_idx - 1]
   elif failing == "edges":
     tail = failed
     head = shortest_path[failed_path_idx + 1]
@@ -192,7 +214,7 @@ def _replacement_path(failed_path_idx: int,
   return path_data
 
 
-# @time_this(wall_clock=True)
+@time_this(wall_clock=True)
 def replacement_paths(adj_list,
                       n,
                       source,
@@ -233,8 +255,14 @@ def replacement_paths(adj_list,
                                           bidirectional,
                                           dynamic,
                                           mode="replacement_paths",
+                                          online=online,
                                           verbose=verbose)
-  repl_paths = [path_data]
+  if online:
+    [shortest_path, cum_hop_weights, shortest_path_cost] = path_data
+    repl_paths = [[shortest_path, shortest_path_cost, None]]
+  else:
+    repl_paths = [path_data]
+    cum_hop_weights = None
 
   # Next, find the replacement paths.
   shortest_path = path_data[0]
@@ -272,7 +300,10 @@ def replacement_paths(adj_list,
                          visited=visited_values,
                          bidirectional=bidirectional,
                          inverted_adj_list=inverted_adj_list,
-                         tapes=tapes)
+                         tapes=tapes,
+                         online=online,
+                         cum_hop_weights=cum_hop_weights,
+                         verbose=verbose)
 
     with ProcessPoolExecutor() as p:
       repl_paths += p.map(_repl_path,
@@ -280,7 +311,7 @@ def replacement_paths(adj_list,
                           shortest_path[:-1])
 
       def _is_path(path):
-        if path[0]:
+        if path and path[0]:
           return True
         return False
 
@@ -297,7 +328,10 @@ def replacement_paths(adj_list,
         new_to_visit = new_to_visit_reverse = new_visited = None
       else:
         new_to_visit = copy.deepcopy(to_visit)
-        new_to_visit_reverse = copy.deepcopy(to_visit_reverse)
+        if bidirectional:
+          new_to_visit_reverse = copy.deepcopy(to_visit_reverse)
+        else:
+          new_to_visit_reverse = None
         new_visited = copy.deepcopy(visited)
         tapes = None
 
@@ -315,6 +349,7 @@ def replacement_paths(adj_list,
                                     inverted_adj_list,
                                     tapes,
                                     online,
+                                    cum_hop_weights,
                                     verbose)
 
       if repl_path[0]:

@@ -469,6 +469,7 @@ def bidirectional_dijkstra(adj_list,
                            failed=None,
                            tapes=None,
                            mode="k_shortest_paths",
+                           online=False,
                            verbose=0):
   """Implementation of the bidirectional Dijkstra's algorithm.
 
@@ -635,9 +636,9 @@ def bidirectional_dijkstra(adj_list,
     prospect,
     visited_costs,
     visited_prev_nodes,
-    cum_hop_weights=(mode == "k_shortest_paths"),
+    cum_hop_weights=(mode == "k_shortest_paths") or (online),
     verbose=verbose)
-  if mode == "k_shortest_paths":
+  if cum_hop_weights:
     return [path, cum_hop_weights, path_cost]
   else:
     return [path, path_cost, failed]
