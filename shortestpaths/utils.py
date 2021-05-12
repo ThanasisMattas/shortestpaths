@@ -12,6 +12,7 @@
 """Houses some utility functions."""
 
 import ast
+import copy
 from datetime import timedelta
 from functools import wraps
 import heapq
@@ -158,15 +159,6 @@ def deb_trace(msg=None, condition=None):
 
 
 def print_heap(h):
-  """Prints the items of a heap.
-
-  Returns:
-    temp_h (heap) : a copy of h
-  """
-  temp_h = []
-  heapq.heapify(temp_h)
-  while h:
-    entry = heapq.heappop(h)
-    heapq.heappush(temp_h, entry)
-    print(entry)
-  return temp_h
+  h_copy = copy.deepcopy(h)
+  while h_copy:
+    print(heapq.heappop(h_copy))
