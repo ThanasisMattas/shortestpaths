@@ -182,7 +182,6 @@ def _replacement_path(failed_path_idx: int,
           for ne in inverted_adj_list[head]:
             if ne[0] == tail:
               inverted_adj_list[head].remove(ne)
-              inverted_adj_list[head].add((tail, math.inf))
               path_data = dijkstra.bidirectional_dijkstra(
                 adj_list,
                 inverted_adj_list,
@@ -197,7 +196,6 @@ def _replacement_path(failed_path_idx: int,
                 verbose=verbose
               )
               # Reconnect the failed edge.
-              inverted_adj_list[head].remove((tail, math.inf))
               inverted_adj_list[head].add(ne)
               break
         else:
@@ -430,7 +428,6 @@ def _yen(sink,
           failed_edges[v] = (v, uv_weight)
       for v, edge in failed_edges.items():
         adj_list[u].remove(edge)
-        adj_list[u].add((v, math.inf))
 
       # Remove the Root path nodes from the to_visit PriorityQueue.
       new_to_visit = copy.deepcopy(to_visit)
@@ -471,7 +468,6 @@ def _yen(sink,
 
       # Restore the failed edges.
       for v, edge in failed_edges.items():
-        adj_list[u].remove((v, math.inf))
         adj_list[u].add(edge)
       failed_edges.clear()
 
