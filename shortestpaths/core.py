@@ -201,6 +201,7 @@ def replacement_paths(adj_list,
                       bidirectional=False,
                       parallel=False,
                       dynamic=False,
+                      online=False,
                       verbose=0):
   """Generates the replacement paths.
 
@@ -284,7 +285,6 @@ def replacement_paths(adj_list,
         return False
 
       repl_paths = list(filter(_is_path, repl_paths))
-
   else:  # not parallel
     for i, node in enumerate(shortest_path[:-1]):
       # The source cannot fail, but when failing == "edges", the source consti-
@@ -292,9 +292,6 @@ def replacement_paths(adj_list,
       if (failing == "nodes") and (i == 0):
         continue
 
-      # In case of replacement-paths and failing == "edges" and i == 0, a state
-      # is't recorded on tape, because it is the same with the state we get at
-      # initialization.
       if dynamic:
         # All necessary data will be retrieved from tapes.
         new_to_visit = new_to_visit_reverse = new_visited = None
@@ -316,7 +313,9 @@ def replacement_paths(adj_list,
                                     new_visited,
                                     bidirectional,
                                     inverted_adj_list,
-                                    tapes)
+                                    tapes,
+                                    online,
+                                    verbose)
 
       if repl_path[0]:
         repl_paths.append(repl_path)
@@ -333,32 +332,31 @@ def _yen(sink,
          shortest_path_cost,
          cum_hop_weights,
          lawler=True):
-  """Implementation of Yen's algorithm with improvements.
+  """Implementation of Yen's k-shortests paths algorithm with improvements.
 
-  Improvements:
+  Improvements (see Brander-Sinclair 1996):
     - Not searching for deviation paths already found. (Lawler 1972)
     - Using a heap instead of list (Yen's B), to store candidate paths.
     - If at least K - k candidates with the same cost as the (k - 1)th path
       were already found, append them to the k_paths list (Yen's A) and return.
-    (For the last two, see Brander-Sinclair 1996)
   """
   k_paths = [[shortest_path, shortest_path_cost, None]]
   # This is the B list of the Yen's algorithm, holding the potential shortest
   # paths.
   prospects = []
   heapq.heapify(prospects)
-  kth_u_idx = 0
+  last_path = shortest_path
+  last_u_idx = 0
 
   for k in range(1, K):
-    last_path = k_paths[-1][0]
 
     if not lawler:
-      kth_u_idx = 0
+      last_u_idx = 0
 
     # Construct the deviation paths of the last found shortest path.
     # (u is the spur node)
-    for i, u in enumerate(last_path[kth_u_idx: -1]):
-      u_idx = i + kth_u_idx
+    for i, u in enumerate(last_path[last_u_idx: -1]):
+      u_idx = i + last_u_idx
       # Fail the (i, i + 1) edges of all found shortest paths.
       # {head: (head, edge_cost)}
       failed_edges = dict()
@@ -422,12 +420,12 @@ def _yen(sink,
       if ((len(prospects) >= K - k)
               and heapq.nsmallest(K - k, prospects)[-1][0] == last_path[0]):
         for _ in range(K - k):
-          kth_path_cost, kth_path, c, d = heapq.heappop(prospects)
-          k_paths.append([kth_path, kth_path_cost, None])
+          last_path_cost, last_path, c, d = heapq.heappop(prospects)
+          k_paths.append([last_path, last_path_cost, None])
         break
-      kth_path_cost, kth_path, cum_hop_weights, kth_u_idx = \
+      last_path_cost, last_path, cum_hop_weights, last_u_idx = \
           heapq.heappop(prospects)
-      k_paths.append([kth_path, kth_path_cost, None])
+      k_paths.append([last_path, last_path_cost, None])
     else:
       break
   return k_paths
