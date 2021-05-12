@@ -237,23 +237,24 @@ def replacement_paths(adj_list,
 
   # Next, find the replacement paths.
   shortest_path = path_data[0]
+  if (dynamic) and (failing == "edges"):
+    # The state recovered the forward search when the last path-edge failes
+    # would be the state of the tail, so we would ask for the record of the
+    # head. But the head is the sink, for which we don't have a record, so the
+    # record of the tail will be appended instead, which is the state of the
+    # 3rd to last node. Likewise for the reverse search, the 1st record (corre-
+    # sponds to the source of the reverse search, which is sink), which is None
+    # will be replaced with the previous record (or next because we keep the
+    # natural sequence of the path).
+    tapes[0].append(tapes[0][-1])
+    tapes[1][0] = tapes[1][1]
+
   if parallel:
     if dynamic:
-      if failing == "edges":
-        to_visit_values = \
-            ([copy.deepcopy(to_visit)]
-             + [None for _ in range(len(shortest_path) - 2)])
-        to_visit_reverse_values = \
-            ([copy.deepcopy(to_visit_reverse)]
-             + [None for _ in range(len(shortest_path) - 2)])
-        visited_values = \
-            ([copy.deepcopy(visited)]
-             + [None for _ in range(len(shortest_path) - 2)])
-      else:
-        to_visit_values = None
-        to_visit_reverse_values = None
-        visited_values = None
+      to_visit_values = to_visit_reverse_values = visited_values = None
     else:
+      # We don't need to deepcopy here, because they will be copied on process
+      # generation.
       to_visit_values = to_visit
       to_visit_reverse_values = to_visit_reverse
       visited_values = visited
@@ -294,33 +295,15 @@ def replacement_paths(adj_list,
       # In case of replacement-paths and failing == "edges" and i == 0, a state
       # is't recorded on tape, because it is the same with the state we get at
       # initialization.
-      if not dynamic:
+      if dynamic:
+        # All necessary data will be retrieved from tapes.
+        new_to_visit = new_to_visit_reverse = new_visited = None
+      else:
         new_to_visit = copy.deepcopy(to_visit)
         new_to_visit_reverse = copy.deepcopy(to_visit_reverse)
         new_visited = copy.deepcopy(visited)
         tapes = None
-      else:
-        # All necessary data will be retrieved from tapes.
-        new_to_visit = new_to_visit_reverse = new_visited = None
-        if failing == "edges":
-          if i == 0:  # 1st path-edge
-            # tapes[0][0] = [copy.deepcopy(to_visit),
-            #                copy.deepcopy(visited),
-            #                set()]
-            # See next comment.
-            tapes[1][0] = tapes[1][1]
-          elif node == shortest_path[-2]:  # last path-edge
-            # The state recovered the forward search, would be the state of the
-            # tail, so we would ask for the record of the head. But the head is
-            # the sink, for which we don't have a record, so the record of the
-            # tail will be appended instead, which is the state of the 3rd to
-            # last node.
-            tapes[0].append(tapes[0][-1])
-            # tapes[1][-1] = [copy.deepcopy(to_visit_reverse),
-            #                 copy.deepcopy(visited),
-            #                 set()]
-          else:
-            pass
+
       repl_path = _replacement_path(i,
                                     node,
                                     failing,
