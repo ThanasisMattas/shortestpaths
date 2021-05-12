@@ -14,6 +14,7 @@
 import copy
 import logging
 import math
+import multiprocessing as mp
 from multiprocessing import (Array,
                              current_process,
                              Event,
@@ -177,7 +178,8 @@ def dijkstra(adj_list,
 
   while to_visit:
     u_path_cost, u_prev, u = to_visit.pop_low()
-
+    # if checkpoints:
+    #   __import__('ipdb').set_trace(context=9)
     # -1 denotes an unconnected node and, in that case, node and previous node
     # are the same by initialization.
     visited[u][0] = u_path_cost if u_path_cost != math.inf else -1
@@ -199,8 +201,11 @@ def dijkstra(adj_list,
                           f" Process: {current_process().name}")
         else:
           # Here exits the 1st recording session (visited nodes sequence).
-          tapes_queue.put((visited, visited_nodes_sequence[:it]))
-          return
+          if isinstance(tapes_queue, mp.queues.Queue):
+            tapes_queue.put((visited, visited_nodes_sequence[:it]))
+            return
+          else:
+            return (visited, visited_nodes_sequence[:it])
       else:
         return visited
 
@@ -226,16 +231,20 @@ def dijkstra(adj_list,
         except StopIteration:
           # Here exits the 2nd recording session (Dijkstra states).
           #
-          if current_process().name == "reverse_search":
+          if ((current_process().name == "reverse_search")
+                  or (not isinstance(tapes_queue, mp.queues.Queue))):
             # tape's first item is None, accounting for the source, for which
             # a state will not be recorded.
             tape.append(None)
             # Reverse back to the failing nodes sequence.
             tape.reverse()
 
-          tapes_queue.put(tape)
-          # print(f"{current_process().name} putting tape")
-          return
+          if isinstance(tapes_queue, mp.queues.Queue):
+            tapes_queue.put(tape)
+            # print(f"{current_process().name} putting tape")
+            return
+          else:
+            return tape
 
   return visited
 
@@ -251,6 +260,7 @@ def bidirectional_recording(adj_list,
                             visited,
                             checkpoints=None,
                             mode="k_shortest_paths",
+                            online=False,
                             verbose=0):
   """Memoizes the states of the algorithm on a tape.
 
@@ -276,80 +286,111 @@ def bidirectional_recording(adj_list,
     cps_forward = None
     cps_reverse = None
 
-  # Visited nodes sequence will be recorded for both directions, in order to
-  # extract the appropriate checkpoint nodes.
-  forward_search = Process(name="forward_search",
-                           target=dijkstra,
-                           args=(adj_list,
-                                 sink,
-                                 to_visit,
-                                 visited,
-                                 None,
-                                 True,
-                                 tapes_queue,
-                                 cps_forward))
-  reverse_search = Process(name="reverse_search",
-                           target=dijkstra,
-                           args=(inverted_adj_list,
-                                 source,
-                                 to_visit_reverse,
-                                 visited,
-                                 None,
-                                 True,
-                                 tapes_queue,
-                                 cps_reverse))
+  if online:
+    tape_reverse = dijkstra(inverted_adj_list,
+                            source,
+                            copy.deepcopy(to_visit_reverse),
+                            copy.deepcopy(visited),
+                            None,
+                            True,
+                            online,
+                            cps_reverse)
+    if checkpoints:
+      return (None, tape_reverse)
 
-  forward_search.daemon = True
-  reverse_search.daemon = True
-  forward_search.start()
-  reverse_search.start()
-  # We need to use the consumer before joining the processes, because the data
-  # is quite big. The underlying thread that pops fromt the dequeue and makes
-  # data available, usues a pipe or a Unix socket, which have a limited capaci-
-  # ty. When the pipe or socket are full, the thread blocks on the syscall and
-  # we get a deadlock, because join waits for the thread to terminate.
-  if checkpoints:  # then this is the 2nd recording (Dijsktra states)
-    tape_1 = tapes_queue.get()
-    tape_2 = tapes_queue.get()
-    # Find out which is which.
-    if sink in tape_1[1][0]:
-      return tape_1, tape_2
-    else:
-      return tape_2, tape_1
-
-  # The rest refer to the 1st recording (visited nodes sequence)
-  visited_1, visited_nodes_sequence_1 = tapes_queue.get()
-  visited_2, visited_nodes_sequence_2 = tapes_queue.get()
-  forward_search.join()
-  reverse_search.join()
-
-  # Find out which is which.
-  if visited_1[source][0] == 0:  # then 1 is the forward search
-    visited_forward = visited_1
-    forward_seq, reverse_seq = \
-        visited_nodes_sequence_1, visited_nodes_sequence_2
-  else:  # then 1 is the reverse search
-    visited_forward = visited_2
-    forward_seq, reverse_seq = \
-        visited_nodes_sequence_2, visited_nodes_sequence_1
-  shortest_path_cost = visited_forward[sink][0]
-  shortest_path, cum_hop_weights = extract_path(
-    source,
-    sink,
-    visited_forward,
-    cum_hop_weights=(mode == "k_shortest_paths"),
-    verbose=verbose)
-  if mode == "k_shortest_paths":
+    visited_reverse, reverse_seq = tape_reverse
+    shortest_path_cost = visited_reverse[source][0]
+    reverse_path, reverse_weights = extract_path(sink,
+                                                 source,
+                                                 visited_reverse,
+                                                 True,
+                                                 verbose)
+    shortest_path = list(reversed(reverse_path))
+    cum_hop_weights = list(reversed(reverse_weights))
     path_data = [shortest_path, cum_hop_weights, shortest_path_cost]
   else:
-    path_data = [shortest_path, shortest_path_cost, None]
+    # Visited nodes sequence will be recorded for both directions, in order to
+    # extract the appropriate checkpoint nodes.
+    forward_search = Process(name="forward_search",
+                             target=dijkstra,
+                             args=(adj_list,
+                                   sink,
+                                   to_visit,
+                                   visited,
+                                   None,
+                                   True,
+                                   tapes_queue,
+                                   cps_forward))
+    reverse_search = Process(name="reverse_search",
+                             target=dijkstra,
+                             args=(inverted_adj_list,
+                                   source,
+                                   to_visit_reverse,
+                                   visited,
+                                   None,
+                                   True,
+                                   tapes_queue,
+                                   cps_reverse))
+
+    forward_search.daemon = True
+    reverse_search.daemon = True
+    forward_search.start()
+    reverse_search.start()
+    # We need to use the consumer before joining the processes, because the data
+    # is quite big. The underlying thread that pops fromt the dequeue and makes
+    # data available, usues a pipe or a Unix socket, which have a limited capaci-
+    # ty. When the pipe or socket are full, the thread blocks on the syscall and
+    # we get a deadlock, because join waits for the thread to terminate.
+    if checkpoints:  # then this is the 2nd recording (Dijsktra states)
+      tape_1 = tapes_queue.get()
+      tape_2 = tapes_queue.get()
+      # Find out which is which.
+      if sink in tape_1[1][0]:
+        return tape_1, tape_2
+      else:
+        return tape_2, tape_1
+
+    # The rest refer to the 1st recording (visited nodes sequence)
+    visited_1, visited_nodes_sequence_1 = tapes_queue.get()
+    visited_2, visited_nodes_sequence_2 = tapes_queue.get()
+    forward_search.join()
+    reverse_search.join()
+
+    # Find out which is which.
+    if visited_1[source][0] == 0:  # then 1 is the forward search
+      visited_forward = visited_1
+      forward_seq, reverse_seq = \
+          visited_nodes_sequence_1, visited_nodes_sequence_2
+    else:  # then 1 is the reverse search
+      visited_forward = visited_2
+      forward_seq, reverse_seq = \
+          visited_nodes_sequence_2, visited_nodes_sequence_1
+
+    shortest_path_cost = visited_forward[sink][0]
+    shortest_path, cum_hop_weights = extract_path(
+      source,
+      sink,
+      visited_forward,
+      cum_hop_weights=(mode == "k_shortest_paths") or (online),
+      verbose=verbose)
+    if cum_hop_weights:
+      path_data = [shortest_path, cum_hop_weights, shortest_path_cost]
+    else:
+      path_data = [shortest_path, shortest_path_cost, None]
 
   # Now, record the tapes.
-  checkpoints_forward = []
-  checkpoints_reverse = []
-  for node in shortest_path[1: -1]:
-    checkpoints_forward.append(forward_seq[forward_seq.index(node) - 1])
-    checkpoints_reverse.append(reverse_seq[reverse_seq.index(node) - 1])
+  if online:
+    checkpoints_forward = None
+    checkpoints_reverse = []
+    for node in shortest_path[1: -1]:
+      checkpoints_reverse.append(reverse_seq[reverse_seq.index(node) - 1])
+  else:
+    checkpoints_forward = []
+    checkpoints_reverse = []
+    for node in shortest_path[1: -1]:
+      checkpoints_forward.append(forward_seq[forward_seq.index(node) - 1])
+      checkpoints_reverse.append(reverse_seq[reverse_seq.index(node) - 1])
+
   # Although the sequence of the failed nodes are the same for both searches,
   # when constructing the corresponding replacement path, when recording, the
   # reverse search will visit them in reversed order, thus the reverse check-
@@ -366,6 +407,8 @@ def bidirectional_recording(adj_list,
                                   to_visit_reverse,
                                   visited,
                                   checkpoints,
+                                  mode=mode,
+                                  online=online,
                                   verbose=verbose)
 
   return path_data, tapes
@@ -465,11 +508,13 @@ def bidirectional_dijkstra(adj_list,
                            sink,
                            to_visit=None,
                            to_visit_reverse=None,
+                           visited=None,
                            failed_path_idx=None,
                            failed=None,
                            tapes=None,
                            mode="k_shortest_paths",
                            online=False,
+                           shortest_path=None,
                            verbose=0):
   """Implementation of the bidirectional Dijkstra's algorithm.
 
@@ -533,10 +578,17 @@ def bidirectional_dijkstra(adj_list,
 
     # Retrieve the forward and reverse states.
     tape_forward, tape_reverse = tapes
-    [to_visit, visited, discovered_forward] = \
-        tape_forward[idx_forward]
     [to_visit_reverse, visited_reverse, discovered_reverse] = \
         tape_reverse[idx_reverse]
+
+    if online:
+      # then to_visit and visited are passed as function arguments.
+      discovered_forward = set()
+      # Delete the nodes of the root path from the reverse PriorityQueue.
+      for u in shortest_path[:failed_path_idx - 1]:
+        del to_visit_reverse[u]
+    else:
+      [to_visit, visited, discovered_forward] = tape_forward[idx_forward]
 
     # Fail the failed node (or the head of the failed edge).
     del to_visit[failed_forward]

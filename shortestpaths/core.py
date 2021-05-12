@@ -61,6 +61,7 @@ def _first_shortest_path(adj_list,
                                                           to_visit_reverse,
                                                           visited,
                                                           mode=mode,
+                                                          online=online,
                                                           verbose=verbose)
     else:
       path_data = \
@@ -118,7 +119,7 @@ def _replacement_path(failed_path_idx: int,
       return
 
     if online:
-      # Delete the nodes of the root path from the PrirityQueue.
+      # Delete the nodes of the root path from the PriorityQueue.
       for u in shortest_path[:failed_path_idx - 1]:
         del to_visit[u]
       # The spur node becomes the source.
@@ -127,9 +128,10 @@ def _replacement_path(failed_path_idx: int,
       # Initialize the path cost with the root_cost.
 
     if bidirectional:
-      # Delete the nodes of the root path from the reverse PrirityQueue.
-      for u in shortest_path[:failed_path_idx - 1]:
-        del to_visit_reverse[u]
+      # Delete the nodes of the root path from the reverse PriorityQueue.
+      if not tapes:
+        for u in shortest_path[:failed_path_idx - 1]:
+          del to_visit_reverse[u]
 
       path_data = dijkstra.bidirectional_dijkstra(
         adj_list,
@@ -138,10 +140,13 @@ def _replacement_path(failed_path_idx: int,
         sink,
         to_visit,
         to_visit_reverse,
+        visited,
         failed_path_idx=failed_path_idx,
         failed=failed,
         tapes=tapes,
         mode="replacement-paths",
+        online=online,
+        shortest_path=shortest_path,
         verbose=verbose
       )
     else:
@@ -158,8 +163,11 @@ def _replacement_path(failed_path_idx: int,
                                            verbose=verbose)
       path_data = [repl_path, repl_path_cost, failed]
     if online:
-      path_data[0] = shortest_path[: failed_path_idx - 1] + path_data[0]
-      path_data[1] += cum_hop_weights[failed_path_idx - 1]
+      # path_data[0] = shortest_path[: failed_path_idx - 1] + path_data[0]
+      # path_data[2] += cum_hop_weights[failed_path_idx - 1]
+      path_data = [shortest_path[: failed_path_idx - 1] + path_data[0],
+                   path_data[2] + cum_hop_weights[failed_path_idx - 1],
+                   failed]
   elif failing == "edges":
     tail = failed
     head = shortest_path[failed_path_idx + 1]
@@ -275,7 +283,8 @@ def replacement_paths(adj_list,
     # sponds to the source of the reverse search, which is sink), which is None
     # will be replaced with the previous record (or next because we keep the
     # natural sequence of the path).
-    tapes[0].append(tapes[0][-1])
+    if not online:
+      tapes[0].append(tapes[0][-1])
     tapes[1][0] = tapes[1][1]
 
   if parallel:
@@ -324,8 +333,13 @@ def replacement_paths(adj_list,
         continue
 
       if dynamic:
-        # All necessary data will be retrieved from tapes.
-        new_to_visit = new_to_visit_reverse = new_visited = None
+        if online:
+          new_to_visit = copy.deepcopy(to_visit)
+          new_visited = copy.deepcopy(visited)
+          new_to_visit_reverse = None
+        else:
+          # All necessary data will be retrieved from tapes.
+          new_to_visit = new_to_visit_reverse = new_visited = None
       else:
         new_to_visit = copy.deepcopy(to_visit)
         if bidirectional:
