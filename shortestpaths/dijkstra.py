@@ -681,6 +681,17 @@ def bidirectional_dijkstra(adj_list,
   reverse_search.join()
 
   path_cost = prospect[0]
+
+  if (((mode == "k_shortest_paths") or (online))
+          and (prospect[1] != prospect[2])):
+    # then we need the (prospect[1], prospect[2]) edge weight
+    for u, uv_weight in adj_list[prospect[1]]:
+      if u == prospect[2]:
+        edge_weight = uv_weight
+        break
+  else:
+    edge_weight = None
+
   path, cum_hop_weights = extract_bidirectional_path(
     source,
     sink,
@@ -689,7 +700,9 @@ def bidirectional_dijkstra(adj_list,
     visited_costs,
     visited_prev_nodes,
     cum_hop_weights=(mode == "k_shortest_paths") or (online),
-    verbose=verbose)
+    verbose=verbose,
+    edge_weight=edge_weight)
+
   if cum_hop_weights:
     return [path, cum_hop_weights, path_cost]
   else:
@@ -705,7 +718,8 @@ def extract_bidirectional_path(source,
                                visited=None,
                                visited_reverse=None,
                                cum_hop_weights=False,
-                               verbose=0):
+                               verbose=0,
+                               edge_weight=None):
   if (visited is None) and (visited_reverse is None):
     visited_concatenated = list(zip(visited_costs, visited_prev_nodes))
     visited = visited_concatenated[:n + 1]
@@ -724,10 +738,21 @@ def extract_bidirectional_path(source,
   if prospect[1] == prospect[2]:
     path += reversed(reverse_path[:-1])
     if cum_hop_weights:
-      weights += reversed(reverse_weights[:-1])
+      # reverse_weights [0, 10, 30] --> [10 + weights[-1], 20 + weights[-1]]
+      reverse_weights = [
+        reverse_weights[u + 1] - reverse_weights[u] + weights[-1]
+        for u in range(len(reverse_weights) - 1)
+      ]
+      weights += reversed(reverse_weights)
   else:
     path += reversed(reverse_path)
     if cum_hop_weights:
+      head_cum_weight = edge_weight + weights[-1]
+      reverse_weights = [
+        reverse_weights[u + 1] - reverse_weights[u] + edge_weight + weights[-1]
+        for u in range(len(reverse_weights) - 1)
+      ]
+      reverse_weights.append(head_cum_weight)
       weights += reversed(reverse_weights)
   return path, weights
 
