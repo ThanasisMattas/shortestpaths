@@ -161,7 +161,12 @@ def dijkstra(adj_list,
   """
   if recording:
     if checkpoints:
-      tape = []
+      if current_process().name == "forward_search":
+        # tape's first item is None, accounting for the source, for which
+        # a state will not be recorded.
+        tape = [None]
+      else:
+        tape = []
       cps = iter(checkpoints)
       cp = next(cps)
       discovered = {to_visit.peek()[-1]}
@@ -215,14 +220,19 @@ def dijkstra(adj_list,
         # print(f"{current_process().name} cp: {cp}")
         tape.append([copy.deepcopy(to_visit),
                      copy.deepcopy(visited),
-                     copy.deepcopy(discovered)])
+                     copy.copy(discovered)])
         try:
           cp = next(cps)
         except StopIteration:
           # Here exits the 2nd recording session (Dijkstra states).
+          #
           if current_process().name == "reverse_search":
+            # tape's first item is None, accounting for the source, for which
+            # a state will not be recorded.
+            tape.append(None)
             # Reverse back to the failing nodes sequence.
             tape.reverse()
+
           tapes_queue.put(tape)
           # print(f"{current_process().name} putting tape")
           return
@@ -242,7 +252,7 @@ def bidirectional_recording(adj_list,
                             checkpoints=None,
                             mode="k_shortest_paths",
                             verbose=0):
-  """Memoizes the needed states of the algorithm on a tape.
+  """Memoizes the states of the algorithm on a tape.
 
   Two recordings are taking place on both directions. The 1st one records the
   visited nodes sequence, so as to get the immediate previously visited node
@@ -302,7 +312,7 @@ def bidirectional_recording(adj_list,
     tape_1 = tapes_queue.get()
     tape_2 = tapes_queue.get()
     # Find out which is which.
-    if sink in tape_1[0][0]:
+    if sink in tape_1[1][0]:
       return tape_1, tape_2
     else:
       return tape_2, tape_1
@@ -460,6 +470,40 @@ def bidirectional_dijkstra(adj_list,
                            tapes=None,
                            mode="k_shortest_paths",
                            verbose=0):
+  """Implementation of the bidirectional Dijkstra's algorithm.
+
+  Calls forward and reverse searches on two processes and builds the path. For
+  the termination condition see <Goldberg et al. 2006 "Efficient Point-to-Point
+  Shortest Path Algorithms">.
+
+  When using dynamic programming, tapes will hold the states of both searches.
+  The function retrieves one state before the failed node for both directions.
+  In case of failing edges instead of nodes, in order to get the replacement
+  paths, the state of tha tail of the edge is retrieved for the forward search
+  and the state that corresponds to the head for the reverse.
+
+  An insight when retrieving a state, is that the algorithm completely ignores
+  the path, as Dijkstra's algorithm would do while solving.
+
+    - failed node   :  *
+      forward state :  .
+      reverse state :  o
+      both visited  : .o
+
+           .     .   .o  o
+              .   .       o     o
+        .   .  .     *   o  o
+           .     .o     o     o
+          .    .   .     .o
+
+    - failed edge : .---o
+
+           .     .   .o  o
+              .   .       o     o
+        .   .  .     .---o  o
+           .     .o     o     o
+          .    .   .     .o
+  """
   n = len(adj_list) - 1
 
   if verbose > 2:
@@ -468,16 +512,42 @@ def bidirectional_dijkstra(adj_list,
     logger.setLevel(logging.INFO)
 
   if tapes:
+    if isinstance(failed, tuple):  # then failing == "edges"
+      # failed = (tail, head)
+      # We will retrieve the states that correspond to tail and head and not to
+      # the previous nodes on the path. Thus, we will ask for the record of the
+      # next node on the tape. Namely, for the forward search, in order to get
+      # the state of tail, we will retrieve the record of the next node, which
+      # is head. This happens because previous nodes on the path were used as
+      # record checkpoints for each state. Likewise for the reverse search, in
+      # order to get the state of head (which is the tail for the reverse
+      # search), we will retrieve the record of the next node, which is tail.
+      failed_forward = failed[1]
+      failed_reverse = failed[0]
+      idx_forward = failed_path_idx[1]
+      idx_reverse = failed_path_idx[0]
+    else:  # then failing == "nodes"
+      failed_forward = failed_reverse = failed
+      idx_forward = idx_reverse = failed_path_idx
+
     # Retrieve the forward and reverse states.
-    # NOTE: tapes start from the 2nd path-node, so the path_idx is offset by 1.
     tape_forward, tape_reverse = tapes
     [to_visit, visited, discovered_forward] = \
-        tape_forward[failed_path_idx - 1]
+        tape_forward[idx_forward]
     [to_visit_reverse, visited_reverse, discovered_reverse] = \
-        tape_reverse[failed_path_idx - 1]
+        tape_reverse[idx_reverse]
 
-    to_visit_reverse[failed] = [math.inf, failed, failed]
-    to_visit[failed] = [math.inf, failed, failed]
+    # Fail the failed node (or the head of the failed edge).
+    del to_visit[failed_forward]
+    del to_visit_reverse[failed_reverse]
+
+    if isinstance(failed, tuple):  # then failing == "edges"
+      # Un-visit the head for each direction.
+      visited[failed_forward] = [0, failed_forward]
+      visited_reverse[failed_reverse] = [0, failed_reverse]
+      # Un-discover the head for each direction.
+      discovered_forward.discard(failed_forward)
+      discovered_reverse.discard(failed_reverse)
 
     # Retrieve the prospect path of the state.
     # prospect: [path_cost, forward_search_node, backward_search_node]
@@ -497,12 +567,13 @@ def bidirectional_dijkstra(adj_list,
     if (top_f + top_r >= prospect[0]) and (sum(prospect) != 0):
       path_cost = prospect[0]
 
-      path = extract_bidirectional_path(source,
-                                        sink,
-                                        n,
-                                        prospect,
-                                        visited=visited,
-                                        visited_reverse=visited_reverse)
+      path, _ = extract_bidirectional_path(source,
+                                           sink,
+                                           n,
+                                           prospect,
+                                           visited=visited,
+                                           visited_reverse=visited_reverse,
+                                           verbose=verbose)
       return [path, path_cost, failed]
 
     # visited_costs and visited_prev_nodes are being concatenated, because they

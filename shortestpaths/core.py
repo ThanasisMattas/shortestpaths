@@ -161,7 +161,7 @@ def _replacement_path(failed_path_idx: int,
                 to_visit,
                 to_visit_reverse,
                 failed_path_idx=(failed_path_idx, failed_path_idx + 1),
-                failed=None,  # (tail, head)
+                failed=(tail, head),  # (tail, head)
                 tapes=tapes,
                 mode="replacement-paths",
                 verbose=verbose
@@ -294,14 +294,33 @@ def replacement_paths(adj_list,
       # In case of replacement-paths and failing == "edges" and i == 0, a state
       # is't recorded on tape, because it is the same with the state we get at
       # initialization.
-      if (not dynamic) or ((failing == "edges") and (i == 0)):
+      if not dynamic:
         new_to_visit = copy.deepcopy(to_visit)
-        new_to_visite_reverse = copy.deepcopy(to_visit_reverse)
+        new_to_visit_reverse = copy.deepcopy(to_visit_reverse)
         new_visited = copy.deepcopy(visited)
         tapes = None
       else:
         # All necessary data will be retrieved from tapes.
-        new_to_visit = new_to_visite_reverse = new_visited = None
+        new_to_visit = new_to_visit_reverse = new_visited = None
+        if failing == "edges":
+          if i == 0:  # 1st path-edge
+            # tapes[0][0] = [copy.deepcopy(to_visit),
+            #                copy.deepcopy(visited),
+            #                set()]
+            # See next comment.
+            tapes[1][0] = tapes[1][1]
+          elif node == shortest_path[-2]:  # last path-edge
+            # The state recovered the forward search, would be the state of the
+            # tail, so we would ask for the record of the head. But the head is
+            # the sink, for which we don't have a record, so the record of the
+            # tail will be appended instead, which is the state of the 3rd to
+            # last node.
+            tapes[0].append(tapes[0][-1])
+            # tapes[1][-1] = [copy.deepcopy(to_visit_reverse),
+            #                 copy.deepcopy(visited),
+            #                 set()]
+          else:
+            pass
       repl_path = _replacement_path(i,
                                     node,
                                     failing,
@@ -310,7 +329,7 @@ def replacement_paths(adj_list,
                                     source,
                                     sink,
                                     new_to_visit,
-                                    new_to_visite_reverse,
+                                    new_to_visit_reverse,
                                     new_visited,
                                     bidirectional,
                                     inverted_adj_list,
