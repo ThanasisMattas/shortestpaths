@@ -25,7 +25,6 @@ from concurrent.futures import ProcessPoolExecutor
 import copy
 from functools import partial
 import heapq
-import math
 from typing import Hashable, Literal
 
 from shortestpaths import dijkstra
@@ -116,30 +115,21 @@ def _replacement_path(failed_path_idx: int,
                       verbose: int = 0) -> list:
   if (failing == "nodes") and (failed == source):
     return
-  if failing == "edges":
-    # When failing is nodes, the spur path will start *before* the failed node.
-    # On the contrary, when failing is edges, the spur path will start *on* the
-    # tail of the failed edge. So, in order to keep the same code for both in-
-    # stances, failed_path_idx will be increased by one, when failing edges.
-    tail = failed
-    head = shortest_path[failed_path_idx + 1]
-    if online:
-      failed_path_idx += 1
-
-  if online:
-    # Delete the nodes of the root path from the PriorityQueue.
-    for u in shortest_path[:failed_path_idx - 1]:
-      del to_visit[u]
-    # The spur node becomes the source.
-    source = shortest_path[failed_path_idx - 1]
-    to_visit[source] = [0, source, source]
-    # Initialize the path cost with the root_cost.
-    if (bidirectional) and (not tapes):
-      # Delete the nodes of the root path from the reverse PriorityQueue.
-      for u in shortest_path[:failed_path_idx - 1]:
-        del to_visit_reverse[u]
 
   if failing == "nodes":
+    if online:
+      # Delete the nodes of the root path from the PriorityQueue.
+      for u in shortest_path[:failed_path_idx - 1]:
+        del to_visit[u]
+      # The spur node becomes the source.
+      source = shortest_path[failed_path_idx - 1]
+      to_visit[source] = [0, source, source]
+      # Initialize the path cost with the root_cost.
+      if (bidirectional) and (not tapes):
+        # Delete the nodes of the root path from the reverse PriorityQueue.
+        for u in shortest_path[:failed_path_idx - 1]:
+          del to_visit_reverse[u]
+
     if bidirectional:
       path_data = dijkstra.bidirectional_dijkstra(
         adj_list,
@@ -172,7 +162,27 @@ def _replacement_path(failed_path_idx: int,
         verbose=verbose
       )
   elif failing == "edges":
-    # Fail the edge, by setting its weight to inf.
+    # When failing is nodes, the spur path will start *before* the failed node.
+    # On the contrary, when failing is edges, the spur path will start *on* the
+    # tail of the failed edge. So, in order to keep the same code for both in-
+    # stances, failed_path_idx will be increased by one, when failing edges.
+    tail = failed
+    head = shortest_path[failed_path_idx + 1]
+
+    if online:
+      # Delete the nodes of the root path from the PriorityQueue.
+      for u in shortest_path[:failed_path_idx]:
+        del to_visit[u]
+      # The spur node becomes the source.
+      source = tail
+      to_visit[source] = [0, source, source]
+      # Initialize the path cost with the root_cost.
+      if (bidirectional) and (not tapes):
+        # Delete the nodes of the root path from the reverse PriorityQueue.
+        for u in shortest_path[:failed_path_idx]:
+          del to_visit_reverse[u]
+
+    # Fail the edge.
     for neighbor in adj_list[tail]:
       if neighbor[0] == head:
         adj_list[tail].remove(neighbor)
@@ -190,9 +200,11 @@ def _replacement_path(failed_path_idx: int,
                 to_visit,
                 to_visit_reverse,
                 failed_path_idx=(failed_path_idx, failed_path_idx + 1),
-                failed=(tail, head),  # (tail, head)
+                failed=(tail, head),
                 tapes=tapes,
                 mode="replacement-paths",
+                online=online,
+                shortest_path=shortest_path,
                 verbose=verbose
               )
               # Reconnect the failed edge.
@@ -222,12 +234,23 @@ def _replacement_path(failed_path_idx: int,
   if online:
     # path_data[0] = shortest_path[: failed_path_idx - 1] + path_data[0]
     # path_data[2] += cum_hop_weights[failed_path_idx - 1]
-    if repl_path:
-      path_data = [shortest_path[: failed_path_idx - 1] + repl_path,
-                   repl_path_cost + cum_hop_weights[failed_path_idx - 1],
-                   failed]
+    if failing == "edges":
+      failed_path_idx += 1
+
+    if bidirectional:
+      if path_data[0]:
+        path_data = [shortest_path[: failed_path_idx - 1] + path_data[0],
+                     path_data[2] + cum_hop_weights[failed_path_idx - 1],
+                     failed]
+      else:
+        path_data = [None, None, None]
     else:
-      path_data = [None, None, None]
+      if repl_path:
+        path_data = [shortest_path[: failed_path_idx - 1] + repl_path,
+                     repl_path_cost + cum_hop_weights[failed_path_idx - 1],
+                     failed]
+      else:
+        path_data = [None, None, None]
   else:
     path_data = [repl_path, repl_path_cost, failed]
 
