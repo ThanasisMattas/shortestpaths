@@ -2,8 +2,8 @@
 
 <br />
 
-An adaptive version of Dijkstra's algorithm, using dynamic programming.
-
+A dynamic, bidirectional and parallel replacement paths and k-shortest paths
+algorithm.
 
 <img src="bin/adaptive_dijkstra_s_algorithm.png"  />
 <br />
@@ -16,30 +16,6 @@ An adaptive version of Dijkstra's algorithm, using dynamic programming.
 | matplotlib>=3.3.2  |
 
 <br />
-
-## How to run it
-
-1. anaconda environment
-
-```bash
-$ conda create --name pathp python=3
-$ conda activate pathp
-$ git clone https://github.com/ThanasisMattas/ShortestPaths.git
-$ cd ShortestPaths
-$ python setup.py install
-$ ShortestPaths <num_nodes>
-```
-
-1. venv
-
-```bash
-$ git clone https://github.com/ThanasisMattas/ShortestPaths.git
-$ cd ShortestPaths
-$ python3 -m venv pathp
-$ source pathp/bin/activate
-$ python setup.py install
-$ ShortestPaths <num_nodes>
-```
 
 ## Brief overview
 
@@ -64,20 +40,6 @@ module is implemented as a wrapper around the heapq module, as suggested [here].
 
 3. Plot <br />
 Lastly, networkx and matplotlib are used for the visualization.
-
-
-## Options
-
-**--weighted/--no-weighted** <br />
-(defaults to True) <br />
-**--weights-on** <br />
-(options: "edges", "nodes", "edges-and-nodes"; defaults to "edges") <br />
-**--max-edge-weight** <br />
-(defaults to 1000) <br />
-**--max-node-weight** <br />
-(defaults to 1000) <br />
-**--show-graph/--no-show-graph** <br />
-(defaults to True)
 
 <br />
 
