@@ -9,13 +9,13 @@
 #
 # (C) 2020 Athanasios Mattas
 # ==========================================================================
-"""Houses some special variables."""
+"""Special project variables"""
 
 __name__ = 'shortestpaths'
 __version__ = '0.2.0'
 __author__ = 'Athanasios Mattas'
-__author_email__ = 'atmattas@physics.auth.gr'
-__description__ = ("A bidirectional, parallel and dynamic k-shortest paths"
+__author_email__ = 'thanasismatt@gmail.gr'
+__description__ = ("A dynamic, bidirectional and parallel k-shortest paths"
                    " algorithm")
 __url__ = 'https://github.com/ThanasisMattas/shortestpaths.git'
 __license__ = 'GNU General Public License v3'
