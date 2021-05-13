@@ -30,9 +30,9 @@ from shortestpaths.utils import time_this  # noqa: F401
 
 
 def _was_visited(visited, u):
-  if (visited[u][0] != 0) and (visited[u][1] != u):
-    return True
-  return False
+  if (visited[u][0] == 0) and (visited[u][1] == u):
+    return False
+  return True
 
 
 def _initialize_prospect_path(n,
@@ -164,13 +164,15 @@ def dijkstra(adj_list,
     if checkpoints:
       if current_process().name == "forward_search":
         # tape's first item is None, accounting for the source, for which
-        # a state will not be recorded.
+        # a state will not be recorded. For the reverse_search, None will be
+        # appended at the end, because the tape will be finally reversed.
         tape = [None]
       else:
         tape = []
       cps = iter(checkpoints)
       cp = next(cps)
-      discovered = {to_visit.peek()[-1]}
+      source = to_visit.peek()[-1]
+      discovered = {source}
     else:
       n = max(sink, to_visit.peek()[-1])
       visited_nodes_sequence = [0 for _ in range(n)]
@@ -221,6 +223,14 @@ def dijkstra(adj_list,
           discovered.add(v)
 
     if recording and checkpoints:
+      if (failed == "edges") and (u == source):
+        # When the 1st path-edge fails, forward search will retrieve the source
+        # state. Likewise, when the last path-edge fails, reverse search will
+        # recover the sink state, which is the source here.
+        source_state = [copy.deepcopy(to_visit),
+                        copy.deepcopy(visited),
+                        copy.copy(discovered)]
+
       if u == cp:
         # print(f"{current_process().name} cp: {cp}")
         tape.append([copy.deepcopy(to_visit),
@@ -230,14 +240,22 @@ def dijkstra(adj_list,
           cp = next(cps)
         except StopIteration:
           # Here exits the 2nd recording session (Dijkstra states).
-          #
           if ((current_process().name == "reverse_search")
                   or (not isinstance(tapes_queue, mp.queues.Queue))):
             # tape's first item is None, accounting for the source, for which
-            # a state will not be recorded.
-            tape.append(None)
+            # a state will not be recorded, if failing is nodes.
+            # if not isinstance(tapes_queue, mp.queues.Queue) then this is the
+            # online recording, which is for sure a reverse search.
+            if failed == "edges":
+              tape = [source_state] + tape + [None]
+            else:
+              tape.append(None)
             # Reverse back to the failing nodes sequence.
             tape.reverse()
+
+          if ((current_process().name == "forward_search")
+                  and (failed == "edges")):
+            tape[0] = source_state
 
           if isinstance(tapes_queue, mp.queues.Queue):
             tapes_queue.put(tape)
@@ -259,6 +277,7 @@ def bidirectional_recording(adj_list,
                             to_visit_reverse,
                             visited,
                             checkpoints=None,
+                            failing=None,
                             mode="k_shortest_paths",
                             online=False,
                             verbose=0):
@@ -306,7 +325,14 @@ def bidirectional_recording(adj_list,
                                                  True,
                                                  verbose)
     shortest_path = list(reversed(reverse_path))
-    cum_hop_weights = list(reversed(reverse_weights))
+    # reversed(reverse_weights) : [267, 166, 100, 80, 0]
+    # cum_hop_weights           : [0, 101, 167, 187, 267]
+    cum_hop_weights = [0]
+    reverse_weights.reverse()
+    for u in range(1, len(reverse_weights)):
+        cum_hop_weights.append(reverse_weights[u - 1]
+                               - reverse_weights[u]
+                               + cum_hop_weights[-1])
     path_data = [shortest_path, cum_hop_weights, shortest_path_cost]
   else:
     # Visited nodes sequence will be recorded for both directions, in order to
@@ -317,7 +343,7 @@ def bidirectional_recording(adj_list,
                                    sink,
                                    to_visit,
                                    visited,
-                                   None,
+                                   failing,
                                    True,
                                    tapes_queue,
                                    cps_forward))
@@ -327,7 +353,7 @@ def bidirectional_recording(adj_list,
                                    source,
                                    to_visit_reverse,
                                    visited,
-                                   None,
+                                   failing,
                                    True,
                                    tapes_queue,
                                    cps_reverse))
@@ -407,6 +433,7 @@ def bidirectional_recording(adj_list,
                                   to_visit_reverse,
                                   visited,
                                   checkpoints,
+                                  failing=failing,
                                   mode=mode,
                                   online=online,
                                   verbose=verbose)
@@ -568,10 +595,8 @@ def bidirectional_dijkstra(adj_list,
       # record checkpoints for each state. Likewise for the reverse search, in
       # order to get the state of head (which is the tail for the reverse
       # search), we will retrieve the record of the next node, which is tail.
-      failed_forward = failed[1]
-      failed_reverse = failed[0]
-      idx_forward = failed_path_idx[1]
-      idx_reverse = failed_path_idx[0]
+      failed_forward, failed_reverse = failed
+      idx_forward, idx_reverse = failed_path_idx
     else:  # then failing == "nodes"
       failed_forward = failed_reverse = failed
       idx_forward = idx_reverse = failed_path_idx
@@ -585,22 +610,33 @@ def bidirectional_dijkstra(adj_list,
       # then to_visit and visited are passed as function arguments.
       discovered_forward = set()
       # Delete the nodes of the root path from the reverse PriorityQueue.
-      for u in shortest_path[:failed_path_idx - 1]:
-        del to_visit_reverse[u]
+      if isinstance(failed, tuple):
+        for u in shortest_path[:failed_path_idx]:
+          del to_visit_reverse[u]
+      else:
+        for u in shortest_path[:failed_path_idx - 1]:
+          del to_visit_reverse[u]
     else:
       [to_visit, visited, discovered_forward] = tape_forward[idx_forward]
 
-    # Fail the failed node (or the head of the failed edge).
-    del to_visit[failed_forward]
-    del to_visit_reverse[failed_reverse]
-
-    if isinstance(failed, tuple):  # then failing == "edges"
-      # Un-visit the head for each direction.
-      visited[failed_forward] = [0, failed_forward]
-      visited_reverse[failed_reverse] = [0, failed_reverse]
-      # Un-discover the head for each direction.
-      discovered_forward.discard(failed_forward)
-      discovered_reverse.discard(failed_reverse)
+    if isinstance(failed, tuple):
+      if failed_forward == source:
+        # then un-discover the head
+        discovered_forward.discard(failed_reverse)
+        to_visit[failed_reverse] = [math.inf, failed_reverse, failed_reverse]
+      elif failed_reverse == sink:
+        # then un-dicover the tail
+        discovered_reverse.discard(failed_forward)
+        to_visit_reverse[failed_forward] = \
+            [math.inf, failed_forward, failed_forward]
+    else:
+      # Fail the failed node.
+      # NOTE: 1. This is not necessary, because failed *node* is avoided while
+      #          executing Dijkstra's algorithm.
+      #       2. In case of failing edges, the failed edge was failed one stack
+      #          frame back (at _replacement_path()).
+      del to_visit[failed]
+      del to_visit_reverse[failed]
 
     # Retrieve the prospect path of the state.
     # prospect: [path_cost, forward_search_node, backward_search_node]

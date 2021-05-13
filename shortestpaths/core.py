@@ -41,6 +41,7 @@ def _first_shortest_path(adj_list,
                          inverted_adj_list=None,
                          bidirectional=False,
                          dynamic=False,
+                         failing=None,
                          mode="k_shortest_paths",
                          online=False,
                          verbose=0):
@@ -59,6 +60,7 @@ def _first_shortest_path(adj_list,
                                                           to_visit,
                                                           to_visit_reverse,
                                                           visited,
+                                                          failing=failing,
                                                           mode=mode,
                                                           online=online,
                                                           verbose=verbose)
@@ -251,7 +253,7 @@ def _replacement_path(failed_path_idx: int,
                      failed]
       else:
         path_data = [None, None, None]
-  else:
+  elif not bidirectional:
     path_data = [repl_path, repl_path_cost, failed]
 
   return path_data
@@ -297,6 +299,7 @@ def replacement_paths(adj_list,
                                           inverted_adj_list,
                                           bidirectional,
                                           dynamic,
+                                          failing=failing,
                                           mode="replacement_paths",
                                           online=online,
                                           verbose=verbose)
@@ -309,18 +312,6 @@ def replacement_paths(adj_list,
 
   # Next, find the replacement paths.
   shortest_path = path_data[0]
-  if (dynamic) and (failing == "edges"):
-    # The state recovered the forward search when the last path-edge failes
-    # would be the state of the tail, so we would ask for the record of the
-    # head. But the head is the sink, for which we don't have a record, so the
-    # record of the tail will be appended instead, which is the state of the
-    # 3rd to last node. Likewise for the reverse search, the 1st record (corre-
-    # sponds to the source of the reverse search, which is sink), which is None
-    # will be replaced with the previous record (or next because we keep the
-    # natural sequence of the path).
-    if not online:
-      tapes[0].append(tapes[0][-1])
-    tapes[1][0] = tapes[1][1]
 
   if parallel:
     if dynamic:
