@@ -259,7 +259,6 @@ def dijkstra(adj_list,
 
           if isinstance(tapes_queue, mp.queues.Queue):
             tapes_queue.put(tape)
-            # print(f"{current_process().name} putting tape")
             return
           else:
             return tape
@@ -310,9 +309,9 @@ def bidirectional_recording(adj_list,
                             source,
                             copy.deepcopy(to_visit_reverse),
                             copy.deepcopy(visited),
-                            None,
+                            failing,
                             True,
-                            online,
+                            None,
                             cps_reverse)
     if checkpoints:
       return (None, tape_reverse)
@@ -611,10 +610,10 @@ def bidirectional_dijkstra(adj_list,
       discovered_forward = set()
       # Delete the nodes of the root path from the reverse PriorityQueue.
       if isinstance(failed, tuple):
-        for u in shortest_path[:failed_path_idx]:
+        for u in shortest_path[:idx_forward]:
           del to_visit_reverse[u]
       else:
-        for u in shortest_path[:failed_path_idx - 1]:
+        for u in shortest_path[:idx_forward - 1]:
           del to_visit_reverse[u]
     else:
       [to_visit, visited, discovered_forward] = tape_forward[idx_forward]
