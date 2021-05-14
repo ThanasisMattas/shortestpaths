@@ -1,5 +1,7 @@
 # ShortestPaths
 
+![Build_Status] ![codecov]
+
 <br />
 
 A dynamic, bidirectional and parallel replacement paths and k-shortest paths
@@ -48,7 +50,8 @@ Lastly, networkx and matplotlib are used for the visualization.
 
 [//]: # "links"
 
-
+[Build_Status]: <https://travis-ci.com/ThanasisMattas/shortestpaths.svg?branch=master>
+[codecov]: <https://codecov.io/gh/ThanasisMattas/shortestpaths/branch/master/graph/badge.svg>
 [Erdős-Rényi]: <https://en.wikipedia.org/wiki/Erd%C5%91s%E2%80%93R%C3%A9nyi_model>
 [Dijkstra]: <https://en.wikipedia.org/wiki/Dijkstra%27s_algorithm>
 [heapq]: <https://docs.python.org/3/library/heapq.html#module-heapq>
