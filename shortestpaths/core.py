@@ -271,10 +271,32 @@ def replacement_paths(adj_list,
                       dynamic=False,
                       online=False,
                       verbose=0):
-  """Generates the replacement paths.
+  """Wrapper that generates the replacement paths, using several different
+  methods.
+
+  Args:
+    adj_list (list)      : [{(neighbor, edge_weight),},]
+    n (int)              : number of nodes
+    source (int)
+    sink (int)
+    failing (str)        : options: ["nodes", "edges"] (default: "nodes")
+                           The element that fails to generate the replacement
+                           paths.
+    bidirectional (bool) : use the bidirectional Dijkstra's algorithm
+                           (default False)
+    parallel (bool)      : whether to parallelize the replacement paths search
+    dynamic (bool)       : use dynamic programming (only works with the
+                           bidirectional Dijkstra's algorithm) (default: False)
+    online (bool)        : The on-line algorithm freezes the path until the
+                           failed element. Namely, it discoveres the failure on
+                           the go. On the contrary, the off-line algorithm has
+                           a priory knowledge of the failure and, thus, it is
+                           free to plan whatever path is best, avoiding the
+                           failed element. (defalt: false)
+    verbose (int)
 
   Returns:
-    repl_paths (list) : [[path_1, path_1_cost, failed],]
+    repl_paths (list)    : [[path_1, path_1_cost, failed],]
   """
   to_visit, visited, to_visit_reverse = dijkstra.dijkstra_init(n,
                                                                source,
