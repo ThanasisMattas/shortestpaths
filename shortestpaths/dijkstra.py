@@ -730,6 +730,7 @@ def bidirectional_dijkstra(adj_list,
   reverse_search.join()
 
   if sum(prospect):
+    # then the two searches met, as expected
     path_cost = prospect[0]
 
     if (((mode == "k_shortest_paths") or (online))
@@ -742,17 +743,20 @@ def bidirectional_dijkstra(adj_list,
     else:
       edge_weight = None
   else:
+    # then one process finished either before the other started or before they
+    # meet
     edge_weight = None
-    if (sum(visited_costs[: n + 1]) != 0) and (sum(visited_costs[n + 1:]) == 0):
-      # then forward_search finished and reverse_search did not
+    if (visited_costs[sink] != 0) and (visited_costs[-1] == 0):
+      # then forward_search finished
       path_cost = visited_costs[n]
       prospect = [visited_costs[n], sink, sink]
-    elif (sum(visited_costs[: n + 1]) == 0) and (sum(visited_costs[n + 1:]) != 0):
-      # then forward_search did not finish and reverse_search did
+    elif (visited_costs[sink] == 0) and (visited_costs[-1] != 0):
+      # then reverse_search finished
       path_cost = visited_costs[-1]
       prospect = [visited_costs[-1], source, source]
     else:
-      raise Exception("One of the searches should have zero sum of costs.")
+      raise Exception("The two searches didn't meet and neither of them"
+                      " visited the sink.")
   path, cum_hop_weights = extract_bidirectional_path(
     source,
     sink,
