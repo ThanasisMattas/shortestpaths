@@ -517,6 +517,7 @@ def k_shortest_paths(adj_list,
                      bidirectional=False,
                      parallel=False,
                      dynamic=False,
+                     lawler=True,
                      verbose=0):
   """Generates k_shortest_paths
 
@@ -553,5 +554,6 @@ def k_shortest_paths(adj_list,
                  K,
                  shortest_path,
                  shortest_path_cost,
-                 cum_hop_weights)
+                 cum_hop_weights,
+                 lawler)
   return k_paths
