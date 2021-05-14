@@ -3,7 +3,7 @@
 <br />
 
 A dynamic, bidirectional and parallel replacement paths and k-shortest paths
-algorithm.
+algorithm
 
 <img src="bin/adaptive_dijkstra_s_algorithm.png"  />
 <br />

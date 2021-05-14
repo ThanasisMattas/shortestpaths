@@ -568,23 +568,28 @@ def bidirectional_dijkstra(adj_list,
            .     .o     o     o
           .    .   .     .o
 
-    - failed edge : .---o
+    - failed edge : *---*
 
            .     .   .o  o
               .   .       o     o
-        .   .  .     .---o  o
+        .   .  .     *---*  o
            .     .o     o     o
           .    .   .     .o
   """
   n = len(adj_list) - 1
 
-  if verbose > 2:
+  if verbose >= 2:
     log_to_stderr()
     logger = get_logger()
     logger.setLevel(logging.INFO)
 
+  if isinstance(failed, tuple):
+    failing = "edges"
+  else:
+    failing = "nodes"
+
   if tapes:
-    if isinstance(failed, tuple):  # then failing == "edges"
+    if failing == "edges":
       # failed = (tail, head)
       # We will retrieve the states that correspond to tail and head and not to
       # the previous nodes on the path. Thus, we will ask for the record of the
@@ -609,22 +614,25 @@ def bidirectional_dijkstra(adj_list,
       # then to_visit and visited are passed as function arguments.
       discovered_forward = set()
       # Delete the nodes of the root path from the reverse PriorityQueue.
-      if isinstance(failed, tuple):
+      if failing == "edges":
         for u in shortest_path[:idx_forward]:
           del to_visit_reverse[u]
+        net_n = n - failed_forward
       else:
         for u in shortest_path[:idx_forward - 1]:
           del to_visit_reverse[u]
+        net_n = n - failed - 1
     else:
       [to_visit, visited, discovered_forward] = tape_forward[idx_forward]
+      net_n = n
 
-    if isinstance(failed, tuple):
+    if failing == "edges":
       if failed_forward == source:
         # then un-discover the head
         discovered_forward.discard(failed_reverse)
         to_visit[failed_reverse] = [math.inf, failed_reverse, failed_reverse]
       elif failed_reverse == sink:
-        # then un-dicover the tail
+        # then un-discover the tail
         discovered_reverse.discard(failed_forward)
         to_visit_reverse[failed_forward] = \
             [math.inf, failed_forward, failed_forward]
@@ -639,7 +647,7 @@ def bidirectional_dijkstra(adj_list,
 
     # Retrieve the prospect path of the state.
     # prospect: [path_cost, forward_search_node, backward_search_node]
-    prospect = _initialize_prospect_path(n,
+    prospect = _initialize_prospect_path(net_n,
                                          to_visit,
                                          to_visit_reverse,
                                          visited,
