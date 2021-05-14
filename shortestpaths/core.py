@@ -309,31 +309,26 @@ def replacement_paths(adj_list,
   # Next, find the replacement paths.
   shortest_path = path_data[0]
 
-  if parallel:
-    if dynamic:
-      if online:
-        to_visit_values = to_visit
-        visited_values = visited
-        to_visit_reverse_values = None
-      else:
-        to_visit_values = to_visit_reverse_values = visited_values = None
+  if dynamic:
+    if online:
+      # Only reverse states are recorded on tape.
+      to_visit_reverse = None
     else:
-      # We don't need to deepcopy here, because they will be copied on process
-      # generation.
-      to_visit_values = to_visit
-      to_visit_reverse_values = to_visit_reverse
-      visited_values = visited
-      tapes = None
+      # All necessary data will be retrieved from tapes.
+      to_visit = to_visit_reverse = visited = None
+  else:
+    tapes = None
 
+  if parallel:
     _repl_path = partial(_replacement_path,
                          failing=failing,
                          shortest_path=shortest_path,
                          adj_list=adj_list,
                          source=source,
                          sink=sink,
-                         to_visit=to_visit_values,
-                         to_visit_reverse=to_visit_reverse_values,
-                         visited=visited_values,
+                         to_visit=to_visit,
+                         to_visit_reverse=to_visit_reverse,
+                         visited=visited,
                          bidirectional=bidirectional,
                          inverted_adj_list=inverted_adj_list,
                          tapes=tapes,
@@ -352,29 +347,14 @@ def replacement_paths(adj_list,
         return False
 
       repl_paths = list(filter(_is_path, repl_paths))
+
   else:  # not parallel
     for i, node in enumerate(shortest_path[:-1]):
+
       # The source cannot fail, but when failing == "edges", the source consti-
-      # tudes the tail of the 1st edge that will fail.
+      # tudes the tail of the 1st failed edge.
       if (failing == "nodes") and (i == 0):
         continue
-
-      if dynamic:
-        if online:
-          new_to_visit = copy.deepcopy(to_visit)
-          new_visited = copy.deepcopy(visited)
-          new_to_visit_reverse = None
-        else:
-          # All necessary data will be retrieved from tapes.
-          new_to_visit = new_to_visit_reverse = new_visited = None
-      else:
-        new_to_visit = copy.deepcopy(to_visit)
-        if bidirectional:
-          new_to_visit_reverse = copy.deepcopy(to_visit_reverse)
-        else:
-          new_to_visit_reverse = None
-        new_visited = copy.deepcopy(visited)
-        tapes = None
 
       repl_path = _replacement_path(i,
                                     node,
@@ -383,9 +363,9 @@ def replacement_paths(adj_list,
                                     adj_list,
                                     source,
                                     sink,
-                                    new_to_visit,
-                                    new_to_visit_reverse,
-                                    new_visited,
+                                    copy.deepcopy(to_visit),
+                                    copy.deepcopy(to_visit_reverse),
+                                    copy.deepcopy(visited),
                                     bidirectional,
                                     inverted_adj_list,
                                     tapes,
