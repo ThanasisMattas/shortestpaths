@@ -317,6 +317,7 @@ def replacement_paths(adj_list,
       # All necessary data will be retrieved from tapes.
       to_visit = to_visit_reverse = visited = None
   else:
+    # All data will be copied for each replacement path.
     tapes = None
 
   if parallel:
@@ -340,41 +341,30 @@ def replacement_paths(adj_list,
       repl_paths += p.map(_repl_path,
                           range(len(shortest_path) - 1),
                           shortest_path[:-1])
-
-      def _is_path(path):
-        if path and path[0]:
-          return True
-        return False
-
-      repl_paths = list(filter(_is_path, repl_paths))
-
-  else:  # not parallel
+  else:
     for i, node in enumerate(shortest_path[:-1]):
-
       # The source cannot fail, but when failing == "edges", the source consti-
       # tudes the tail of the 1st failed edge.
       if (failing == "nodes") and (i == 0):
         continue
+      repl_paths.append(_replacement_path(i,
+                                          node,
+                                          failing,
+                                          shortest_path,
+                                          adj_list,
+                                          source,
+                                          sink,
+                                          copy.deepcopy(to_visit),
+                                          copy.deepcopy(to_visit_reverse),
+                                          copy.deepcopy(visited),
+                                          bidirectional,
+                                          inverted_adj_list,
+                                          tapes,
+                                          online,
+                                          cum_hop_weights,
+                                          verbose))
 
-      repl_path = _replacement_path(i,
-                                    node,
-                                    failing,
-                                    shortest_path,
-                                    adj_list,
-                                    source,
-                                    sink,
-                                    copy.deepcopy(to_visit),
-                                    copy.deepcopy(to_visit_reverse),
-                                    copy.deepcopy(visited),
-                                    bidirectional,
-                                    inverted_adj_list,
-                                    tapes,
-                                    online,
-                                    cum_hop_weights,
-                                    verbose)
-      if repl_path[0]:
-        repl_paths.append(repl_path)
-
+  repl_paths = list(filter(lambda p: p and p[0], repl_paths))
   return repl_paths
 
 
