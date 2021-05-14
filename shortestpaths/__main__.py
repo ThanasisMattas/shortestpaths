@@ -113,10 +113,12 @@ def main(ctx,
                                   bidirectional=bidirectional,
                                   parallel=parallel,
                                   dynamic=dynamic,
-                                  lawler=lawler)
+                                  lawler=lawler,
+                                  verbose=verbose)
 
   # 3. Post-processing
-  post_processing.print_paths(k_paths)
+  if verbose:
+    post_processing.print_paths(k_paths)
   if save_graph or show_graph:
     post_processing.plot_graph(G,
                                k_paths,

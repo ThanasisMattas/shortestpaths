@@ -274,12 +274,7 @@ def replacement_paths(adj_list,
   """Generates the replacement paths.
 
   Returns:
-    paths_data (list)         : format:
-                                [
-                                  [path_1, path_1_cost, avoided_nodes_1],
-                                  [path_2, path_2_cost, avoided_nodes_2],
-                                  ...
-                                ]
+    repl_paths (list) : [[path_1, path_1_cost, failed],]
   """
   to_visit, visited, to_visit_reverse = dijkstra.dijkstra_init(n,
                                                                source,

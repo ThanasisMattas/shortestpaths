@@ -469,6 +469,11 @@ def _biderectional_dijkstra_branch(adj_list: list,
   # searches; thus, each search has to work with the proper slice.
   is_forward, visited_offset, opposite_visited_offset = _visited_offsets(n)
 
+  # if current_process().name == "reverse_search":
+  #   for _ in to_visit:
+  #     print(_)
+  #   print()
+
   while to_visit:
     u_path_cost, u_prev, u = to_visit.pop_low()
 
@@ -480,15 +485,16 @@ def _biderectional_dijkstra_branch(adj_list: list,
     with visited_prev_nodes.get_lock():
       visited_prev_nodes[u + visited_offset] = u_prev
 
-    pq_top = to_visit.peek()[0]
-    pq_top = 0 if pq_top == math.inf else pq_top
-    with priorityq_top.get_lock():
-      priorityq_top[int(not is_forward)] = pq_top
-    # print(f"{current_process().name}  {priorityq_top[int(not is_forward)]}")
-
     if (kill.is_set()) or (u == sink):
       kill.set()
       return
+
+    pq_top = to_visit.peek()[0]
+    pq_top = 0 if pq_top == math.inf else pq_top
+
+    with priorityq_top.get_lock():
+      priorityq_top[int(not is_forward)] = pq_top
+    # print(f"{current_process().name}  {priorityq_top[int(not is_forward)]}")
 
     for v, uv_weight in adj_list[u]:
 
@@ -723,18 +729,30 @@ def bidirectional_dijkstra(adj_list,
   forward_search.join()
   reverse_search.join()
 
-  path_cost = prospect[0]
+  if sum(prospect):
+    path_cost = prospect[0]
 
-  if (((mode == "k_shortest_paths") or (online))
-          and (prospect[1] != prospect[2])):
-    # then we need the (prospect[1], prospect[2]) edge weight
-    for u, uv_weight in adj_list[prospect[1]]:
-      if u == prospect[2]:
-        edge_weight = uv_weight
-        break
+    if (((mode == "k_shortest_paths") or (online))
+            and (prospect[1] != prospect[2])):
+      # then we need the (prospect[1], prospect[2]) edge weight
+      for u, uv_weight in adj_list[prospect[1]]:
+        if u == prospect[2]:
+          edge_weight = uv_weight
+          break
+    else:
+      edge_weight = None
   else:
     edge_weight = None
-
+    if (sum(visited_costs[: n + 1]) != 0) and (sum(visited_costs[n + 1:]) == 0):
+      # then forward_search finished and reverse_search did not
+      path_cost = visited_costs[n]
+      prospect = [visited_costs[n], sink, sink]
+    elif (sum(visited_costs[: n + 1]) == 0) and (sum(visited_costs[n + 1:]) != 0):
+      # then forward_search did not finish and reverse_search did
+      path_cost = visited_costs[-1]
+      prospect = [visited_costs[-1], source, source]
+    else:
+      raise Exception("One of the searches should have zero sum of costs.")
   path, cum_hop_weights = extract_bidirectional_path(
     source,
     sink,
