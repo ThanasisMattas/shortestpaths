@@ -316,7 +316,12 @@ def replacement_paths(adj_list,
 
   if parallel:
     if dynamic:
-      to_visit_values = to_visit_reverse_values = visited_values = None
+      if online:
+        to_visit_values = to_visit
+        visited_values = visited
+        to_visit_reverse_values = None
+      else:
+        to_visit_values = to_visit_reverse_values = visited_values = None
     else:
       # We don't need to deepcopy here, because they will be copied on process
       # generation.
