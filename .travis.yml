@@ -1,0 +1,17 @@
+language: python
+
+python:
+    - 3.7
+    - 3.8
+    - 3.9
+
+# env:
+#     - NUMBA_DISABLE_JIT=1
+install:
+    - pip install -r requirements.txt
+
+script:
+    pytest --cov-report term --cov=shortestpaths/
+
+after_success:
+    - bash <(curl https://codecov.io/bash)

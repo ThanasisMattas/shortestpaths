@@ -1,0 +1,2 @@
+ignore:
+    - "shortestpaths/post_processing.py"
