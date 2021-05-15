@@ -42,7 +42,6 @@ def _first_shortest_path(adj_list,
                          bidirectional=False,
                          dynamic=False,
                          failing=None,
-                         mode="k_shortest_paths",
                          online=False,
                          verbose=0):
   tapes = None
@@ -61,7 +60,6 @@ def _first_shortest_path(adj_list,
                                                           to_visit_reverse,
                                                           visited,
                                                           failing=failing,
-                                                          mode=mode,
                                                           online=online,
                                                           verbose=verbose)
     else:
@@ -73,7 +71,6 @@ def _first_shortest_path(adj_list,
                                           copy.deepcopy(to_visit),
                                           copy.deepcopy(to_visit_reverse),
                                           copy.deepcopy(visited),
-                                          mode=mode,
                                           online=online,
                                           verbose=verbose)
   else:
@@ -87,7 +84,7 @@ def _first_shortest_path(adj_list,
       source,
       sink,
       initial_visited,
-      cum_hop_weights=(mode == "k_shortest_paths") or (online),
+      cum_hop_weights=online,
       verbose=verbose)
 
     if cum_hop_weights:
@@ -145,7 +142,6 @@ def _replacement_path(failed_path_idx: int,
         failed_path_idx=failed_path_idx,
         failed=failed,
         tapes=tapes,
-        mode="replacement-paths",
         online=online,
         base_path=base_path,
         verbose=verbose
@@ -233,7 +229,6 @@ def _replacement_path(failed_path_idx: int,
                 failed_path_idx=(failed_path_idx, failed_path_idx + 1),
                 failed=(tail, head),
                 tapes=tapes,
-                mode="replacement-paths",
                 online=online,
                 base_path=base_path,
                 verbose=verbose
@@ -381,7 +376,6 @@ def replacement_paths(adj_list,
                                             bidirectional,
                                             dynamic,
                                             failing=failing,
-                                            mode="replacement_paths",
                                             online=online,
                                             verbose=verbose)
     if online:
@@ -560,11 +554,6 @@ def _yen(sink,
   return prospects
 
 
-def pp(pr):
-  for p in pr:
-    print(p)
-
-
 @time_this
 def k_shortest_paths(adj_list,
                      source,
@@ -601,7 +590,7 @@ def k_shortest_paths(adj_list,
                            inverted_adj_list,
                            bidirectional,
                            dynamic,
-                           mode="k_shortest_paths",
+                           online=True,
                            verbose=verbose)
 
   k_paths = [[shortest_path, shortest_path_cost, None]]

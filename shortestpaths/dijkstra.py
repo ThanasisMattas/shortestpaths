@@ -278,7 +278,6 @@ def bidirectional_recording(adj_list,
                             visited,
                             checkpoints=None,
                             failing=None,
-                            mode="k_shortest_paths",
                             online=False,
                             verbose=0):
   """Memoizes the states of the algorithm on a tape.
@@ -397,7 +396,7 @@ def bidirectional_recording(adj_list,
       source,
       sink,
       visited_forward,
-      cum_hop_weights=(mode == "k_shortest_paths") or (online),
+      cum_hop_weights=online,
       verbose=verbose)
     if cum_hop_weights:
       path_data = [shortest_path, shortest_path_cost, cum_hop_weights]
@@ -434,7 +433,6 @@ def bidirectional_recording(adj_list,
                                   visited,
                                   checkpoints,
                                   failing=failing,
-                                  mode=mode,
                                   online=online,
                                   verbose=verbose)
 
@@ -554,7 +552,6 @@ def bidirectional_dijkstra(adj_list,
                            failed_path_idx=None,
                            failed=None,
                            tapes=None,
-                           mode="k_shortest_paths",
                            online=False,
                            base_path=None,
                            verbose=0):
@@ -746,8 +743,7 @@ def bidirectional_dijkstra(adj_list,
     # then the two searches met, as expected
     path_cost = prospect[0]
 
-    if (((mode == "k_shortest_paths") or (online))
-            and (prospect[1] != prospect[2])):
+    if (online) and (prospect[1] != prospect[2]):
       # then we need the (prospect[1], prospect[2]) edge weight
       for u, uv_weight in adj_list[prospect[1]]:
         if u == prospect[2]:
@@ -779,7 +775,7 @@ def bidirectional_dijkstra(adj_list,
     prospect,
     visited_costs,
     visited_prev_nodes,
-    cum_hop_weights=(mode == "k_shortest_paths") or (online),
+    cum_hop_weights=online,
     verbose=verbose,
     edge_weight=edge_weight)
 
