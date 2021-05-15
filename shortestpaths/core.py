@@ -268,17 +268,29 @@ def _replacement_path(failed_path_idx: int,
 
   if k_paths:
     # then replacement_paths was called from k_shortest_paths
-    if repl_path:
-      path_data = [
-        base_path[: failed_path_idx] + repl_path,
-        repl_path_cost + cum_hop_weights[failed_path_idx],
-        (cum_hop_weights[: failed_path_idx]
-         + [w + cum_hop_weights[failed_path_idx] for w in repl_weights]),
-        failed_path_idx
-      ]
+    if bidirectional:
+      if path_data[0]:
+        path_data = [
+          base_path[: failed_path_idx] + path_data[0],
+          path_data[1] + cum_hop_weights[failed_path_idx],
+          (cum_hop_weights[: failed_path_idx]
+           + [w + cum_hop_weights[failed_path_idx] for w in path_data[2]]),
+          failed_path_idx
+        ]
+      else:
+        path_data = [None, None, None]
     else:
-      path_data = [None, None, None]
-  else:
+      if repl_path:
+        path_data = [
+          base_path[: failed_path_idx] + repl_path,
+          repl_path_cost + cum_hop_weights[failed_path_idx],
+          (cum_hop_weights[: failed_path_idx]
+           + [w + cum_hop_weights[failed_path_idx] for w in repl_weights]),
+          failed_path_idx
+        ]
+      else:
+        path_data = [None, None, None]
+  else:  # pure replacement-paths
     if online:
       if failing == "edges":
         failed_path_idx += 1
