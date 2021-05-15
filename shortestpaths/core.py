@@ -271,9 +271,8 @@ def _replacement_path(failed_path_idx: int,
     raise ValueError(f"Unexpected value for failing: <{failing}>. It should"
                      " be either 'edges' or 'nodes'.")
 
-  if base_path:
+  if k_paths:
     # then replacement_paths was called from k_shortest_paths
-    path_data = [repl_path, repl_path_cost, repl_weights, failed_path_idx]
     if repl_path:
       path_data = [
         base_path[: failed_path_idx] + repl_path,
@@ -456,7 +455,7 @@ def replacement_paths(adj_list,
 
   repl_paths = list(filter(lambda p: p and p[0], repl_paths))
 
-  if base_path:
+  if k_paths:
     for path in repl_paths:
       [prospect, prospect_cost, prospect_hop_weights, spur_node_idx] = path
       if ((len(prospects) < K - k)
