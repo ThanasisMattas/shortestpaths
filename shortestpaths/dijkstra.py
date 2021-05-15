@@ -784,7 +784,7 @@ def bidirectional_dijkstra(adj_list,
     edge_weight=edge_weight)
 
   if cum_hop_weights:
-    return [path, cum_hop_weights, path_cost]
+    return [path, path_cost, cum_hop_weights]
   else:
     return [path, path_cost, failed]
 

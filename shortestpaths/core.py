@@ -114,6 +114,8 @@ def _replacement_path(failed_path_idx: int,
                       tapes: list = None,
                       online: bool = False,
                       cum_hop_weights: list = None,
+                      k_paths: list = None,
+                      base_path: list = None,
                       verbose: int = 0) -> list:
   if (failing == "nodes") and (failed == source):
     return
@@ -184,16 +186,43 @@ def _replacement_path(failed_path_idx: int,
         for u in shortest_path[:failed_path_idx]:
           del to_visit_reverse[u]
 
+    if k_paths:
+      # Fail the (i, i + 1) edges of the found k - 1 shortest paths.
+      # {head: (head, edge_cost)}
+      failed_edges = dict()
+      # {invertd_tail (head): (inverted_head (tail), edge_cost)}
+      failed_inverted_edges = dict()
+      for j in k_paths:
+        if j[0][:failed_path_idx + 1] == base_path[:failed_path_idx + 1]:
+          failed_edges[j[0][failed_path_idx + 1]] = None
+          failed_inverted_edges[j[0][failed_path_idx + 1]] = None
+
+      # Don't disconnect the failed edge yet, because it will be disconnected
+      # in the subsequent loop.
+      del failed_edges[head]
+      del failed_inverted_edges[head]
+
+      for v, uv_weight in adj_list[failed]:
+        if v in failed_edges.keys():
+          failed_edges[v] = (v, uv_weight)
+          failed_inverted_edges[v] = (failed, uv_weight)
+      for v, edge in failed_edges.items():
+        adj_list[failed].remove(edge)
+
+      if bidirectional:
+        for u, edge in failed_inverted_edges.items():
+          inverted_adj_list[u].remove(edge)
+
     # Fail the edge.
     for neighbor in adj_list[tail]:
       if neighbor[0] == head:
-        adj_list[tail].remove(neighbor)
+        adj_list[tail].discard(neighbor)
         # Find the replacement path.
         if bidirectional:
           # Fail the edge on the inverted_adj_list.
           for ne in inverted_adj_list[head]:
             if ne[0] == tail:
-              inverted_adj_list[head].remove(ne)
+              inverted_adj_list[head].discard(ne)
               path_data = dijkstra.bidirectional_dijkstra(
                 adj_list,
                 inverted_adj_list,
@@ -229,38 +258,59 @@ def _replacement_path(failed_path_idx: int,
         # Reconnect the failed edge.
         adj_list[tail].add(neighbor)
         break
+
+    # Reconnect the failed edges
+    if k_paths:
+      for v, edge in failed_edges.items():
+        adj_list[failed].add(edge)
+      if bidirectional:
+        for u, edge in failed_inverted_edges.items():
+          inverted_adj_list[u].add(edge)
+
     failed = (tail, head)
   else:
     raise ValueError(f"Unexpected value for failing: <{failing}>. It should"
                      " be either 'edges' or 'nodes'.")
 
-  if online:
-    # path_data[0] = shortest_path[: failed_path_idx - 1] + path_data[0]
-    # path_data[2] += cum_hop_weights[failed_path_idx - 1]
-    if failing == "edges":
-      failed_path_idx += 1
-
-    if bidirectional:
-      if path_data[0]:
-        path_data = [shortest_path[: failed_path_idx - 1] + path_data[0],
-                     path_data[2] + cum_hop_weights[failed_path_idx - 1],
-                     failed]
-      else:
-        path_data = [None, None, None]
+  if base_path:
+    # then replacement_paths was called from k_shortest_paths
+    path_data = [repl_path, repl_path_cost, repl_weights, failed_path_idx]
+    if repl_path:
+      path_data = [
+        shortest_path[: failed_path_idx] + repl_path,
+        repl_path_cost + cum_hop_weights[failed_path_idx],
+        (cum_hop_weights[: failed_path_idx]
+         + [w + cum_hop_weights[failed_path_idx] for w in repl_weights]),
+        failed_path_idx
+      ]
     else:
-      if repl_path:
-        path_data = [shortest_path[: failed_path_idx - 1] + repl_path,
-                     repl_path_cost + cum_hop_weights[failed_path_idx - 1],
-                     failed]
+      path_data = [None, None, None]
+  else:
+    if online:
+      if failing == "edges":
+        failed_path_idx += 1
+
+      if bidirectional:
+        if path_data[0]:
+          path_data = [shortest_path[: failed_path_idx - 1] + path_data[0],
+                       path_data[1] + cum_hop_weights[failed_path_idx - 1],
+                       failed]
+        else:
+          path_data = [None, None, None]
       else:
-        path_data = [None, None, None]
-  elif not bidirectional:
-    path_data = [repl_path, repl_path_cost, failed]
+        if repl_path:
+          path_data = [shortest_path[: failed_path_idx - 1] + repl_path,
+                       repl_path_cost + cum_hop_weights[failed_path_idx - 1],
+                       failed]
+        else:
+          path_data = [None, None, None]
+    elif not bidirectional:
+      path_data = [repl_path, repl_path_cost, failed]
 
   return path_data
 
 
-@time_this(wall_clock=True)
+# @time_this(wall_clock=True)
 def replacement_paths(adj_list,
                       n,
                       source,
@@ -270,11 +320,18 @@ def replacement_paths(adj_list,
                       parallel=False,
                       dynamic=False,
                       online=False,
+                      K=None,
+                      k=None,
                       base_path=None,
+                      parent_spur_node_idx=None,
+                      k_paths=None,
+                      prospects=None,
+                      cum_hop_weights=None,
                       to_visit=None,
                       to_visit_reverse=None,
                       visited=None,
                       inverted_adj_list=None,
+                      tapes=None,
                       verbose=0):
   """Wrapper that generates the replacement paths, using several different
   methods.
@@ -303,7 +360,10 @@ def replacement_paths(adj_list,
   Returns:
     repl_paths (list)    : [[path_1, path_1_cost, failed],]
   """
-  if not base_path:
+  if base_path:
+    shortest_path = base_path
+    repl_paths = []
+  else:
     to_visit, visited, to_visit_reverse = dijkstra.dijkstra_init(n,
                                                                  source,
                                                                  sink,
@@ -332,13 +392,11 @@ def replacement_paths(adj_list,
       repl_paths = [[shortest_path, shortest_path_cost, None]]
     else:
       repl_paths = [path_data]
+      shortest_path = path_data[0]
       cum_hop_weights = None
-  else:
-    [shortest_path, shortest_path_cost, cum_hop_weights] = base_path
-    repl_paths = [[shortest_path, shortest_path_cost, None]]
+    parent_spur_node_idx = 0
 
   # Next, find the replacement paths.
-  shortest_path = path_data[0]
 
   if dynamic:
     if online:
@@ -366,19 +424,22 @@ def replacement_paths(adj_list,
                          tapes=tapes,
                          online=online,
                          cum_hop_weights=cum_hop_weights,
+                         k_paths=k_paths,
+                         base_path=base_path,
                          verbose=verbose)
 
     with ProcessPoolExecutor() as p:
       repl_paths += p.map(_repl_path,
-                          range(len(shortest_path) - 1),
-                          shortest_path[:-1])
+                          range(parent_spur_node_idx, len(shortest_path) - 1),
+                          shortest_path[parent_spur_node_idx: -1])
   else:
-    for i, node in enumerate(shortest_path[:-1]):
+    for i, node in enumerate(shortest_path[parent_spur_node_idx: -1]):
       # The source cannot fail, but when failing == "edges", the source consti-
       # tudes the tail of the 1st failed edge.
-      if (failing == "nodes") and (i == 0):
+      node_path_idx = parent_spur_node_idx + i
+      if (failing == "nodes") and (node_path_idx == 0):
         continue
-      repl_paths.append(_replacement_path(i,
+      repl_paths.append(_replacement_path(node_path_idx,
                                           node,
                                           failing,
                                           shortest_path,
@@ -393,10 +454,32 @@ def replacement_paths(adj_list,
                                           tapes,
                                           online,
                                           cum_hop_weights,
+                                          k_paths,
+                                          base_path,
                                           verbose))
 
   repl_paths = list(filter(lambda p: p and p[0], repl_paths))
-  return repl_paths
+
+  if base_path:
+    for path in repl_paths:
+      [prospect, prospect_cost, prospect_hop_weights, spur_node_idx] = path
+      if ((len(prospects) < K - k)
+              or (prospect_cost
+                  < heapq.nsmallest(K - k, prospects)[-1][0])):
+        # Check if the prospect is already found
+        prospect_already_found = False
+        for p_cost, p, c, d in prospects:
+          if (p_cost == prospect_cost) and (p == prospect):
+            prospect_already_found = True
+            break
+        if not prospect_already_found:
+          heapq.heappush(
+            prospects,
+            (prospect_cost, prospect, prospect_hop_weights, spur_node_idx)
+          )
+    return prospects
+  else:
+    return repl_paths
 
 
 def _yen(sink,
@@ -426,7 +509,7 @@ def _yen(sink,
   # (u is the spur node)
   for i, u in enumerate(last_path[last_u_idx: -1]):
     u_idx = i + last_u_idx
-    # Fail the (i, i + 1) edges of all found shortest paths.
+    # Fail the (i, i + 1) edges of the found k - 1 shortest paths.
     # {head: (head, edge_cost)}
     failed_edges = dict()
     for j in k_paths:
@@ -482,6 +565,11 @@ def _yen(sink,
   return prospects
 
 
+def pp(pr):
+  for p in pr:
+    print(p)
+
+
 @time_this
 def k_shortest_paths(adj_list,
                      source,
@@ -526,7 +614,7 @@ def k_shortest_paths(adj_list,
   prospects = []
   heapq.heapify(prospects)
   last_path = shortest_path
-  last_u_idx = 0
+  parent_spur_node_idx = 0
 
   for k in range(1, K):
     if yen or lawler:
@@ -537,11 +625,34 @@ def k_shortest_paths(adj_list,
                        K,
                        k,
                        last_path,
-                       last_u_idx,
+                       parent_spur_node_idx,
                        k_paths,
                        prospects,
                        cum_hop_weights,
                        lawler)
+    else:
+      prospects = replacement_paths(adj_list,
+                                    n,
+                                    source,
+                                    sink,
+                                    failing="edges",
+                                    bidirectional=bidirectional,
+                                    parallel=parallel,
+                                    dynamic=dynamic,
+                                    online=True,
+                                    K=K,
+                                    k=k,
+                                    base_path=last_path,
+                                    parent_spur_node_idx=parent_spur_node_idx,
+                                    k_paths=k_paths,
+                                    prospects=prospects,
+                                    cum_hop_weights=cum_hop_weights,
+                                    to_visit=to_visit,
+                                    to_visit_reverse=to_visit_reverse,
+                                    visited=visited,
+                                    inverted_adj_list=inverted_adj_list,
+                                    tapes=tapes,
+                                    verbose=verbose)
 
     # Add the best prospect to the k_paths list
     if prospects:
@@ -553,7 +664,7 @@ def k_shortest_paths(adj_list,
           last_path_cost, last_path, c, d = heapq.heappop(prospects)
           k_paths.append([last_path, last_path_cost, None])
         break
-      last_path_cost, last_path, cum_hop_weights, last_u_idx = \
+      last_path_cost, last_path, cum_hop_weights, parent_spur_node_idx = \
           heapq.heappop(prospects)
       k_paths.append([last_path, last_path_cost, None])
     else:
