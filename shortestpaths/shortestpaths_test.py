@@ -23,37 +23,36 @@ ing the graph generation model is frequently being modified.
 """
 
 """
-"replacement-paths FAILING nodes"
-runsp -v 150 replacement-paths
-runsp -v -p 150 replacement-paths
-runsp -v -b 150 replacement-paths
-runsp -v -b -p 150 replacement-paths
-runsp -v -d 150 replacement-paths
-runsp -v -d -p 150 replacement-paths
+python -m shortestpaths -v -k 5 -y 150
+python -m shortestpaths -v -k 5 -l 150
 
-"replacement-paths FAILING nodes online"
-runsp -v 150 replacement-paths --online
-runsp -v -p 150 replacement-paths --online
-runsp -v -b 150 replacement-paths --online
-runsp -v -b -p 150 replacement-paths --online
-runsp -v -d 150 replacement-paths --online
-runsp -v -d -p 150 replacement-paths --online
+python -m shortestpaths -v 150 replacement-paths
+python -m shortestpaths -v -p 150 replacement-paths
+python -m shortestpaths -v -b 150 replacement-paths
+python -m shortestpaths -v -b -p 150 replacement-paths
+python -m shortestpaths -v -d 150 replacement-paths
+python -m shortestpaths -v -d -p 150 replacement-paths
 
-"replacement-paths FAILING edges"
-runsp -v 150 replacement-paths -f "edges"
-runsp -v -p 150 replacement-paths -f "edges"
-runsp -v -b 150 replacement-paths -f "edges"
-runsp -v -b -p 150 replacement-paths -f "edges"
-runsp -v -d 150 replacement-paths -f "edges"
-runsp -v -d -p 150 replacement-paths -f "edges"
+python -m shortestpaths -v 150 replacement-paths --online
+python -m shortestpaths -v -p 150 replacement-paths --online
+python -m shortestpaths -v -b 150 replacement-paths --online
+python -m shortestpaths -v -b -p 150 replacement-paths --online
+python -m shortestpaths -v -d 150 replacement-paths --online
+python -m shortestpaths -v -d -p 150 replacement-paths --online
 
-"replacement-paths FAILING edges online"
-runsp -v 150 replacement-paths -f "edges" --online
-runsp -v -p 150 replacement-paths -f "edges" --online
-runsp -v -b 150 replacement-paths -f "edges" --online
-runsp -v -b -p 150 replacement-paths -f "edges" --online
-runsp -v -d 150 replacement-paths -f "edges" --online
-runsp -v -d -p 150 replacement-paths -f "edges" --online
+python -m shortestpaths -v 150 replacement-paths -f "edges"
+python -m shortestpaths -v -p 150 replacement-paths -f "edges"
+python -m shortestpaths -v -b 150 replacement-paths -f "edges"
+python -m shortestpaths -v -b -p 150 replacement-paths -f "edges"
+python -m shortestpaths -v -d 150 replacement-paths -f "edges"
+python -m shortestpaths -v -d -p 150 replacement-paths -f "edges"
+
+python -m shortestpaths -v 150 replacement-paths -f "edges" --online
+python -m shortestpaths -v -p 150 replacement-paths -f "edges" --online
+python -m shortestpaths -v -b 150 replacement-paths -f "edges" --online
+python -m shortestpaths -v -b -p 150 replacement-paths -f "edges" --online
+python -m shortestpaths -v -d 150 replacement-paths -f "edges" --online
+python -m shortestpaths -v -d -p 150 replacement-paths -f "edges" --online
 """
 
 import os
@@ -71,9 +70,9 @@ os.environ["BIDIRECTIONAL_SYNC"] = '1'
 
 OPTIMIZATION_MODES = ["-p", "-b", "-b -p", "-d", "-d -p"]
 GRAPH_SIZES = [100]
-FAILING = ["nodes"]
+FAILING = ["nodes", "edges"]
 ONLINE = [""]
-K = [5]
+K = [5, 20]
 
 class TestShortestPaths():
 
@@ -86,8 +85,8 @@ class TestShortestPaths():
 
   @pytest.mark.parametrize("k, n", [[k, n] for k in K for n in GRAPH_SIZES])
   def test_k_shortest_paths(self, k, n, ):
-    yen_no_lawler_cmd = f"python -m shortestpaths -v -k {k} {n}"
-    yen_lawler_cmd = f"python -m shortestpaths -v -k {k} -l {n}"
+    yen_no_lawler_cmd = f"python -m shortestpaths -v -y -k {k} {n}"
+    yen_lawler_cmd = f"python -m shortestpaths -v -l -k {k} {n}"
     yen_no_lawler = subprocess.run(yen_no_lawler_cmd.split(),
                                    stdout=subprocess.PIPE)
     yen_lawler = subprocess.run(yen_lawler_cmd.split(),

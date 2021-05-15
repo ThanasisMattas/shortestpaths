@@ -38,6 +38,7 @@ from shortestpaths import core, graph_generator, post_processing, utils  # noqa 
 @click.option("--max-node-weight", default=50, show_default=True)
 @click.option('-k', 'K', type=click.INT, default=1, show_default=True,
               help="number of shortest paths to be generated")
+@click.option('-y', "--yen", is_flag=True)
 @click.option('-l', "--lawler", is_flag=True)
 # @click.option("--disconnected-nodes",
 #               cls=PythonLiteralOption, default="[]", show_default=True,
@@ -68,6 +69,7 @@ def main(ctx,
          max_edge_weight,
          max_node_weight,
          K,
+         yen,
          lawler,
          bidirectional,
          parallel,
@@ -113,6 +115,7 @@ def main(ctx,
                                   bidirectional=bidirectional,
                                   parallel=parallel,
                                   dynamic=dynamic,
+                                  yen=yen,
                                   lawler=lawler,
                                   verbose=verbose)
 

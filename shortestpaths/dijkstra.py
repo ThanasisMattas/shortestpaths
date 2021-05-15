@@ -333,7 +333,7 @@ def bidirectional_recording(adj_list,
         cum_hop_weights.append(reverse_weights[u - 1]
                                - reverse_weights[u]
                                + cum_hop_weights[-1])
-    path_data = [shortest_path, cum_hop_weights, shortest_path_cost]
+    path_data = [shortest_path, shortest_path_cost, cum_hop_weights]
   else:
     # Visited nodes sequence will be recorded for both directions, in order to
     # extract the appropriate checkpoint nodes.
@@ -400,7 +400,7 @@ def bidirectional_recording(adj_list,
       cum_hop_weights=(mode == "k_shortest_paths") or (online),
       verbose=verbose)
     if cum_hop_weights:
-      path_data = [shortest_path, cum_hop_weights, shortest_path_cost]
+      path_data = [shortest_path, shortest_path_cost, cum_hop_weights]
     else:
       path_data = [shortest_path, shortest_path_cost, None]
 

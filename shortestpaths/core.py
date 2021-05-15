@@ -91,7 +91,7 @@ def _first_shortest_path(adj_list,
       verbose=verbose)
 
     if cum_hop_weights:
-      path_data = [shortest_path, cum_hop_weights, shortest_path_cost]
+      path_data = [shortest_path, shortest_path_cost, cum_hop_weights]
     else:
       path_data = [shortest_path, shortest_path_cost, None]
 
@@ -270,6 +270,11 @@ def replacement_paths(adj_list,
                       parallel=False,
                       dynamic=False,
                       online=False,
+                      base_path=None,
+                      to_visit=None,
+                      to_visit_reverse=None,
+                      visited=None,
+                      inverted_adj_list=None,
                       verbose=0):
   """Wrapper that generates the replacement paths, using several different
   methods.
@@ -298,35 +303,39 @@ def replacement_paths(adj_list,
   Returns:
     repl_paths (list)    : [[path_1, path_1_cost, failed],]
   """
-  to_visit, visited, to_visit_reverse = dijkstra.dijkstra_init(n,
-                                                               source,
-                                                               sink,
-                                                               bidirectional)
-  if bidirectional:
-    inverted_adj_list = dijkstra.invert_adj_list(adj_list)
-  else:
-    inverted_adj_list = None
+  if not base_path:
+    to_visit, visited, to_visit_reverse = dijkstra.dijkstra_init(n,
+                                                                 source,
+                                                                 sink,
+                                                                 bidirectional)
+    if bidirectional:
+      inverted_adj_list = dijkstra.invert_adj_list(adj_list)
+    else:
+      inverted_adj_list = None
 
-  # Find the absolute shortest path.
-  path_data, tapes = _first_shortest_path(adj_list,
-                                          source,
-                                          sink,
-                                          to_visit,
-                                          to_visit_reverse,
-                                          visited,
-                                          inverted_adj_list,
-                                          bidirectional,
-                                          dynamic,
-                                          failing=failing,
-                                          mode="replacement_paths",
-                                          online=online,
-                                          verbose=verbose)
-  if online:
-    [shortest_path, cum_hop_weights, shortest_path_cost] = path_data
-    repl_paths = [[shortest_path, shortest_path_cost, None]]
+    # Find the absolute shortest path.
+    path_data, tapes = _first_shortest_path(adj_list,
+                                            source,
+                                            sink,
+                                            to_visit,
+                                            to_visit_reverse,
+                                            visited,
+                                            inverted_adj_list,
+                                            bidirectional,
+                                            dynamic,
+                                            failing=failing,
+                                            mode="replacement_paths",
+                                            online=online,
+                                            verbose=verbose)
+    if online:
+      [shortest_path, shortest_path_cost, cum_hop_weights] = path_data
+      repl_paths = [[shortest_path, shortest_path_cost, None]]
+    else:
+      repl_paths = [path_data]
+      cum_hop_weights = None
   else:
-    repl_paths = [path_data]
-    cum_hop_weights = None
+    [shortest_path, shortest_path_cost, cum_hop_weights] = base_path
+    repl_paths = [[shortest_path, shortest_path_cost, None]]
 
   # Next, find the replacement paths.
   shortest_path = path_data[0]
@@ -395,8 +404,11 @@ def _yen(sink,
          to_visit,
          visited,
          K,
-         shortest_path,
-         shortest_path_cost,
+         k,
+         last_path,
+         last_u_idx,
+         k_paths,
+         prospects,
          cum_hop_weights,
          lawler=True):
   """Implementation of Yen's k-shortests paths algorithm with improvements.
@@ -407,93 +419,67 @@ def _yen(sink,
     - If at least K - k candidates with the same cost as the (k - 1)th path
       were already found, append them to the k_paths list (Yen's A) and return.
   """
-  k_paths = [[shortest_path, shortest_path_cost, None]]
-  # This is the B list of the Yen's algorithm, holding the potential shortest
-  # paths.
-  prospects = []
-  heapq.heapify(prospects)
-  last_path = shortest_path
-  last_u_idx = 0
+  if not lawler:
+    last_u_idx = 0
 
-  for k in range(1, K):
+  # Construct the deviation paths of the last found shortest path.
+  # (u is the spur node)
+  for i, u in enumerate(last_path[last_u_idx: -1]):
+    u_idx = i + last_u_idx
+    # Fail the (i, i + 1) edges of all found shortest paths.
+    # {head: (head, edge_cost)}
+    failed_edges = dict()
+    for j in k_paths:
+      if j[0][:u_idx + 1] == last_path[:u_idx + 1]:
+        failed_edges[j[0][u_idx + 1]] = None
+    for v, uv_weight in adj_list[u]:
+      if v in failed_edges.keys():
+        failed_edges[v] = (v, uv_weight)
+    for v, edge in failed_edges.items():
+      adj_list[u].remove(edge)
 
-    if not lawler:
-      last_u_idx = 0
+    # Remove the Root path nodes from the to_visit PriorityQueue.
+    new_to_visit = copy.deepcopy(to_visit)
+    for root_node in last_path[:u_idx]:
+      del new_to_visit[root_node]
 
-    # Construct the deviation paths of the last found shortest path.
-    # (u is the spur node)
-    for i, u in enumerate(last_path[last_u_idx: -1]):
-      u_idx = i + last_u_idx
-      # Fail the (i, i + 1) edges of all found shortest paths.
-      # {head: (head, edge_cost)}
-      failed_edges = dict()
-      for j in k_paths:
-        if j[0][:u_idx + 1] == last_path[:u_idx + 1]:
-          failed_edges[j[0][u_idx + 1]] = None
-      for v, uv_weight in adj_list[u]:
-        if v in failed_edges.keys():
-          failed_edges[v] = (v, uv_weight)
-      for v, edge in failed_edges.items():
-        adj_list[u].remove(edge)
+    # Set i as source and initialize it's path cost to source-i path cost.
+    new_to_visit[u] = [cum_hop_weights[u_idx], u, u]
+    new_visited = dijkstra.dijkstra(adj_list,
+                                    sink,
+                                    new_to_visit,
+                                    copy.deepcopy(visited))
+    prospect_cost = new_visited[sink][0]
+    spur, spur_hop_weights = dijkstra.extract_path(
+      u,
+      sink,
+      new_visited,
+      cum_hop_weights=True,
+    )
+    if spur:
+      prospect = last_path[:u_idx] + spur
+      prospect_hop_weights = cum_hop_weights[:u_idx] + spur_hop_weights
 
-      # Remove the Root path nodes from the to_visit PriorityQueue.
-      new_to_visit = copy.deepcopy(to_visit)
-      for root_node in last_path[:u_idx]:
-        del new_to_visit[root_node]
+      if ((len(prospects) < K - k)
+              or (prospect_cost
+                  < heapq.nsmallest(K - k, prospects)[-1][0])):
+        # Check if the prospect is already found
+        prospect_already_found = False
+        for p_cost, p, c, d in prospects:
+          if (p_cost == prospect_cost) and (p == prospect):
+            prospect_already_found = True
+            break
+        if not prospect_already_found:
+          heapq.heappush(
+            prospects,
+            (prospect_cost, prospect, prospect_hop_weights, u_idx)
+          )
 
-      # Set i as source and initialize it's path cost to source-i path cost.
-      new_to_visit[u] = [cum_hop_weights[u_idx], u, u]
-      new_visited = dijkstra.dijkstra(adj_list,
-                                      sink,
-                                      new_to_visit,
-                                      copy.deepcopy(visited))
-      prospect_cost = new_visited[sink][0]
-      spur, spur_hop_weights = dijkstra.extract_path(
-        u,
-        sink,
-        new_visited,
-        cum_hop_weights=True,
-      )
-      if spur:
-        prospect = last_path[:u_idx] + spur
-        prospect_hop_weights = cum_hop_weights[:u_idx] + spur_hop_weights
-
-        if ((len(prospects) < K - k)
-                or (prospect_cost
-                    < heapq.nsmallest(K - k, prospects)[-1][0])):
-          # Check if the prospect is already found
-          prospect_already_found = False
-          for p_cost, p, c, d in prospects:
-            if (p_cost == prospect_cost) and (p == prospect):
-              prospect_already_found = True
-              break
-          if not prospect_already_found:
-            heapq.heappush(
-              prospects,
-              (prospect_cost, prospect, prospect_hop_weights, u_idx)
-            )
-
-      # Restore the failed edges.
-      for v, edge in failed_edges.items():
-        adj_list[u].add(edge)
-      failed_edges.clear()
-
-    # Add the best prospect to the k_paths list
-    if prospects:
-      # Check if at least K - k prospects with the same cost as the (k - 1)th
-      # path were already found.
-      if ((len(prospects) >= K - k)
-              and heapq.nsmallest(K - k, prospects)[-1][0] == last_path[0]):
-        for _ in range(K - k):
-          last_path_cost, last_path, c, d = heapq.heappop(prospects)
-          k_paths.append([last_path, last_path_cost, None])
-        break
-      last_path_cost, last_path, cum_hop_weights, last_u_idx = \
-          heapq.heappop(prospects)
-      k_paths.append([last_path, last_path_cost, None])
-    else:
-      break
-  return k_paths
+    # Restore the failed edges.
+    for v, edge in failed_edges.items():
+      adj_list[u].add(edge)
+    failed_edges.clear()
+  return prospects
 
 
 @time_this
@@ -504,7 +490,8 @@ def k_shortest_paths(adj_list,
                      bidirectional=False,
                      parallel=False,
                      dynamic=False,
-                     lawler=True,
+                     yen=False,
+                     lawler=False,
                      verbose=0):
   """Generates k_shortest_paths
 
@@ -521,7 +508,7 @@ def k_shortest_paths(adj_list,
                                                                sink,
                                                                bidirectional)
   # Find the absolute shortest path.
-  [shortest_path, cum_hop_weights, shortest_path_cost], tapes = \
+  [shortest_path, shortest_path_cost, cum_hop_weights], tapes = \
       _first_shortest_path(adj_list,
                            source,
                            sink,
@@ -534,13 +521,41 @@ def k_shortest_paths(adj_list,
                            mode="k_shortest_paths",
                            verbose=verbose)
 
-  k_paths = _yen(sink,
-                 adj_list,
-                 to_visit,
-                 visited,
-                 K,
-                 shortest_path,
-                 shortest_path_cost,
-                 cum_hop_weights,
-                 lawler)
+  k_paths = [[shortest_path, shortest_path_cost, None]]
+  # Holding the potential shortest paths (Yen's B).
+  prospects = []
+  heapq.heapify(prospects)
+  last_path = shortest_path
+  last_u_idx = 0
+
+  for k in range(1, K):
+    if yen or lawler:
+      prospects = _yen(sink,
+                       adj_list,
+                       to_visit,
+                       visited,
+                       K,
+                       k,
+                       last_path,
+                       last_u_idx,
+                       k_paths,
+                       prospects,
+                       cum_hop_weights,
+                       lawler)
+
+    # Add the best prospect to the k_paths list
+    if prospects:
+      # Check if at least K - k prospects with the same cost as the (k - 1)th
+      # path were already found.
+      if ((len(prospects) >= K - k)
+              and heapq.nsmallest(K - k, prospects)[-1][0] == last_path[0]):
+        for _ in range(K - k):
+          last_path_cost, last_path, c, d = heapq.heappop(prospects)
+          k_paths.append([last_path, last_path_cost, None])
+        break
+      last_path_cost, last_path, cum_hop_weights, last_u_idx = \
+          heapq.heappop(prospects)
+      k_paths.append([last_path, last_path_cost, None])
+    else:
+      break
   return k_paths
