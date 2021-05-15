@@ -71,8 +71,8 @@ os.environ["BIDIRECTIONAL_SYNC"] = '1'
 
 OPTIMIZATION_MODES = ["-p", "-b", "-b -p", "-d", "-d -p"]
 GRAPH_SIZES = [100]
-FAILING = ["nodes", "edges"]
-ONLINE = ["--online", ""]
+FAILING = ["nodes"]
+ONLINE = [""]
 K = [5]
 
 class TestShortestPaths():
