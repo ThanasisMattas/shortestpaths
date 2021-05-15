@@ -5,8 +5,8 @@ python:
     - 3.8
     - 3.9
 
-# env:
-#     - NUMBA_DISABLE_JIT=1
+env:
+    - BIDIRECTIONAL_SYNC=1
 install:
     - pip install -r requirements.txt
 

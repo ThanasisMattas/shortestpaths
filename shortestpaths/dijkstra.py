@@ -22,6 +22,7 @@ from multiprocessing import (Array,
                              log_to_stderr,
                              Process,
                              Queue)
+import os
 from typing import Hashable
 import warnings
 
@@ -464,15 +465,20 @@ def _biderectional_dijkstra_branch(adj_list: list,
                                    prospect: Array,
                                    priorityq_top: Array,
                                    kill: Event,
-                                   failed: Hashable = None):
+                                   failed: Hashable = None,
+                                   sync: tuple = None):
   # visited_costs and visited_prev_nodes are a single vector shared by both
   # searches; thus, each search has to work with the proper slice.
   is_forward, visited_offset, opposite_visited_offset = _visited_offsets(n)
 
-  # if current_process().name == "reverse_search":
-  #   for _ in to_visit:
-  #     print(_)
-  #   print()
+  # Force synchronization of the processes while testing.
+  if os.environ.get("BIDIRECTIONAL_SYNC", 0):
+    if current_process().name == "forward_process":
+      sync[0].set()
+      sync[1].wait(0.5)
+    else:
+      sync[1].set()
+      sync[0].wait(0.5)
 
   while to_visit:
     u_path_cost, u_prev, u = to_visit.pop_low()
@@ -506,7 +512,9 @@ def _biderectional_dijkstra_branch(adj_list: list,
         # prospect path.
         with visited_prev_nodes.get_lock():
           if visited_prev_nodes[v + opposite_visited_offset] != v:
-            # print(f"{current_process().name}: u: {u}  v: {v}   visited_prev_nodes[v + opposite_visited_offset]: {visited_prev_nodes[v + opposite_visited_offset]}")
+            # print(f"{current_process().name}: u: {u}  v: {v}"
+            #       f" visited_prev_nodes[v + opposite_visited_offset]:"
+            #       f" {visited_prev_nodes[v + opposite_visited_offset]}")
             uv_prospect_cost = (u_path_cost
                                 + uv_weight
                                 + visited_costs[v + opposite_visited_offset])
@@ -520,12 +528,14 @@ def _biderectional_dijkstra_branch(adj_list: list,
                 else:
                   prospect[1] = v
                   prospect[2] = u
-                # print(f"{current_process().name}: {prospect[0]}  {prospect[1]}  {prospect[2]}\n")
+                # print(f"{current_process().name}: {prospect[0]}"
+                #       f"  {prospect[1]}  {prospect[2]}\n")
 
         _relax_path_cost(v, u, uv_weight, u_path_cost, to_visit)
 
     # Termination condition
-    # print(f"prospect[0]: {prospect[0]} topf+topr: {pq_top + priorityq_top[int(is_forward)]}")
+    # print(f"prospect[0]: {prospect[0]} topf+topr:"
+    #       f" {pq_top + priorityq_top[int(is_forward)]}")
     with prospect.get_lock():
       with priorityq_top.get_lock():
         if sum(priorityq_top) >= prospect[0] != 0:
@@ -698,6 +708,7 @@ def bidirectional_dijkstra(adj_list,
   visited_costs = Array('i', visited_costs)
   visited_prev_nodes = Array('i', visited_prev_nodes)
   kill = Event()
+  sync = (Event(), Event())
 
   forward_search = Process(name="forward_search",
                            target=_biderectional_dijkstra_branch,
@@ -710,7 +721,8 @@ def bidirectional_dijkstra(adj_list,
                                  prospect,
                                  priorityq_top,
                                  kill,
-                                 failed))
+                                 failed,
+                                 sync))
   reverse_search = Process(name="reverse_search",
                            target=_biderectional_dijkstra_branch,
                            args=(inverted_adj_list,
@@ -722,7 +734,8 @@ def bidirectional_dijkstra(adj_list,
                                  prospect,
                                  priorityq_top,
                                  kill,
-                                 failed))
+                                 failed,
+                                 sync))
 
   forward_search.start()
   reverse_search.start()
@@ -755,8 +768,10 @@ def bidirectional_dijkstra(adj_list,
       path_cost = visited_costs[-1]
       prospect = [visited_costs[-1], source, source]
     else:
-      raise Exception("The two searches didn't meet and neither of them"
-                      " visited the sink.")
+      raise Exception(f"The two searches didn't meet and neither of them"
+                      f" visited the sink.\n"
+                      f" visited_costs:\n{visited_costs}\n"
+                      f" visited_prev_nodes:\n{visited_prev_nodes}")
   path, cum_hop_weights = extract_bidirectional_path(
     source,
     sink,

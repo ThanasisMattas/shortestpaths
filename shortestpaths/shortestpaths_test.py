@@ -66,6 +66,7 @@ import pytest
 cwd = Path(os.getcwd())
 home_dir = str(cwd.parent)
 sys.path.insert(0, home_dir)
+os.environ["BIDIRECTIONAL_SYNC"] = '1'
 
 
 OPTIMIZATION_MODES = ["-p", "-b", "-b -p", "-d", "-d -p"]
@@ -76,6 +77,13 @@ K = [5]
 
 class TestShortestPaths():
 
+  def path_costs(self, completed_process):
+    paths_str = completed_process.stdout.decode('utf-8').split("path 1", 1)[1]
+    paths_list = paths_str.split("path")[1: -1]
+    for i in range(len(paths_list)):
+      paths_list[i] = paths_list[i].split("cost", 1)[1]
+    return paths_list
+
   @pytest.mark.parametrize("k, n", [[k, n] for k in K for n in GRAPH_SIZES])
   def test_k_shortest_paths(self, k, n, ):
     yen_no_lawler_cmd = f"python -m shortestpaths -v -k {k} {n}"
@@ -84,9 +92,8 @@ class TestShortestPaths():
                                    stdout=subprocess.PIPE)
     yen_lawler = subprocess.run(yen_lawler_cmd.split(),
                                 stdout=subprocess.PIPE)
-    yen_no_lawler_out = \
-        yen_no_lawler.stdout.decode('utf-8').split("path 1", 1)[1]
-    yen_lawler_out = yen_lawler.stdout.decode('utf-8').split("path 1", 1)[1]
+    yen_no_lawler_out = self.path_costs(yen_no_lawler)
+    yen_lawler_out = self.path_costs(yen_lawler)
     assert yen_no_lawler_out == yen_lawler_out
 
   @pytest.mark.parametrize(
@@ -104,6 +111,6 @@ class TestShortestPaths():
                f" --failing {failing} {online}")
     reference = subprocess.run(reference_cmd.split(), stdout=subprocess.PIPE)
     opt = subprocess.run(opt_cmd.split(), stdout=subprocess.PIPE)
-    reference_out = reference.stdout.decode('utf-8').split("path 1", 1)[1]
-    opt_out = opt.stdout.decode('utf-8').split("path 1", 1)[1]
+    reference_out = self.path_costs(reference)
+    opt_out = self.path_costs(opt)
     assert reference_out == opt_out
