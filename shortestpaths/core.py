@@ -102,7 +102,7 @@ def _first_shortest_path(adj_list,
 def _replacement_path(failed_path_idx: int,
                       failed: Hashable,
                       failing: Literal["nodes", "edges"],
-                      shortest_path: list,
+                      base_path: list,
                       adj_list: list,
                       source: Hashable,
                       sink: Hashable,
@@ -115,7 +115,6 @@ def _replacement_path(failed_path_idx: int,
                       online: bool = False,
                       cum_hop_weights: list = None,
                       k_paths: list = None,
-                      base_path: list = None,
                       verbose: int = 0) -> list:
   if (failing == "nodes") and (failed == source):
     return
@@ -123,15 +122,15 @@ def _replacement_path(failed_path_idx: int,
   if failing == "nodes":
     if online:
       # Delete the nodes of the root path from the PriorityQueue.
-      for u in shortest_path[:failed_path_idx - 1]:
+      for u in base_path[:failed_path_idx - 1]:
         del to_visit[u]
       # The spur node becomes the source.
-      source = shortest_path[failed_path_idx - 1]
+      source = base_path[failed_path_idx - 1]
       to_visit[source] = [0, source, source]
       # Initialize the path cost with the root_cost.
       if (bidirectional) and (not tapes):
         # Delete the nodes of the root path from the reverse PriorityQueue.
-        for u in shortest_path[:failed_path_idx - 1]:
+        for u in base_path[:failed_path_idx - 1]:
           del to_visit_reverse[u]
 
     if bidirectional:
@@ -148,7 +147,7 @@ def _replacement_path(failed_path_idx: int,
         tapes=tapes,
         mode="replacement-paths",
         online=online,
-        shortest_path=shortest_path,
+        base_path=base_path,
         verbose=verbose
       )
     else:
@@ -171,11 +170,11 @@ def _replacement_path(failed_path_idx: int,
     # tail of the failed edge. So, in order to keep the same code for both in-
     # stances, failed_path_idx will be increased by one, when failing edges.
     tail = failed
-    head = shortest_path[failed_path_idx + 1]
+    head = base_path[failed_path_idx + 1]
 
     if online:
       # Delete the nodes of the root path from the PriorityQueue.
-      for u in shortest_path[:failed_path_idx]:
+      for u in base_path[:failed_path_idx]:
         del to_visit[u]
       # The spur node becomes the source.
       source = tail
@@ -183,7 +182,7 @@ def _replacement_path(failed_path_idx: int,
       # Initialize the path cost with the root_cost.
       if (bidirectional) and (not tapes):
         # Delete the nodes of the root path from the reverse PriorityQueue.
-        for u in shortest_path[:failed_path_idx]:
+        for u in base_path[:failed_path_idx]:
           del to_visit_reverse[u]
 
     if k_paths:
@@ -236,7 +235,7 @@ def _replacement_path(failed_path_idx: int,
                 tapes=tapes,
                 mode="replacement-paths",
                 online=online,
-                shortest_path=shortest_path,
+                base_path=base_path,
                 verbose=verbose
               )
               # Reconnect the failed edge.
@@ -277,7 +276,7 @@ def _replacement_path(failed_path_idx: int,
     path_data = [repl_path, repl_path_cost, repl_weights, failed_path_idx]
     if repl_path:
       path_data = [
-        shortest_path[: failed_path_idx] + repl_path,
+        base_path[: failed_path_idx] + repl_path,
         repl_path_cost + cum_hop_weights[failed_path_idx],
         (cum_hop_weights[: failed_path_idx]
          + [w + cum_hop_weights[failed_path_idx] for w in repl_weights]),
@@ -292,14 +291,14 @@ def _replacement_path(failed_path_idx: int,
 
       if bidirectional:
         if path_data[0]:
-          path_data = [shortest_path[: failed_path_idx - 1] + path_data[0],
+          path_data = [base_path[: failed_path_idx - 1] + path_data[0],
                        path_data[1] + cum_hop_weights[failed_path_idx - 1],
                        failed]
         else:
           path_data = [None, None, None]
       else:
         if repl_path:
-          path_data = [shortest_path[: failed_path_idx - 1] + repl_path,
+          path_data = [base_path[: failed_path_idx - 1] + repl_path,
                        repl_path_cost + cum_hop_weights[failed_path_idx - 1],
                        failed]
         else:
@@ -361,7 +360,6 @@ def replacement_paths(adj_list,
     repl_paths (list)    : [[path_1, path_1_cost, failed],]
   """
   if base_path:
-    shortest_path = base_path
     repl_paths = []
   else:
     to_visit, visited, to_visit_reverse = dijkstra.dijkstra_init(n,
@@ -388,11 +386,11 @@ def replacement_paths(adj_list,
                                             online=online,
                                             verbose=verbose)
     if online:
-      [shortest_path, shortest_path_cost, cum_hop_weights] = path_data
-      repl_paths = [[shortest_path, shortest_path_cost, None]]
+      [base_path, base_path_cost, cum_hop_weights] = path_data
+      repl_paths = [[base_path, base_path_cost, None]]
     else:
       repl_paths = [path_data]
-      shortest_path = path_data[0]
+      base_path = path_data[0]
       cum_hop_weights = None
     parent_spur_node_idx = 0
 
@@ -412,7 +410,7 @@ def replacement_paths(adj_list,
   if parallel:
     _repl_path = partial(_replacement_path,
                          failing=failing,
-                         shortest_path=shortest_path,
+                         base_path=base_path,
                          adj_list=adj_list,
                          source=source,
                          sink=sink,
@@ -425,15 +423,14 @@ def replacement_paths(adj_list,
                          online=online,
                          cum_hop_weights=cum_hop_weights,
                          k_paths=k_paths,
-                         base_path=base_path,
                          verbose=verbose)
 
     with ProcessPoolExecutor() as p:
       repl_paths += p.map(_repl_path,
-                          range(parent_spur_node_idx, len(shortest_path) - 1),
-                          shortest_path[parent_spur_node_idx: -1])
+                          range(parent_spur_node_idx, len(base_path) - 1),
+                          base_path[parent_spur_node_idx: -1])
   else:
-    for i, node in enumerate(shortest_path[parent_spur_node_idx: -1]):
+    for i, node in enumerate(base_path[parent_spur_node_idx: -1]):
       # The source cannot fail, but when failing == "edges", the source consti-
       # tudes the tail of the 1st failed edge.
       node_path_idx = parent_spur_node_idx + i
@@ -442,7 +439,7 @@ def replacement_paths(adj_list,
       repl_paths.append(_replacement_path(node_path_idx,
                                           node,
                                           failing,
-                                          shortest_path,
+                                          base_path,
                                           adj_list,
                                           source,
                                           sink,
@@ -455,7 +452,6 @@ def replacement_paths(adj_list,
                                           online,
                                           cum_hop_weights,
                                           k_paths,
-                                          base_path,
                                           verbose))
 
   repl_paths = list(filter(lambda p: p and p[0], repl_paths))

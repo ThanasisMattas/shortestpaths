@@ -556,7 +556,7 @@ def bidirectional_dijkstra(adj_list,
                            tapes=None,
                            mode="k_shortest_paths",
                            online=False,
-                           shortest_path=None,
+                           base_path=None,
                            verbose=0):
   """Implementation of the bidirectional Dijkstra's algorithm.
 
@@ -631,11 +631,11 @@ def bidirectional_dijkstra(adj_list,
       discovered_forward = set()
       # Delete the nodes of the root path from the reverse PriorityQueue.
       if failing == "edges":
-        for u in shortest_path[:idx_forward]:
+        for u in base_path[:idx_forward]:
           del to_visit_reverse[u]
         net_n = n - failed_forward
       else:
-        for u in shortest_path[:idx_forward - 1]:
+        for u in base_path[:idx_forward - 1]:
           del to_visit_reverse[u]
         net_n = n - failed - 1
     else:
