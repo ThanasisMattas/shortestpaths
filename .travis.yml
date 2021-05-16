@@ -3,8 +3,6 @@ language: python
 python:
     - 3.8
 
-env:
-    - BIDIRECTIONAL_SYNC=1
 install:
     - pip install -r requirements.txt
 

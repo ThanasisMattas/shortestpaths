@@ -22,7 +22,6 @@ from multiprocessing import (Array,
                              log_to_stderr,
                              Process,
                              Queue)
-import os
 from typing import Hashable
 import warnings
 
@@ -469,14 +468,13 @@ def _biderectional_dijkstra_branch(adj_list: list,
   # searches; thus, each search has to work with the proper slice.
   is_forward, visited_offset, opposite_visited_offset = _visited_offsets(n)
 
-  # Force synchronization of the processes while testing.
-  if os.environ.get("BIDIRECTIONAL_SYNC", 1):
-    if current_process().name == "forward_search":
-      sync[0].set()
-      sync[1].wait()
-    else:
-      sync[1].set()
-      sync[0].wait()
+  # Force the synchronization of the processes.
+  if current_process().name == "forward_search":
+    sync[0].set()
+    sync[1].wait()
+  else:
+    sync[1].set()
+    sync[0].wait()
 
   while to_visit:
     u_path_cost, u_prev, u = to_visit.pop_low()
