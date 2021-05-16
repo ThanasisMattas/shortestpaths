@@ -498,7 +498,7 @@ def _yen(sink,
          k_paths,
          prospects,
          cum_hop_weights,
-         lawler=True):
+         lawler=False):
   """Implementation of Yen's k-shortests paths algorithm with improvements.
 
   Improvements (see Brander-Sinclair 1996):

@@ -357,12 +357,8 @@ def bidirectional_recording(adj_list,
     shortest_path = list(reversed(reverse_path))
     # reversed(reverse_weights) : [267, 166, 100, 80, 0]
     # cum_hop_weights           : [0, 101, 167, 187, 267]
-    cum_hop_weights = [0]
     reverse_weights.reverse()
-    for u in range(1, len(reverse_weights)):
-        cum_hop_weights.append(reverse_weights[u - 1]
-                               - reverse_weights[u]
-                               + cum_hop_weights[-1])
+    cum_hop_weights = [reverse_weights[0] - w for w in reverse_weights]
     path_data = [shortest_path, shortest_path_cost, cum_hop_weights]
   else:
     # Visited nodes sequence will be recorded for both directions, in order to
