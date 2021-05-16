@@ -817,30 +817,22 @@ def extract_bidirectional_path(source,
                                                visited_reverse,
                                                with_cum_hop_weights,
                                                verbose)
-  # __import__('ipdb').set_trace(context=9)
   if prospect[1] == prospect[2]:
     path += reversed(reverse_path[:-1])
     if with_cum_hop_weights:
-      # reverse_weights [0, 10, 30] --> [10 + weights[-1], 20 + weights[-1]]
-      # reverse_weights = [
-      #   reverse_weights[u + 1] - reverse_weights[u] + weights[-1]
-      #   for u in range(len(reverse_weights) - 1)
-      # ]
-      reverse_weights = [reverse_weights[-1] - w + weights[-1]
-                         for w in reverse_weights]
-      weights += reversed(reverse_weights[:-1])
+      # reverse_weights:
+      # [0, 10, 30] --> [30 , 20] + weights[-1] each
+      if reverse_weights:
+        reverse_weights = [reverse_weights[-1] - w + weights[-1]
+                           for w in reverse_weights[:-1]]
+      weights += reversed(reverse_weights)
   else:
     path += reversed(reverse_path)
     if with_cum_hop_weights:
+      # reverse_weights:
+      # [0, 10, 30] --> [30, 20, 0] + weights[-1] + edge_weights each
       reverse_weights = [reverse_weights[-1] - w + edge_weight + weights[-1]
                          for w in reverse_weights]
-
-      # head_cum_weight = edge_weight + weights[-1]
-      # reverse_weights = [
-      #   reverse_weights[u + 1] - reverse_weights[u] + edge_weight + weights[-1]
-      #   for u in range(len(reverse_weights) - 1)
-      # ]
-      # reverse_weights.append(head_cum_weight)
       weights += reversed(reverse_weights)
   return path, weights
 
