@@ -434,14 +434,14 @@ def replacement_paths(adj_list,
                           range(parent_spur_node_idx, len(base_path) - 1),
                           base_path[parent_spur_node_idx: -1])
   else:
-    for i, node in enumerate(base_path[parent_spur_node_idx: -1]):
+    for i, spur_node in enumerate(base_path[parent_spur_node_idx: -1]):
       # The source cannot fail, but when failing == "edges", the source consti-
       # tudes the tail of the 1st failed edge.
-      node_path_idx = parent_spur_node_idx + i
-      if (failing == "nodes") and (node_path_idx == 0):
+      spur_node_path_idx = parent_spur_node_idx + i
+      if (failing == "nodes") and (spur_node_path_idx == 0):
         continue
-      repl_paths.append(_replacement_path(node_path_idx,
-                                          node,
+      repl_paths.append(_replacement_path(spur_node_path_idx,
+                                          spur_node,
                                           failing,
                                           base_path,
                                           adj_list,
