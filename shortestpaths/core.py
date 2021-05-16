@@ -400,7 +400,6 @@ def replacement_paths(adj_list,
     parent_spur_node_idx = 0
 
   # Next, find the replacement paths.
-
   if dynamic:
     if online:
       # Only reverse states are recorded on tape.

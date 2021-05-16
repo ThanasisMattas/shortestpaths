@@ -470,13 +470,13 @@ def _biderectional_dijkstra_branch(adj_list: list,
   is_forward, visited_offset, opposite_visited_offset = _visited_offsets(n)
 
   # Force synchronization of the processes while testing.
-  if os.environ.get("BIDIRECTIONAL_SYNC", 0):
-    if current_process().name == "forward_process":
+  if os.environ.get("BIDIRECTIONAL_SYNC", 1):
+    if current_process().name == "forward_search":
       sync[0].set()
-      sync[1].wait(0.5)
+      sync[1].wait()
     else:
       sync[1].set()
-      sync[0].wait(0.5)
+      sync[0].wait()
 
   while to_visit:
     u_path_cost, u_prev, u = to_visit.pop_low()
@@ -775,7 +775,8 @@ def bidirectional_dijkstra(adj_list,
     visited_prev_nodes,
     cum_hop_weights=online,
     verbose=verbose,
-    edge_weight=edge_weight)
+    edge_weight=edge_weight
+  )
 
   if cum_hop_weights:
     return [path, path_cost, cum_hop_weights]
