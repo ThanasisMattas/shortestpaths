@@ -269,6 +269,35 @@ def dijkstra(adj_list,
   return visited
 
 
+def recording_checkpoints(shortest_path,
+                          forward_seq=None,
+                          reverse_seq=None,
+                          online=False,
+                          failing="edges"):
+  if online:
+    checkpoints_forward = None
+    checkpoints_reverse = []
+    for node in shortest_path[1: -1]:
+      checkpoints_reverse.append(reverse_seq[reverse_seq.index(node) - 1])
+    if failing == "edges":
+      # For the last two edges, the distance is too small to go bidirectional.
+      # (See core.replacement_path())
+      checkpoints_reverse = checkpoints_reverse[:-2]
+  else:
+    checkpoints_forward = []
+    checkpoints_reverse = []
+    for node in shortest_path[1: -1]:
+      checkpoints_forward.append(forward_seq[forward_seq.index(node) - 1])
+      checkpoints_reverse.append(reverse_seq[reverse_seq.index(node) - 1])
+  # Although the sequence of the failed nodes are the same for both searches,
+  # when constructing the corresponding replacement path, when recording, the
+  # reverse search will visit them in reversed order, thus the reverse check-
+  # point list has to be reversed and the reverse tape has to be reversed
+  # back, to match the failing sequence.
+  checkpoints_reverse.reverse()
+  return checkpoints_forward, checkpoints_reverse
+
+
 # @time_this
 # @profile
 def bidirectional_recording(adj_list,
@@ -423,13 +452,11 @@ def bidirectional_recording(adj_list,
       checkpoints_forward.append(forward_seq[forward_seq.index(node) - 1])
       checkpoints_reverse.append(reverse_seq[reverse_seq.index(node) - 1])
 
-  # Although the sequence of the failed nodes are the same for both searches,
-  # when constructing the corresponding replacement path, when recording, the
-  # reverse search will visit them in reversed order, thus the reverse check-
-  # point list has to be reversed and the reverse tape has to be reversed
-  # back, to match the failing sequence.
-  checkpoints_reverse.reverse()
-  checkpoints = (checkpoints_forward, checkpoints_reverse)
+  checkpoints = recording_checkpoints(shortest_path,
+                                      forward_seq,
+                                      reverse_seq,
+                                      online,
+                                      failing)
 
   tapes = bidirectional_recording(adj_list,
                                   inverted_adj_list,
