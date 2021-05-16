@@ -473,12 +473,8 @@ def _biderectional_dijkstra_branch(adj_list: list,
   is_forward, visited_offset, opposite_visited_offset = _visited_offsets(n)
 
   # Force the synchronization of the processes.
-  if current_process().name == "forward_search":
-    sync[0].set()
-    sync[1].wait()
-  else:
-    sync[1].set()
-    sync[0].wait()
+  sync[int(not is_forward)].set()
+  sync[int(is_forward)].wait()
 
   while to_visit:
     u_path_cost, u_prev, u = to_visit.pop_low()
@@ -498,13 +494,6 @@ def _biderectional_dijkstra_branch(adj_list: list,
       kill.set()
       return
 
-    pq_top = to_visit.peek()[0]
-    pq_top = 0 if pq_top == math.inf else pq_top
-
-    with priorityq_top.get_lock():
-      priorityq_top[int(not is_forward)] = pq_top
-    # print(f"{current_process().name}  {priorityq_top[int(not is_forward)]}")
-
     for v, uv_weight in adj_list[u]:
 
       if v == failed:
@@ -517,7 +506,7 @@ def _biderectional_dijkstra_branch(adj_list: list,
           if ((visited_prev_nodes[v + opposite_visited_offset] != v)
                   and (visited_costs[v + opposite_visited_offset] != 0)):
             # print(f"{current_process().name}: u: {u}  v: {v}"
-            #       f" visited_prev_nodes[v + opposite_visited_offset]:"
+            #       f"  v visted from:"
             #       f" {visited_prev_nodes[v + opposite_visited_offset]}")
             uv_prospect_cost = (u_path_cost
                                 + uv_weight
@@ -538,10 +527,13 @@ def _biderectional_dijkstra_branch(adj_list: list,
         _relax_path_cost(v, u, uv_weight, u_path_cost, to_visit)
 
     # Termination condition
-    # print(f"prospect[0]: {prospect[0]} topf+topr:"
-    #       f" {pq_top + priorityq_top[int(is_forward)]}")
+    pq_top = to_visit.peek()[0]
+    pq_top = 0 if pq_top == math.inf else pq_top
+    # print(f"{current_process().name}:  prospect[0]: {prospect[0]}"
+    #       f" topf+topr: {pq_top + priorityq_top[int(is_forward)]}")
     with prospect.get_lock():
       with priorityq_top.get_lock():
+        priorityq_top[int(not is_forward)] = pq_top
         if sum(priorityq_top) >= prospect[0] != 0:
           kill.set()
           return
@@ -602,12 +594,12 @@ def bidirectional_dijkstra(adj_list,
     logger = get_logger()
     logger.setLevel(logging.INFO)
 
-  if isinstance(failed, tuple):
-    failing = "edges"
-  else:
-    failing = "nodes"
-
   if tapes:
+    if isinstance(failed, tuple):
+      failing = "edges"
+    else:
+      failing = "nodes"
+
     if failing == "edges":
       # failed = (tail, head)
       failed_forward, failed_reverse = failed
