@@ -84,7 +84,7 @@ def _first_shortest_path(adj_list,
       source,
       sink,
       initial_visited,
-      cum_hop_weights=online,
+      with_cum_hop_weights=online,
       verbose=verbose)
 
     if cum_hop_weights:
@@ -157,7 +157,7 @@ def _replacement_path(failed_path_idx: int,
         source,
         sink,
         repl_visited,
-        cum_hop_weights=online,
+        with_cum_hop_weights=online,
         verbose=verbose
       )
   elif failing == "edges":
@@ -246,7 +246,7 @@ def _replacement_path(failed_path_idx: int,
             source,
             sink,
             repl_visited,
-            cum_hop_weights=online,
+            with_cum_hop_weights=online,
             verbose=verbose
           )
         # Reconnect the failed edge.
@@ -320,7 +320,7 @@ def replacement_paths(adj_list,
                       n,
                       source,
                       sink,
-                      failing="nodes",
+                      failing="edges",
                       bidirectional=False,
                       parallel=False,
                       dynamic=False,
@@ -537,7 +537,7 @@ def _yen(sink,
       u,
       sink,
       new_visited,
-      cum_hop_weights=True,
+      with_cum_hop_weights=True,
     )
     if spur:
       prospect = last_path[:u_idx] + spur

@@ -399,7 +399,7 @@ def bidirectional_recording(adj_list,
       source,
       sink,
       visited_forward,
-      cum_hop_weights=online,
+      with_cum_hop_weights=online,
       verbose=verbose)
     if cum_hop_weights:
       path_data = [shortest_path, shortest_path_cost, cum_hop_weights]
@@ -681,7 +681,7 @@ def bidirectional_dijkstra(adj_list,
         prospect,
         visited=visited,
         visited_reverse=visited_reverse,
-        cum_hop_weights=online,
+        with_cum_hop_weights=online,
         verbose=verbose
       )
       if cum_hop_weights:
@@ -772,6 +772,7 @@ def bidirectional_dijkstra(adj_list,
                       f" visited the sink.\n"
                       f" visited_costs:\n{visited_costs}\n"
                       f" visited_prev_nodes:\n{visited_prev_nodes}")
+
   path, cum_hop_weights = extract_bidirectional_path(
     source,
     sink,
@@ -779,7 +780,7 @@ def bidirectional_dijkstra(adj_list,
     prospect,
     visited_costs,
     visited_prev_nodes,
-    cum_hop_weights=online,
+    with_cum_hop_weights=online,
     verbose=verbose,
     edge_weight=edge_weight
   )
@@ -798,7 +799,7 @@ def extract_bidirectional_path(source,
                                visited_prev_nodes=None,
                                visited=None,
                                visited_reverse=None,
-                               cum_hop_weights=False,
+                               with_cum_hop_weights=False,
                                verbose=0,
                                edge_weight=None):
   if (visited is None) and (visited_reverse is None):
@@ -841,7 +842,7 @@ def extract_bidirectional_path(source,
 def extract_path(source,
                  sink,
                  visited,
-                 cum_hop_weights=False,
+                 with_cum_hop_weights=False,
                  verbose=0):
   """Extracts the shortest-path from a Dijkstra's algorithm output.
 
@@ -859,7 +860,7 @@ def extract_path(source,
     path (list)             : list of the consecutive nodes in the path
     weights (list)          : the comulative hop-weights (if cum_hop_weights)
   """
-  if cum_hop_weights:
+  if with_cum_hop_weights:
     weights = [visited[sink][0]]
     path = [sink]
     u = sink
