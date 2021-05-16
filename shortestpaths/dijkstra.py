@@ -180,11 +180,14 @@ def dijkstra(adj_list,
 
   while to_visit:
     u_path_cost, u_prev, u = to_visit.pop_low()
-    # if checkpoints:
-    #   __import__('ipdb').set_trace(context=9)
-    # -1 denotes an unconnected node and, in that case, node and previous node
-    # are the same by initialization.
-    visited[u][0] = u_path_cost if u_path_cost != math.inf else -1
+
+    if u_path_cost == math.inf:
+      # -1 denotes an unconnected node and, in that case, node and previous
+      # node are the same by initialization.
+      visited[u][0] = -1
+      continue
+    else:
+      visited[u][0] = u_path_cost
     visited[u][1] = u_prev
 
     if recording:
@@ -360,11 +363,12 @@ def bidirectional_recording(adj_list,
     reverse_search.daemon = True
     forward_search.start()
     reverse_search.start()
-    # We need to use the consumer before joining the processes, because the data
-    # is quite big. The underlying thread that pops fromt the dequeue and makes
-    # data available, usues a pipe or a Unix socket, which have a limited capaci-
-    # ty. When the pipe or socket are full, the thread blocks on the syscall and
-    # we get a deadlock, because join waits for the thread to terminate.
+    # We need to use the consumer before joining the processes, because the
+    # data is quite big. The underlying thread that pops from the dequeue and
+    # makes data available, usues a pipe or a Unix socket, which have a limited
+    # capacity. When the pipe or socket are full, the thread blocks on the sys-
+    # call, resulting to a deadlock, because join waits for the thread to ter-
+    # minate.
     if checkpoints:  # then this is the 2nd recording (Dijsktra states)
       tape_1 = tapes_queue.get()
       tape_2 = tapes_queue.get()
@@ -482,8 +486,11 @@ def _biderectional_dijkstra_branch(adj_list: list,
     # -1 denotes an unconnected node and, in that case, node and previous node
     # are the same by initialization.
     with visited_costs.get_lock():
-      visited_costs[u + visited_offset] = \
-          u_path_cost if u_path_cost != math.inf else -1
+      if u_path_cost == math.inf:
+        visited_costs[u + visited_offset] = -1
+        continue
+      else:
+        visited_costs[u + visited_offset] = u_path_cost
     with visited_prev_nodes.get_lock():
       visited_prev_nodes[u + visited_offset] = u_prev
 
@@ -507,7 +514,8 @@ def _biderectional_dijkstra_branch(adj_list: list,
         # Check if v is visited by the other process and, if yes, construct the
         # prospect path.
         with visited_prev_nodes.get_lock():
-          if visited_prev_nodes[v + opposite_visited_offset] != v:
+          if ((visited_prev_nodes[v + opposite_visited_offset] != v)
+                  and (visited_costs[v + opposite_visited_offset] != 0)):
             # print(f"{current_process().name}: u: {u}  v: {v}"
             #       f" visited_prev_nodes[v + opposite_visited_offset]:"
             #       f" {visited_prev_nodes[v + opposite_visited_offset]}")
