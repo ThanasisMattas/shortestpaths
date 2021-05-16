@@ -169,6 +169,11 @@ def _replacement_path(failed_path_idx: int,
     head = base_path[failed_path_idx + 1]
 
     if online:
+      # For the last two edges, the distance is too small to go bidirectional.
+      # The corresponding states aren't recorded (see bidirectional_recording).
+      if failed in base_path[-3: -1]:
+        bidirectional = False
+        tapes = None
       # Delete the nodes of the root path from the PriorityQueue.
       for u in base_path[:failed_path_idx]:
         del to_visit[u]

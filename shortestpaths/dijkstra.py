@@ -412,6 +412,10 @@ def bidirectional_recording(adj_list,
     checkpoints_reverse = []
     for node in shortest_path[1: -1]:
       checkpoints_reverse.append(reverse_seq[reverse_seq.index(node) - 1])
+    if failing == "edges":
+      # For the last two edges, the distance is too small to go bidirectional.
+      # (See core.replacement_path())
+      checkpoints_reverse = checkpoints_reverse[:-2]
   else:
     checkpoints_forward = []
     checkpoints_reverse = []
