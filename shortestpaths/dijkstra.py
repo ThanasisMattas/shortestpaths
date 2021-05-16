@@ -604,17 +604,9 @@ def bidirectional_dijkstra(adj_list,
   if tapes:
     if failing == "edges":
       # failed = (tail, head)
-      # We will retrieve the states that correspond to tail and head and not to
-      # the previous nodes on the path. Thus, we will ask for the record of the
-      # next node on the tape. Namely, for the forward search, in order to get
-      # the state of tail, we will retrieve the record of the next node, which
-      # is head. This happens because previous nodes on the path were used as
-      # record checkpoints for each state. Likewise for the reverse search, in
-      # order to get the state of head (which is the tail for the reverse
-      # search), we will retrieve the record of the next node, which is tail.
       failed_forward, failed_reverse = failed
       idx_forward, idx_reverse = failed_path_idx
-    else:  # then failing == "nodes"
+    else:
       failed_forward = failed_reverse = failed
       idx_forward = idx_reverse = failed_path_idx
 
@@ -676,14 +668,20 @@ def bidirectional_dijkstra(adj_list,
     if (top_f + top_r >= prospect[0]) and (sum(prospect) != 0):
       path_cost = prospect[0]
 
-      path, _ = extract_bidirectional_path(source,
-                                           sink,
-                                           n,
-                                           prospect,
-                                           visited=visited,
-                                           visited_reverse=visited_reverse,
-                                           verbose=verbose)
-      return [path, path_cost, failed]
+      path, cum_hop_weights = extract_bidirectional_path(
+        source,
+        sink,
+        n,
+        prospect,
+        visited=visited,
+        visited_reverse=visited_reverse,
+        cum_hop_weights=online,
+        verbose=verbose
+      )
+      if cum_hop_weights:
+        return [path, path_cost, cum_hop_weights]
+      else:
+        return [path, path_cost, failed]
 
     # visited_costs and visited_prev_nodes are being concatenated, because they
     # have to be shared between the 2 searches and multiplocessing.Array() only

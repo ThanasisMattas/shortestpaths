@@ -69,10 +69,10 @@ os.environ["BIDIRECTIONAL_SYNC"] = '1'
 
 
 SOLVER = ["-p", "-b", "-b -p", "-d", "-d -p"]
-GRAPH_SIZES = [100]
+GRAPH_SIZES = [150]
 FAILING = ["nodes", "edges"]
 ONLINE = [""]
-K = [5, 20]
+K = [5]
 
 class TestShortestPaths():
 
@@ -86,9 +86,10 @@ class TestShortestPaths():
   @pytest.mark.parametrize(
     "solver, k, n",
     [[s, k, n]
-     for s in SOLVER + ["-y", "-l"] if ("d" not in s) or ("b" not in s)
+     for s in SOLVER + ["-y", "-l"] if (("d" not in s) and ("b" not in s))
      for k in K
-     for n in GRAPH_SIZES])
+     for n in GRAPH_SIZES]
+  )
   def test_k_shortest_paths(self, solver, k, n):
     reference_cmd = f"python -m shortestpaths -v -k {k} {n}"
     solver_cmd = f"python -m shortestpaths -v {solver} -k {k} {n}"

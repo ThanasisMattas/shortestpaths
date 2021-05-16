@@ -602,6 +602,7 @@ def k_shortest_paths(adj_list,
                            inverted_adj_list,
                            bidirectional,
                            dynamic,
+                           failing="edges",
                            online=True,
                            verbose=verbose)
 

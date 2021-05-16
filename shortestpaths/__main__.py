@@ -88,6 +88,9 @@ def main(ctx,
                                              max_node_weight=max_node_weight,
                                              random_seed=random_seed)
 
+  if dynamic:
+    bidirectional = True
+
   if ctx.invoked_subcommand is not None:
     # populate ctx.obj
     ctx_config = {
@@ -149,8 +152,6 @@ def replacement_paths(ctx, failing, online):
     failing (str)           : "edges" or "nodes" (CLI option)
   """
   verbose = ctx.obj.pop("verbose", 0)
-  if ctx.obj.get("dynamic", False):
-    ctx.obj["bidirectional"] = True
 
   r_paths = core.replacement_paths(
     ctx.obj.pop("adj_list"),
