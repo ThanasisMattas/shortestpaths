@@ -20,47 +20,43 @@ from typing import Hashable, Iterable, Union
 class PriorityQueue:
   """Implements the priority queue, using the heapq module.
 
-  The basic features, not supported by the heapq module and introduced here,
-  are getting, setting and deleting an entry anywhere in the priority queue,
-  using as query key a unique entry_id. This is needed when, for example, an
-  application involves updating the priority value of the entries.
+  The basic features not supported by the heapq module but introduced here are
+  getting, setting and deleting an entry anywhere in the priority queue, using
+  as query key a unique entry_id. This is needed when, for example, an applica-
+  tion involves updating the priority value of the entries.
 
   PriorityQueue uses an entry_finder dictionairy, pointing to each entry in the
   queue. When setting or deleting occurs, it marks the entry as REMOVED and, in
-  case of setting, it pushes a new entry. It does not delete the entry or
-  update its priority on the spot, because that would break the heapq.
+  case of setting, it pushes a new entry. It does not delete the entry or up-
+  date its priority on the spot, because that would break the heapq.
 
   The _counter variable serves as a tie-breaker when multiple entries have the
   same priority and the entry_id (or object) cannot be used to prioritize with.
   An entry_count value will be inserted after the cost values and before the
   entry attributes:
+
             [cost_1, cost_2, ..., entry_count, entry_attrs, entry_id]
 
   More info:
   https://docs.python.org/3/library/heapq.html#priority-queue-implementation-notes
+
+  TODO:
+    entry_attrs, entry_id become a small wrapper class (or use @dataclass)
+
+  Args:
+    data (list): Holds the cost values to prioritize with, any entry attributes
+                 and the entry_id. The hierarchy of the prioritization complies
+                 with the sequence of the costs provided. (Defaults to None)
+                 Format:
+                   [[cost_1, cost_2, ..., entry_attrs, entry_id],]
+                   cost_1, ... (sortable) : the values to prioritize with
+                   entry_attrs (any)      : (optional) attrs of each entry
+                   entry_id (hashable)    : the unique id of each entry
   """
-  _REMOVED = "<removed-entry>"     # placeholder for a removed entry
+  # placeholder for a removed entry
+  _REMOVED = "<removed-entry>"
 
   def __init__(self, data=None):
-    """Constructs the PriorityQueue object.
-
-    Args:
-      data (list): Holds the cost values to prioritize with and the entry_id.
-                   The hierarchy of the prioritization complies with the
-                   sequence of the costs provided. (Defaults to None)
-                   Format:
-                   [
-                     [cost_1, cost_2, ..., entry_attrs, entry_id],
-                     [cost_1, cost_2, ..., entry_attrs, entry_id],
-                     ...
-                   ]
-        cost_1, ... (any sortable type) : the values to prioritize with
-        entry_attrs (list or obj)       : (optional) attrs of each entry
-        entry_id (any hashable type)    : the unique id of each entry
-
-    TODO:
-      entry_attrs, entry_id become a small wrapper class (or use @dataclass)
-    """
     self._heapq = []
     self._entry_finder = {}
     self._counter = itertools.count()

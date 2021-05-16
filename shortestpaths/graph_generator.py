@@ -19,7 +19,7 @@ import random
 
 import networkx as nx
 
-from shortestpaths.utils import time_this
+from shortestpaths.utils import time_this  # noqa: F401
 
 
 def _edge_weight_bias(edge, n) -> float:
@@ -55,19 +55,19 @@ def _edge_probability(edge,
   sigmoid curve to 1. Hence, the attributes gradient, center and offset regula-
   te how dense the random graph will be:
 
-    * center:
+    * center (c):
         center  zero       n/2         n
                 ------------------------
         graph   sparse   neutral   dense
-    * gradient:
+    * gradient (g):
         > 1
           dense  -> slightly denser, adding the most distant edges
-          sparse -> almost same density, but the balance will be swifted towards
-                    the close edges
+          sparse -> almost same density, but the balance will be swifted to-
+                    wards the close edges
         < 1
           dense  -> slightly less dense, removing the most distant edges
-          sparse -> almost same density, but the balance will be swifted towards
-                    the distant edges
+          sparse -> almost same density, but the balance will be swifted to-
+                    wards the distant edges
     * offset:
         offest (up) (up) sparsity
 
@@ -75,9 +75,9 @@ def _edge_probability(edge,
   shift the lower probability to distant edges.
 
 
-                                 1
-                      -----------------------
-                           - grand (x - cent)
+                             1
+                      ----------------
+                           - g (x - c)
                       1 + e
 
   1.0 |                               _ _ _ _ _
@@ -103,7 +103,6 @@ def _edge_probability(edge,
     return 0
   else:
     sigmoid = 1 / (1 + math.exp(exponent))
-    # return min(1 - sigmoid, cap)
     return min(1 - sigmoid, cap)
 
 
