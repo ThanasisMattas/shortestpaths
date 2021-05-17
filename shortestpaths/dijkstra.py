@@ -174,9 +174,8 @@ def dijkstra(adj_list,
       source = to_visit.peek()[-1]
       discovered = {source}
     else:
-      n = max(sink, to_visit.peek()[-1])
-      visited_nodes_sequence = [0 for _ in range(n)]
-      it = 0
+      # n = max(sink, to_visit.peek()[-1])
+      visited_nodes_sequence = []
 
   while to_visit:
     u_path_cost, u_prev, u = to_visit.pop_low()
@@ -195,9 +194,7 @@ def dijkstra(adj_list,
         # u is now visited
         discovered.remove(u)
       else:
-        # visited_nodes_sequence.append(u)
-        visited_nodes_sequence[it] = u
-        it += 1
+        visited_nodes_sequence.append(u)
 
     if u == sink:
       if recording:
@@ -207,10 +204,10 @@ def dijkstra(adj_list,
         else:
           # Here exits the 1st recording session (visited nodes sequence).
           if isinstance(tapes_queue, mp.queues.Queue):
-            tapes_queue.put((visited, visited_nodes_sequence[:it]))
+            tapes_queue.put((visited, visited_nodes_sequence))
             return
           else:
-            return (visited, visited_nodes_sequence[:it])
+            return (visited, visited_nodes_sequence)
       else:
         return visited
 
