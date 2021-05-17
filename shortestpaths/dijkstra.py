@@ -688,7 +688,6 @@ def bidirectional_dijkstra(adj_list,
     # Check if termination condition is already met.
     top_f = to_visit.peek()[0]
     top_r = to_visit_reverse.peek()[0]
-    prospect = Array('i', prospect)
 
     if (top_f + top_r >= prospect[0]) and (sum(prospect) != 0):
       path_cost = prospect[0]
@@ -712,21 +711,21 @@ def bidirectional_dijkstra(adj_list,
     # have to be shared between the 2 searches and multiplocessing.Array() only
     # accepts single dimension arrays of one type.
     visited_forward_zip = list(zip(*visited))
-    visited_backward_zip = list(zip(*visited_reverse))
+    visited_reverse_zip = list(zip(*visited_reverse))
     visited_costs = (list(visited_forward_zip[0])
-                     + list(visited_backward_zip[0][1:]))
+                     + list(visited_reverse_zip[0][1:]))
     visited_prev_nodes = (list(visited_forward_zip[1])
-                          + list(visited_backward_zip[1][1:]))
+                          + list(visited_reverse_zip[1][1:]))
+    prospect = Array('i', prospect)
     priorityq_top = Array('i', [top_f, top_r])
+    visited_costs = Array('i', visited_costs)
+    visited_prev_nodes = Array('i', visited_prev_nodes)
   else:  # not tapes
-    visited_costs = [0 for _ in range(2 * n + 1)]
-    visited_prev_nodes = ([i for i in range(n + 1)]
-                          + [i for i in range(1, n + 1)])
     prospect = Array('i', [0, 0, 0])
     priorityq_top = Array('i', [0, 0])
-
-  visited_costs = Array('i', visited_costs)
-  visited_prev_nodes = Array('i', visited_prev_nodes)
+    visited_costs = Array('i', [0 for _ in range(2 * n + 1)])
+    visited_prev_nodes = Array('i', ([i for i in range(n + 1)]
+                                     + [i for i in range(1, n + 1)]))
   kill = Event()
   sync = (Event(), Event())
 
