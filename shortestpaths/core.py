@@ -123,7 +123,12 @@ def _replacement_path(failed_path_idx: int,
         del to_visit[u]
       # The spur node becomes the source.
       source = base_path[failed_path_idx - 1]
-      to_visit[source] = [0, source, source]
+      # Although the prev node doesn't have to be acurate, however it souldn't
+      # be source, because when checking for bidirectional dijkstra termination
+      # condition, it would not account as visited.
+      to_visit[source] = [cum_hop_weights[failed_path_idx - 1],
+                          -1,
+                          source]
       # Initialize the path cost with the root_cost.
       if (bidirectional) and (not tapes):
         # Delete the nodes of the root path from the reverse PriorityQueue.
@@ -169,17 +174,17 @@ def _replacement_path(failed_path_idx: int,
     head = base_path[failed_path_idx + 1]
 
     if online:
-      # For the last two edges, the distance is too small to go bidirectional.
-      # The corresponding states aren't recorded (see bidirectional_recording).
-      if failed in base_path[-3: -1]:
-        bidirectional = False
-        tapes = None
       # Delete the nodes of the root path from the PriorityQueue.
       for u in base_path[:failed_path_idx]:
         del to_visit[u]
       # The spur node becomes the source.
       source = tail
-      to_visit[source] = [0, source, source]
+      # Although the prev node doesn't have to be acurate, however it souldn't
+      # be source, because when checking for bidirectional dijkstra termination
+      # condition, it would not account as visited.
+      to_visit[source] = [cum_hop_weights[failed_path_idx],
+                          -1,
+                          source]
       # Initialize the path cost with the root_cost.
       if (bidirectional) and (not tapes):
         # Delete the nodes of the root path from the reverse PriorityQueue.
@@ -300,17 +305,19 @@ def _replacement_path(failed_path_idx: int,
       if failing == "edges":
         failed_path_idx += 1
 
+      # NOTE: The cost of the root path should be added here or used to initi-
+      #       alize the source cost, where source is the spur node.
       if bidirectional:
         if path_data[0]:
           path_data = [base_path[: failed_path_idx - 1] + path_data[0],
-                       path_data[1] + cum_hop_weights[failed_path_idx - 1],
+                       path_data[1],
                        failed]
         else:
           path_data = [None, None, None]
       else:
         if repl_path:
           path_data = [base_path[: failed_path_idx - 1] + repl_path,
-                       repl_path_cost + cum_hop_weights[failed_path_idx - 1],
+                       repl_path_cost,
                        failed]
         else:
           path_data = [None, None, None]
