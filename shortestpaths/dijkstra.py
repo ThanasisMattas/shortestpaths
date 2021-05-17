@@ -654,11 +654,11 @@ def bidirectional_dijkstra(adj_list,
       net_n = n
 
     if failing == "edges":
-      if failed_forward == source:
+      if failed_forward == base_path[0]:
         # then un-discover the head
         discovered_forward.discard(failed_reverse)
         to_visit[failed_reverse] = [math.inf, failed_reverse, failed_reverse]
-      elif failed_reverse == sink:
+      elif failed_reverse == base_path[-1]:
         # then un-discover the tail
         discovered_reverse.discard(failed_forward)
         to_visit_reverse[failed_forward] = \
