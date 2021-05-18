@@ -24,6 +24,7 @@ from multiprocessing import (Array,
                              Queue)
 from typing import Hashable
 import warnings
+from weakref import finalize
 
 from shortestpaths.priorityq import PriorityQueue
 from shortestpaths.utils import time_this  # noqa: F401
@@ -127,6 +128,96 @@ def invert_adj_list(adj_list):
   return i_adj_list
 
 
+def dijkstra_recorder(adj_list,
+                      sink,
+                      to_visit,
+                      visited,
+                      failed=None,
+                      tapes_queue=None,
+                      checkpoints=None):
+  """Dijkstra's algorithm
+
+  Args:
+    adj_list (list)          : Each entry refers to the node that corresponds
+                               to its index and comprises a list of 2-tuples,
+                               each for one neighbor of the index-node:
+                               (neighbor_id, weight)
+    sink (Hashable)          : The sink node id
+    to_visit (PriorityQueue) : The nodes not yet visited by the algorithm.
+                               Each entry is a list:
+                               [path_cost, prev_node_id, node_id]
+    visited (2D list)        : Each entry is a 2-list:
+                               [path_cost, prev_node_id]
+    dynamic (bool)           : If true, the step-wise state of the algorithm
+                               will be recorded on a tape.
+    failed (Hashable)        : Nodes to avoid (defaults to None)
+
+  Returns:
+    visited (2D list)        : Each entry is a 2-list for each node:
+                               [path_cost, prev_node_id]
+    tape (OrderedDict)       : Each entry is the step-wise state of the
+                               algorithm as a pair:
+                               {node_id: (to_visit, visited)}
+                               using as key the id of the expanded node
+  """
+  if checkpoints:
+    tape = []
+    cps = iter(checkpoints)
+    cp = next(cps)
+    source = to_visit.peek()[-1]
+    discovered = {source}
+
+  while to_visit:
+    u_path_cost, u_prev, u = to_visit.pop_low()
+
+    if u_path_cost == math.inf:
+      # -1 denotes an unconnected node and, in that case, node and previous
+      # node are the same by initialization.
+      visited[u][0] = -1
+      continue
+    else:
+      visited[u][0] = u_path_cost
+    visited[u][1] = u_prev
+
+    if checkpoints:
+      discovered.remove(u)
+
+    if u == sink:
+      if checkpoints:
+        raise Exception("The states (2nd) recording reached the sink."
+                        f" Process: {current_process().name}")
+      return visited
+
+    for v, uv_weight in adj_list[u]:
+
+      if v == failed:
+        continue
+
+      if v in to_visit:
+        _relax_path_cost(v, u, uv_weight, u_path_cost, to_visit)
+        if checkpoints:
+          # print(f"{current_process().name} disovered: {v}")
+          discovered.add(v)
+
+    if checkpoints:
+      if u == cp:
+        # print(f"{current_process().name} cp: {cp}")
+        tape.append([copy.deepcopy(to_visit),
+                     copy.deepcopy(visited),
+                     copy.copy(discovered)])
+        try:
+          cp = next(cps)
+        except StopIteration:
+          if isinstance(tapes_queue, mp.queues.Queue):
+            tapes_queue.put(tape)
+            return
+          else:
+            return tape
+
+  return visited
+
+
+# @profile
 def dijkstra(adj_list,
              sink,
              to_visit,
@@ -169,7 +260,11 @@ def dijkstra(adj_list,
         tape = [None]
       else:
         tape = []
-      cps = iter(checkpoints)
+      for c, cpoint in enumerate(checkpoints):
+        if cpoint is not None:
+          first_cp_idx = c
+          break
+      cps = iter(checkpoints[first_cp_idx:])
       cp = next(cps)
       source = to_visit.peek()[-1]
       discovered = {source}
@@ -246,8 +341,16 @@ def dijkstra(adj_list,
             # a state will not be recorded, if failing is nodes.
             # if not isinstance(tapes_queue, mp.queues.Queue) then this is the
             # online recording, which is for sure a reverse search.
-            if failed == "edges":
+            # In case of online with failing edges, states for the last two
+            # failing edges weren't recorded. Thus, source state should not be
+            # included.
+            if ((failed == "edges")
+                    and (isinstance(tapes_queue, mp.queues.Queue))):
               tape = [source_state] + tape + [None]
+            elif not isinstance(tapes_queue, mp.queues.Queue):
+              # Append the Nones, accounting for the already found spur paths
+              # (Lawler modification).
+              tape = [source_state] + tape + checkpoints[:first_cp_idx] + [None]
             else:
               tape.append(None)
             # Reverse back to the failing nodes sequence.
@@ -266,20 +369,24 @@ def dijkstra(adj_list,
   return visited
 
 
-def recording_checkpoints(shortest_path,
-                          forward_seq=None,
-                          reverse_seq=None,
-                          online=False,
-                          failing="edges"):
+def checkpoints_from_lists(shortest_path,
+                           forward_seq=None,
+                           reverse_seq=None,
+                           online=False,
+                           failing="edges",
+                           parent_spur_node_idx=0):
   if online:
     checkpoints_forward = None
     checkpoints_reverse = []
     for node in shortest_path[1: -1]:
       checkpoints_reverse.append(reverse_seq[reverse_seq.index(node) - 1])
     if failing == "edges":
-      # For the last two edges, the distance is too small to go bidirectional.
-      # (See core.replacement_path())
-      checkpoints_reverse = checkpoints_reverse[:-2]
+      # In case of k_shortest_paths, the search starts from the node that the
+      # parent path branched out, because the searches for all the preceding
+      # nodes have already been done.
+      if parent_spur_node_idx:
+        for i in range(parent_spur_node_idx - 1):
+          checkpoints_reverse[i] = None
   else:
     checkpoints_forward = []
     checkpoints_reverse = []
@@ -295,7 +402,31 @@ def recording_checkpoints(shortest_path,
   return checkpoints_forward, checkpoints_reverse
 
 
-# @time_this
+def checkpoints_from_queues(reverse_seq: mp.queues.Queue,
+                            sink: Hashable,
+                            path: list,
+                            forward_seq: mp.queues.Queue = None,
+                            source: Hashable = None):
+  """Generates the recording checkpoints for the path nodes."""
+  cps_forward = []
+  cps_reverse = []
+  u_prev = sink
+  while not reverse_seq.empty():
+    u = reverse_seq.get()
+    if u in path:
+      cps_reverse.append(u_prev)
+    u_prev = u
+  if isinstance(forward_seq, mp.queues.Queue):
+    u_prev = source
+    while not forward_seq.empty():
+      u = forward_seq.get()
+      if u in path:
+        cps_forward.append(u_prev)
+      u_prev = u
+  return cps_forward, cps_reverse
+
+
+# @time_this(wall_clock=True)
 # @profile
 def bidirectional_recording(adj_list,
                             inverted_adj_list,
@@ -307,6 +438,7 @@ def bidirectional_recording(adj_list,
                             checkpoints=None,
                             failing=None,
                             online=False,
+                            record_only_cps=False,
                             verbose=0):
   """Memoizes the states of the algorithm on a tape.
 
@@ -314,7 +446,109 @@ def bidirectional_recording(adj_list,
   visited nodes sequence, so as to get the immediate previously visited node
   for each internal node of the absolute shortest path. The 2nd recording uses
   those nodes as checkpoints, in order to save the corresponding states of the
-  algorithm.
+  algorithm. These states will be retrieved when nodes/edges are failing.
+  """
+  if verbose >= 2:
+    log_to_stderr()
+    logger = get_logger()
+    logger.setLevel(logging.INFO)
+
+  # 1. Record the checkpoints and the 1st shortest path
+  path_data, checkpoints = bidirectional_dijkstra(
+    adj_list,
+    inverted_adj_list,
+    source,
+    sink,
+    copy.deepcopy(to_visit),
+    copy.deepcopy(to_visit_reverse),
+    copy.deepcopy(visited),
+    online=online,
+    record_cps=True,
+    verbose=verbose
+  )
+
+  if failing == "nodes":
+    # We won't record states for source and sink
+    start_idx = 1
+  else:
+    start_idx = 0
+
+  # 2. Record the algorithm states on a tape
+  tapes_queue = Queue()
+
+  if online:
+    tape_reverse = dijkstra_recorder(inverted_adj_list,
+                                     source,
+                                     copy.deepcopy(to_visit_reverse),
+                                     copy.deepcopy(visited),
+                                     failing,
+                                     None,
+                                     checkpoints[1][start_idx:])
+    tapes = (None, tape_reverse)
+  else:
+    forward_search = Process(name="forward_search",
+                             target=dijkstra_recorder,
+                             args=(adj_list,
+                                   sink,
+                                   to_visit,
+                                   visited,
+                                   failing,
+                                   tapes_queue,
+                                   checkpoints[0][start_idx:]))
+    reverse_search = Process(name="reverse_search",
+                             target=dijkstra_recorder,
+                             args=(inverted_adj_list,
+                                   source,
+                                   to_visit_reverse,
+                                   visited,
+                                   failing,
+                                   tapes_queue,
+                                   checkpoints[1][start_idx:]))
+
+    # Deaemonize the processes to be terminated upon exit.
+    forward_search.daemon = True
+    reverse_search.daemon = True
+    forward_search.start()
+    reverse_search.start()
+    # We need to use the consumer before joining the processes, because the
+    # data is quite big. The underlying thread that pops from the dequeue and
+    # makes data available, usues a pipe or a Unix socket, which have a limited
+    # capacity. When the pipe or socket are full, the thread blocks on the sys-
+    # call, resulting to a deadlock, because join waits for the thread to ter-
+    # minate.
+    tape_1 = tapes_queue.get()
+    tape_2 = tapes_queue.get()
+    # Find out which is which.
+    if sink in tape_1[0][0]:
+      # (if sink in 1st cp's to_visit)
+      tapes = tape_1, tape_2
+    else:
+      tapes = tape_2, tape_1
+
+  return path_data, tapes
+
+
+# @time_this(wall_clock=True)
+# @profile
+def bidirectional_full_recording(adj_list,
+                                 inverted_adj_list,
+                                 source,
+                                 sink,
+                                 to_visit,
+                                 to_visit_reverse,
+                                 visited,
+                                 checkpoints=None,
+                                 failing=None,
+                                 online=False,
+                                 record_only_cps=False,
+                                 verbose=0):
+  """Memoizes the states of the algorithm on a tape (DEPRECATED).
+
+  Two recordings are taking place on both directions. The 1st one records the
+  visited nodes sequence, so as to get the immediate previously visited node
+  for each internal node of the absolute shortest path. The 2nd recording uses
+  those nodes as checkpoints, in order to save the corresponding states of the
+  algorithm. These states will be retrieved when nodes/edges are failing.
   """
   if verbose >= 2:
     log_to_stderr()
@@ -323,14 +557,13 @@ def bidirectional_recording(adj_list,
 
   tapes_queue = Queue()
 
-  if checkpoints:
-    cps_forward = checkpoints[0]
-    cps_reverse = checkpoints[1]
-    # __import__("shortestpaths.utils").deb_trace(f"cps forward: {cps_forward}")
-    # __import__("shortestpaths.utils").deb_trace(f"cps reverse: {cps_reverse}")
+  if (checkpoints) and (not record_only_cps):
+    cps_forward, cps_reverse = checkpoints
+    # __import__("shortestpaths.utils").deb_trace(
+    #   f"cps forward: {cps_forward}\n"
+    #   f"cps reverse: {cps_reverse}")
   else:
-    cps_forward = None
-    cps_reverse = None
+    cps_forward = cps_reverse = None
 
   if online:
     tape_reverse = dijkstra(inverted_adj_list,
@@ -345,6 +578,7 @@ def bidirectional_recording(adj_list,
       return (None, tape_reverse)
 
     visited_reverse, reverse_seq = tape_reverse
+    forward_seq = None
     shortest_path_cost = visited_reverse[source][0]
     reverse_path, reverse_weights = extract_path(sink,
                                                  source,
@@ -357,7 +591,7 @@ def bidirectional_recording(adj_list,
     reverse_weights.reverse()
     cum_hop_weights = [reverse_weights[0] - w for w in reverse_weights]
     path_data = [shortest_path, shortest_path_cost, cum_hop_weights]
-  else:
+  else:  # off-line
     # Visited nodes sequence will be recorded for both directions, in order to
     # extract the appropriate checkpoint nodes.
     forward_search = Process(name="forward_search",
@@ -429,41 +663,27 @@ def bidirectional_recording(adj_list,
       path_data = [shortest_path, shortest_path_cost, None]
 
   # Now, record the tapes.
-  if online:
-    checkpoints_forward = None
-    checkpoints_reverse = []
-    for node in shortest_path[1: -1]:
-      checkpoints_reverse.append(reverse_seq[reverse_seq.index(node) - 1])
-    if failing == "edges":
-      # For the last two edges, the distance is too small to go bidirectional.
-      # (See core.replacement_path())
-      checkpoints_reverse = checkpoints_reverse[:-2]
+  checkpoints = checkpoints_from_lists(shortest_path,
+                                       forward_seq,
+                                       reverse_seq,
+                                       online,
+                                       failing)
+
+  if not record_only_cps:
+    tapes = bidirectional_recording(adj_list,
+                                    inverted_adj_list,
+                                    source,
+                                    sink,
+                                    to_visit,
+                                    to_visit_reverse,
+                                    visited,
+                                    checkpoints,
+                                    failing=failing,
+                                    online=online,
+                                    verbose=verbose)
+    return path_data, tapes
   else:
-    checkpoints_forward = []
-    checkpoints_reverse = []
-    for node in shortest_path[1: -1]:
-      checkpoints_forward.append(forward_seq[forward_seq.index(node) - 1])
-      checkpoints_reverse.append(reverse_seq[reverse_seq.index(node) - 1])
-
-  checkpoints = recording_checkpoints(shortest_path,
-                                      forward_seq,
-                                      reverse_seq,
-                                      online,
-                                      failing)
-
-  tapes = bidirectional_recording(adj_list,
-                                  inverted_adj_list,
-                                  source,
-                                  sink,
-                                  to_visit,
-                                  to_visit_reverse,
-                                  visited,
-                                  checkpoints,
-                                  failing=failing,
-                                  online=online,
-                                  verbose=verbose)
-
-  return path_data, tapes
+    return path_data, checkpoints
 
 
 def _visited_offsets(n):
@@ -491,7 +711,8 @@ def _biderectional_dijkstra_branch(adj_list: list,
                                    priorityq_top: Array,
                                    kill: Event,
                                    failed: Hashable = None,
-                                   sync: tuple = None):
+                                   sync: tuple = None,
+                                   visited_seq: Queue = None):
   # visited_costs and visited_prev_nodes are a single vector shared by both
   # searches; thus, each search has to work with the proper slice.
   is_forward, visited_offset, opposite_visited_offset = _visited_offsets(n)
@@ -513,6 +734,9 @@ def _biderectional_dijkstra_branch(adj_list: list,
         visited_costs[u + visited_offset] = u_path_cost
     with visited_prev_nodes.get_lock():
       visited_prev_nodes[u + visited_offset] = u_prev
+
+      if visited_seq is not None:
+        visited_seq.put(u)
 
     if (kill.is_set()) or (u == sink):
       kill.set()
@@ -576,6 +800,7 @@ def bidirectional_dijkstra(adj_list,
                            tapes=None,
                            online=False,
                            base_path=None,
+                           record_cps=False,
                            verbose=0):
   """Implementation of the bidirectional Dijkstra's algorithm.
 
@@ -654,11 +879,15 @@ def bidirectional_dijkstra(adj_list,
       net_n = n
 
     if failing == "edges":
+      # When source and sink involve in a failing edge, we don't have a state
+      # before them to recover from; therefore, we just have to un-discover the
+      # other edge node.
+      # NOTE: When online, the source is not base_path[0].
       if failed_forward == base_path[0]:
         # then un-discover the head
         discovered_forward.discard(failed_reverse)
         to_visit[failed_reverse] = [math.inf, failed_reverse, failed_reverse]
-      elif failed_reverse == base_path[-1]:
+      elif failed_reverse == sink:
         # then un-discover the tail
         discovered_reverse.discard(failed_forward)
         to_visit_reverse[failed_forward] = \
@@ -684,7 +913,13 @@ def bidirectional_dijkstra(adj_list,
 
     # Check if termination condition is already met.
     top_f = to_visit.peek()[0]
+    if top_f == math.inf:
+      top_f = 0
     top_r = to_visit_reverse.peek()[0]
+    if top_r == math.inf:
+      top_r = 0
+    # top_f = visited[failed_forward][0]
+    # top_r = visited_reverse[failed_reverse][0]
 
     if (top_f + top_r >= prospect[0]) and (sum(prospect) != 0):
       path_cost = prospect[0]
@@ -723,6 +958,15 @@ def bidirectional_dijkstra(adj_list,
     visited_costs = Array('i', [0 for _ in range(2 * n + 1)])
     visited_prev_nodes = Array('i', ([i for i in range(n + 1)]
                                      + [i for i in range(1, n + 1)]))
+  if record_cps:
+    if online:
+      reverse_seq = Queue()
+      forward_seq = None
+    else:
+      reverse_seq = Queue()
+      forward_seq = Queue()
+  else:
+    reverse_seq = forward_seq = None
   kill = Event()
   sync = (Event(), Event())
 
@@ -738,7 +982,8 @@ def bidirectional_dijkstra(adj_list,
                                  priorityq_top,
                                  kill,
                                  failed,
-                                 sync))
+                                 sync,
+                                 forward_seq))
   reverse_search = Process(name="reverse_search",
                            target=_biderectional_dijkstra_branch,
                            args=(inverted_adj_list,
@@ -751,7 +996,8 @@ def bidirectional_dijkstra(adj_list,
                                  priorityq_top,
                                  kill,
                                  failed,
-                                 sync))
+                                 sync,
+                                 reverse_seq))
 
   forward_search.start()
   reverse_search.start()
@@ -800,7 +1046,18 @@ def bidirectional_dijkstra(adj_list,
     edge_weight=edge_weight
   )
 
-  if cum_hop_weights:
+  if record_cps:
+    checkpoints = checkpoints_from_queues(reverse_seq,
+                                          sink,
+                                          path,
+                                          forward_seq,
+                                          source)
+    if online:
+      return [path, path_cost, cum_hop_weights], checkpoints
+    else:
+      return [path, path_cost, failed], checkpoints
+
+  if online:
     return [path, path_cost, cum_hop_weights]
   else:
     return [path, path_cost, failed]

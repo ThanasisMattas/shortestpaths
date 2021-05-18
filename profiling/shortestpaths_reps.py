@@ -1,3 +1,10 @@
+"""
+usage:
+$ python shortestpaths_reps.py [OPTIONS] n
+
+where n is the 1st graph size
+"""
+
 import gc
 import os
 from pathlib import Path
@@ -12,16 +19,18 @@ sys.path.insert(0, home_dir)
 
 import click
 
-from shortestpaths import core, graph_generator, post_processing
+from shortestpaths import core, graph_generator
 
 
 @click.command()
-@click.argument("num_graphs", type=click.INT)
 @click.argument('n', type=click.INT)
-@click.option('-s', "--increase-step", default=20, show_default=True,
+@click.option('-s', "--increase-step", default=25, show_default=True,
               help="number of nodes the graph size is increased by")
 @click.option('-i', "--graph-increases", default=50, show_default=True,
               help="number of graph sizes formed by <increase-step>")
+@click.option('-g', "graphs_per_step", default=5, show_default=True,
+              help=("number of different but equal sized graphs to run at each"
+                    "step (the time measure will be the average)"))
 @click.option("--unweighted", "weighted", is_flag=True,
               default=True, show_default="weighted")
 @click.option("--weights-on", default="edges-and-nodes", show_default=True,
@@ -33,16 +42,7 @@ from shortestpaths import core, graph_generator, post_processing
               help="the max nodal weight of the graph (defaults to 1000)")
 @click.option('-k', type=click.INT, default=1, show_default=True,
               help="number of alternative paths to be generated")
-@click.option('-b', "--bidirectional", is_flag=True,
-              help="bidirectional shortest path search (uses 2 processes)")
-@click.option('-p', "--parallel", is_flag=True,
-              help="whether to use multiprocessing or not")
-@click.option('-d', "--dynamic", is_flag=True,
-              help="whether to use dynamic programming or not")
-@click.option('-s', "--seed", "random_seed", type=click.INT,
-              default=None, show_default=True,
-              help="If provided, a fixed random graph will be generated.")
-def main(num_graphs,
+def main(graphs_per_step,
          n,
          increase_step,
          graph_increases,
@@ -50,34 +50,30 @@ def main(num_graphs,
          weights_on,
          max_edge_weight,
          max_node_weight,
-         k,
-         bidirectional,
-         parallel,
-         dynamic,
-         random_seed):
+         k):
 
   mode = {
     'reference': [False, False, False],
     'parallel': [False, True, False],
     'bidirectional': [True, False, False],
     'bidirectional & parallel': [True, True, False],
-    'dynamic & bidirectional': [True, False, True],
+    'dynamic': [True, False, True],
     # 'dynamic, bidirectional & parallel': [True, True, True]
   }
 
   user_time = {k: [] for k, v in mode.items()}
   wall_time = {k: [] for k, v in mode.items()}
 
-  user_time_mean = {k: [0. for _ in range(graph_increases)] for k, v in mode.items()}
-  wall_time_mean = {k: [0. for _ in range(graph_increases)] for k, v in mode.items()}
-  n_values = [n + i * 20 for i in range(graph_increases)]
+  user_time_mean = {k: [0. for _ in range(graph_increases)]
+                    for k, v in mode.items()}
+  wall_time_mean = {k: [0. for _ in range(graph_increases)]
+                    for k, v in mode.items()}
+  n_values = [n + i * increase_step for i in range(graph_increases)]
 
   for j in range(graph_increases):
-    print(f"graph #{j}")
-    for i in range(num_graphs):
-      print(f"    graph #{j}.{i}")
-      if random_seed is None:
-        random_seed == i
+    print(f"graph {j + 1}/{graph_increases}  nodes: {n + j * increase_step}")
+    for i in range(graphs_per_step):
+      print(f"  {i + 1}/{graphs_per_step}")
 
       adj_list, G = graph_generator.random_graph(
         n=n,
@@ -85,7 +81,7 @@ def main(num_graphs,
         weights_on=weights_on,
         max_edge_weight=max_edge_weight,
         max_node_weight=max_node_weight,
-        random_seed=random_seed
+        random_seed=i
       )
 
       for k, v in mode.items():
@@ -95,10 +91,11 @@ def main(num_graphs,
                                        n=n,
                                        source=1,
                                        sink=n,
-                                       failing="nodes",
+                                       failing="edges",
                                        bidirectional=v[0],
                                        parallel=v[1],
-                                       dynamic=v[2])
+                                       dynamic=v[2],
+                                       online=True)
         user_end = process_time()
         wall_end = timer()
         user_time[k].append(user_end - user_start)
@@ -112,8 +109,8 @@ def main(num_graphs,
         # print()
         gc.collect()
     for k, v in mode.items():
-      user_time_mean[k][j] = sum(user_time[k]) / num_graphs
-      wall_time_mean[k][j] = sum(wall_time[k]) / num_graphs
+      user_time_mean[k][j] = sum(user_time[k]) / graphs_per_step
+      wall_time_mean[k][j] = sum(wall_time[k]) / graphs_per_step
       del user_time[k][:]
       del wall_time[k][:]
     n += increase_step
