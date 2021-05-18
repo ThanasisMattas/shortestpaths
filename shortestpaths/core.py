@@ -25,6 +25,7 @@ from concurrent.futures import ProcessPoolExecutor
 import copy
 from functools import partial
 import heapq
+from itertools import count
 from typing import Hashable, Literal
 
 from shortestpaths import dijkstra
@@ -126,9 +127,7 @@ def _replacement_path(failed_path_idx: int,
       # Although the prev node doesn't have to be acurate, however it souldn't
       # be source, because when checking for bidirectional dijkstra termination
       # condition, it would not account as visited.
-      to_visit[source] = [cum_hop_weights[failed_path_idx - 1],
-                          -1,
-                          source]
+      to_visit[source] = [cum_hop_weights[failed_path_idx - 1], -1, source]
       # Initialize the path cost with the root_cost.
       if (bidirectional) and (not tapes):
         # Delete the nodes of the root path from the reverse PriorityQueue.
@@ -182,9 +181,7 @@ def _replacement_path(failed_path_idx: int,
       # Although the prev node doesn't have to be acurate, however it souldn't
       # be source, because when checking for bidirectional dijkstra termination
       # condition, it would not account as visited.
-      to_visit[source] = [cum_hop_weights[failed_path_idx],
-                          -1,
-                          source]
+      to_visit[source] = [cum_hop_weights[failed_path_idx], -1, source]
       # Initialize the path cost with the root_cost.
       if (bidirectional) and (not tapes):
         # Delete the nodes of the root path from the reverse PriorityQueue.
@@ -278,6 +275,7 @@ def _replacement_path(failed_path_idx: int,
 
   if k_paths:
     # then replacement_paths was called from k_shortest_paths
+    # (online, failing edges always)
     if bidirectional:
       if path_data[0]:
         path_data = [
@@ -520,6 +518,7 @@ def _yen(sink,
   # Construct the deviation paths of the last found shortest path.
   # (u is the spur node)
   for i, u in enumerate(last_path[last_u_idx: -1]):
+    next(_yen.counter)
     u_idx = i + last_u_idx
     # Fail the (i, i + 1) edges of the found k - 1 shortest paths.
     # {head: (head, edge_cost)}
@@ -538,7 +537,7 @@ def _yen(sink,
     for root_node in last_path[:u_idx]:
       del new_to_visit[root_node]
 
-    # Set i as source and initialize it's path cost to source-i path cost.
+    # Set the spur node as source and initialize it's cost to root path cost.
     new_to_visit[u] = [cum_hop_weights[u_idx], u, u]
     new_visited = dijkstra.dijkstra(adj_list,
                                     sink,
@@ -623,6 +622,7 @@ def k_shortest_paths(adj_list,
   heapq.heapify(prospects)
   last_path = shortest_path
   parent_spur_node_idx = 0
+  _yen.counter = count(0)
 
   for k in range(1, K):
     if yen or lawler:
@@ -638,6 +638,9 @@ def k_shortest_paths(adj_list,
                        prospects,
                        cum_hop_weights,
                        lawler)
+    if verbose >= 2:
+      print(f"k: {k + 1:{len(str(K))}}"
+            f"    spur paths: {_yen.counter.__reduce__()[1][0]}")
     else:
       prospects = replacement_paths(adj_list,
                                     n,
@@ -669,12 +672,16 @@ def k_shortest_paths(adj_list,
       if ((len(prospects) >= K - k)
               and heapq.nsmallest(K - k, prospects)[-1][0] == last_path[0]):
         for _ in range(K - k):
-          last_path_cost, last_path, c, d = heapq.heappop(prospects)
-          k_paths.append([last_path, last_path_cost, None])
+          kth_path = heapq.heappop(prospects)
+          k_paths.append([kth_path[1], kth_path[0], None])
         break
-      last_path_cost, last_path, cum_hop_weights, parent_spur_node_idx = \
-          heapq.heappop(prospects)
-      k_paths.append([last_path, last_path_cost, None])
+      kth_path = heapq.heappop(prospects)
+      last_path = kth_path[1]
+      k_paths.append([last_path, kth_path[0], None])
+      cum_hop_weights = kth_path[2]
+      parent_spur_node_idx = kth_path[3]
+      if dynamic:
+        checkpoints = kth_path[4]
     else:
       break
   return k_paths
