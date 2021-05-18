@@ -162,3 +162,17 @@ def print_heap(h):
   h_copy = copy.deepcopy(h)
   while h_copy:
     print(heapq.heappop(h_copy))
+
+
+def path_cum_hop_weights(path, adj_list):
+  """Finds the cumulative hop weights of a path."""
+  cum_hop_weights = [0]
+  for i, u in enumerate(path[:-1]):
+    # Find the edge weight.
+    for v, uv_weight in adj_list[u]:
+      if v == path[i + 1]:
+        cum_hop_weights.append(uv_weight + cum_hop_weights[-1])
+        break
+    if len(cum_hop_weights) < i + 2:
+      raise Exception(f"Path: {path} is disconnected at {path[i: i + 2]}")
+  return cum_hop_weights
