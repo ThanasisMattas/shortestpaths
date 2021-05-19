@@ -42,10 +42,10 @@ from shortestpaths import core, graph_generator
               help="the max nodal weight of the graph (defaults to 1000)")
 @click.option('-k', type=click.INT, default=1, show_default=True,
               help="number of alternative paths to be generated")
-def main(graphs_per_step,
-         n,
+def main(n,
          increase_step,
          graph_increases,
+         graphs_per_step,
          weighted,
          weights_on,
          max_edge_weight,
@@ -71,7 +71,7 @@ def main(graphs_per_step,
   n_values = [n + i * increase_step for i in range(graph_increases)]
 
   for j in range(graph_increases):
-    print(f"graph {j + 1}/{graph_increases}  nodes: {n + j * increase_step}")
+    print(f"graph {j + 1}/{graph_increases}  nodes: {n}")
     for i in range(graphs_per_step):
       print(f"  {i + 1}/{graphs_per_step}")
 
@@ -91,11 +91,11 @@ def main(graphs_per_step,
                                        n=n,
                                        source=1,
                                        sink=n,
-                                       failing="edges",
+                                       failing="nodes",
                                        bidirectional=v[0],
                                        parallel=v[1],
                                        dynamic=v[2],
-                                       online=True)
+                                       online=False)
         user_end = process_time()
         wall_end = timer()
         user_time[k].append(user_end - user_start)

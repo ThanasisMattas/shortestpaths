@@ -201,7 +201,7 @@ def random_graph(n,
     edge_probability = _edge_probability(edge,
                                          gradient=0.2,
                                          center=center,
-                                         cap=0.7)
+                                         cap=0.8)
     # probs[i] = edge_probability
     # edge_lengths[i] = abs(edge[0] - edge[1])
     edge_initial_weight = edge_weights[i]

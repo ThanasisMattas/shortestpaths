@@ -654,8 +654,6 @@ def k_shortest_paths(adj_list,
   parent_spur_node_idx = 0
   _yen.counter = count(0)
 
-  # __import__('ipdb').set_trace(context=9)
-
   for k in range(1, K):
     if yen or lawler:
       prospects = _yen(sink,

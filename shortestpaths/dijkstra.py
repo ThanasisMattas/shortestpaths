@@ -164,9 +164,11 @@ def dijkstra(adj_list,
     # Discovered, yet not visited, nodes. This is used to create the potential
     # shortest paths at bidirectional Dijkstra termination condition.
     discovered = {to_visit.peek()[-1]}
+  # vis = []
 
   while to_visit:
     u_path_cost, u_prev, u = to_visit.pop_low()
+    # vis.append(u)
 
     if checkpoints:
       discovered.remove(u)
@@ -207,6 +209,7 @@ def dijkstra(adj_list,
         try:
           cp = next(cps)
         except StopIteration:
+          # print(f"states recording visited: {vis}")
           if isinstance(tapes_queue, mp.queues.Queue):
             tapes_queue.put(tape)
             return
@@ -232,11 +235,14 @@ def make_checkpoints(reverse_seq: mp.queues.Queue,
     u_prev = u
   if isinstance(forward_seq, mp.queues.Queue):
     u_prev = source
+    # vis = []
     while not forward_seq.empty():
       u = forward_seq.get()
+      # vis.append(u)
       if u in path:
         cps_forward.append(u_prev)
       u_prev = u
+  # print(f" cps visited seq: {vis}")
   return cps_forward, cps_reverse
 
 
@@ -268,26 +274,31 @@ def _state_idx(i, tape, path, direction):
 
 
 def _verify_tapes(tapes, path, failing="nodes"):
-  """Checks if the states recorded are indeed the previous states of each
-  failed node, by verifying that the failed node isn't visited, yet discovered.
+  """Sanity test that checks if the states recorded are indeed the previous
+  states of each failed node, by verifying that the failed node isn't visited.
 
   A recorded state: [to_visit, visited, discovered_but_not_visited_nodes]
   """
-  error_msg = ("Record for failed node <{node}> with index <{idx}> in the "
-               "{direction} tape is not a previous state because the node is"
-               " visited.")
+  error_msg = ("Record for failed node <{node}> with path index <{idx}> in the"
+               " {direction} tape is not a previous state, because the node"
+               " was visited.")
 
   check_tapes = {"reverse": tapes[1]}
   if tapes[0]:
     check_tapes["forward"] = tapes[0]
 
-  for i, u in enumerate(path):
+  start_idx = int(failing == "nodes")
+
+  for i, u in enumerate(path[start_idx: -start_idx]):
+    i_real = i + start_idx
     for direction, tape in check_tapes.items():
-      state = tape[_state_idx(i, tape, path, direction)]
-      if ((i not in state[0])
-              or (state[1][i][0] != 0)
-              or (state[1][i][1] != u)):
-        raise KeyError(error_msg.format(node=u, idx=i, direction=direction))
+      state = tape[_state_idx(i_real, tape, path, direction)]
+      if ((u not in state[0])
+              or (state[1][u][0] != 0)
+              or (state[1][u][1] != u)):
+        raise KeyError(error_msg.format(node=u,
+                                        idx=i_real,
+                                        direction=direction))
 
 
 # @time_this(wall_clock=True)
@@ -331,11 +342,8 @@ def bidirectional_recording(adj_list,
     verbose=verbose
   )
 
-  if failing == "nodes":
-    # We won't record states for source and sink
-    start_idx = 1
-  else:
-    start_idx = 0
+  # We won't record states for source and sink, when failing nodes.
+  start_idx = int(failing == "nodes")
 
   # 2. Record the algorithm states on a tape
   tapes_queue = Queue()
@@ -389,7 +397,8 @@ def bidirectional_recording(adj_list,
     else:
       tapes = tape_2, tape_1
 
-  _verify_tapes(tapes, path_data[0], failing="nodes")
+  # Uncomment this to run a sanity test on the tapes.
+  # _verify_tapes(tapes, path_data[0], failing="nodes")
 
   return path_data, tapes
 
@@ -432,6 +441,9 @@ def _biderectional_dijkstra_branch(adj_list: list,
   while to_visit:
     u_path_cost, u_prev, u = to_visit.pop_low()
 
+    if visited_seq is not None:
+      visited_seq.put(u)
+
     # -1 denotes an unconnected node and, in that case, node and previous node
     # are the same by initialization.
     with visited_costs.get_lock():
@@ -442,9 +454,6 @@ def _biderectional_dijkstra_branch(adj_list: list,
         visited_costs[u + visited_offset] = u_path_cost
     with visited_prev_nodes.get_lock():
       visited_prev_nodes[u + visited_offset] = u_prev
-
-      if visited_seq is not None:
-        visited_seq.put(u)
 
     if (kill.is_set()) or (u == sink):
       kill.set()
@@ -565,25 +574,31 @@ def bidirectional_dijkstra(adj_list,
       failed_forward = failed_reverse = failed
       idx_forward = idx_reverse = failed_path_idx
 
-    # Retrieve the forward and reverse states.
-    tape_forward, tape_reverse = tapes
-    [to_visit_reverse, visited_reverse, discovered_reverse] = \
-        tape_reverse[idx_reverse]
+    if failing == "nodes":
+      # Retrieve the forward and reverse states.
+      # NOTE: We will use again the last states of each tape, so we need to
+      #       deepcopy them. Currently, deepcopy is done at subporcesses crea-
+      #       tion.
+      [to_visit_reverse, visited_reverse, discovered_reverse] = \
+          tapes[1][_state_idx(idx_reverse, tapes[1], base_path, "reverse")]
 
     if online:
       # then to_visit and visited are passed as function arguments.
       discovered_forward = set()
       # Delete the nodes of the root path from the reverse PriorityQueue.
       if failing == "edges":
-        for u in base_path[:idx_forward]:
-          del to_visit_reverse[u]
+        # for u in base_path[:idx_forward]:
+          # del to_visit_reverse[u]
+        del to_visit_reverse[base_path[:idx_forward]]
         net_n = n - failed_forward
       else:
-        for u in base_path[:idx_forward - 1]:
-          del to_visit_reverse[u]
+        # for u in base_path[:idx_forward - 1]:
+        #   del to_visit_reverse[u]
+        del to_visit_reverse[base_path[:idx_forward - 1]]
         net_n = n - failed - 1
     else:
-      [to_visit, visited, discovered_forward] = tape_forward[idx_forward]
+      [to_visit, visited, discovered_forward] = \
+          tapes[0][_state_idx(idx_reverse, tapes[0], base_path, "forward")]
       net_n = n
 
     if failing == "edges":
@@ -608,6 +623,8 @@ def bidirectional_dijkstra(adj_list,
       #          frame back (at _replacement_path()).
       del to_visit[failed]
       del to_visit_reverse[failed]
+      discovered_forward.discard(failed)
+      discovered_reverse.discard(failed)
 
     # Retrieve the prospect path of the state.
     # prospect: [path_cost, forward_search_node, backward_search_node]
