@@ -216,39 +216,6 @@ def dijkstra(adj_list,
   return visited
 
 
-def checkpoints_from_lists(shortest_path,
-                           forward_seq=None,
-                           reverse_seq=None,
-                           online=False,
-                           failing="edges",
-                           parent_spur_node_idx=0):
-  if online:
-    checkpoints_forward = None
-    checkpoints_reverse = []
-    for node in shortest_path[1: -1]:
-      checkpoints_reverse.append(reverse_seq[reverse_seq.index(node) - 1])
-    if failing == "edges":
-      # In case of k_shortest_paths, the search starts from the node that the
-      # parent path branched out, because the searches for all the preceding
-      # nodes have already been done.
-      if parent_spur_node_idx:
-        for i in range(parent_spur_node_idx - 1):
-          checkpoints_reverse[i] = None
-  else:
-    checkpoints_forward = []
-    checkpoints_reverse = []
-    for node in shortest_path[1: -1]:
-      checkpoints_forward.append(forward_seq[forward_seq.index(node) - 1])
-      checkpoints_reverse.append(reverse_seq[reverse_seq.index(node) - 1])
-  # Although the sequence of the failed nodes are the same for both searches,
-  # when constructing the corresponding replacement path, when recording, the
-  # reverse search will visit them in reversed order, thus the reverse check-
-  # point list has to be reversed and the reverse tape has to be reversed
-  # back, to match the failing sequence.
-  checkpoints_reverse.reverse()
-  return checkpoints_forward, checkpoints_reverse
-
-
 def checkpoints_from_queues(reverse_seq: mp.queues.Queue,
                             sink: Hashable,
                             path: list,
