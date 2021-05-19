@@ -201,7 +201,7 @@ def dijkstra(adj_list,
           discovered.add(v)
 
     if checkpoints:
-      if u == cp:
+      while u == cp:
         # print(f"{current_process().name} cp: {cp}")
         tape.append([copy.deepcopy(to_visit),
                      copy.deepcopy(visited),
