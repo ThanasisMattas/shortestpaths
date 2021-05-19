@@ -165,11 +165,12 @@ class PriorityQueue:
     raise NotImplementedError()
 
   def peek(self):
-    try:
-      entry = self.pop_low()
-    except KeyError:
-      raise KeyError("Trying to peek an empty PriorityQueue.")
-    self.add(entry.copy())
+    entry = self._heapq[0]
+    while entry[-1] == self._REMOVED:
+      heapq.heappop(self._heapq)
+      entry = self._heapq[0]
+    entry = copy.deepcopy(entry)
+    del entry[-3]
     return entry
 
   def __iter__(self):

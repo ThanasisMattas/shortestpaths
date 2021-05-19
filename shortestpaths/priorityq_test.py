@@ -144,7 +144,7 @@ class TestPriorityQueue():
     assert entry == self.pq[9]
     assert len(self.pq) == self.length
     self.pq.clear()
-    with pytest.raises(KeyError) as ke:
+    with pytest.raises(IndexError) as ke:
       self.pq.peek()
 
   def test_iter(self):
