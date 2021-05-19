@@ -594,6 +594,12 @@ def bidirectional_dijkstra(adj_list,
     if online:
       # then to_visit and visited are passed as function arguments.
       discovered_forward = set()
+      if _state_idx(idx_reverse,
+                    tapes[1],
+                    base_path,
+                    "reverse",
+                    failing=failing) == -1:
+        to_visit_reverse = copy.deepcopy(to_visit_reverse)
       # Delete the nodes of the root path from the reverse PriorityQueue.
       if failing == "edges":
         # for u in base_path[:idx_forward]:
@@ -601,18 +607,18 @@ def bidirectional_dijkstra(adj_list,
         del to_visit_reverse[base_path[:idx_forward]]
         net_n = n - failed_forward
       else:
-        # for u in base_path[:idx_forward - 1]:
-        #   del to_visit_reverse[u]
-        del to_visit_reverse[base_path[:idx_forward - 1]]
+        for u in base_path[:idx_forward - 1]:
+          del to_visit_reverse[u]
+        # del to_visit_reverse[base_path[:idx_forward - 1]]
         net_n = n - failed - 1
     else:
+      net_n = n
       [to_visit, visited, discovered_forward] = \
           tapes[0][_state_idx(idx_forward,
                               tapes[0],
                               base_path,
                               "forward",
                               failing=failing)]
-      net_n = n
 
     if failing == "edges":
       # When source and sink involve in a failing edge, we don't have a state
@@ -702,13 +708,13 @@ def bidirectional_dijkstra(adj_list,
                                      + [i for i in range(1, n + 1)]))
   if record_cps:
     if online:
-      reverse_seq = Queue()
       forward_seq = None
-    else:
       reverse_seq = Queue()
+    else:
       forward_seq = Queue()
+      reverse_seq = Queue()
   else:
-    reverse_seq = forward_seq = None
+    forward_seq = reverse_seq = None
   kill = Event()
   sync = (Event(), Event())
 

@@ -68,10 +68,10 @@ sys.path.insert(0, home_dir)
 os.environ["BIDIRECTIONAL_SYNC"] = '1'
 
 
-SOLVER = ["-b", "-d", "-d -p"]
-GRAPH_SIZES = [50, 150, 200, 300, 350]
+SOLVER = ["-d"]
+GRAPH_SIZES = [100, 150, 250, 300, 430]
 FAILING = ["edges"]
-ONLINE = ["--online", ""]
+ONLINE = ["--online"]
 K = [20]
 
 class TestShortestPaths():
@@ -83,39 +83,39 @@ class TestShortestPaths():
       paths_list[i] = paths_list[i].split("cost", 1)[1]
     return paths_list
 
-  @pytest.mark.parametrize(
-    "solver, k, n",
-    [[s, k, n]
-     for s in SOLVER + ["-y"] if 'd' not in s
-     for k in K
-     for n in GRAPH_SIZES]
-  )
-  def test_k_shortest_paths(self, solver, k, n):
-    reference_cmd = f"python -m shortestpaths -v -l -k {k} {n}"
-    solver_cmd = f"python -m shortestpaths -v {solver} -k {k} {n}"
-    reference = subprocess.run(reference_cmd.split(),
-                               stdout=subprocess.PIPE)
-    solver = subprocess.run(solver_cmd.split(),
-                            stdout=subprocess.PIPE)
-    reference_out = self.path_costs(reference)
-    solver_out = self.path_costs(solver)
-    assert reference_out == solver_out
-
   # @pytest.mark.parametrize(
-  #   "solver, n, failing, online",
-  #   [[s, n, f, o]
-  #    for s in SOLVER
-  #    for n in GRAPH_SIZES
-  #    for f in FAILING
-  #    for o in ONLINE]
+  #   "solver, k, n",
+  #   [[s, k, n]
+  #    for s in SOLVER + ["-y"] if 'd' not in s
+  #    for k in K
+  #    for n in GRAPH_SIZES]
   # )
-  # def test_replacement_paths(self, solver, n, failing, online):
-  #   reference_cmd = (f"python -m shortestpaths -v {n} replacement-paths"
-  #                    f" --failing {failing} {online}")
-  #   solver_cmd = (f"python -m shortestpaths -v {solver} {n} replacement-paths"
-  #                 f" --failing {failing} {online}")
-  #   reference = subprocess.run(reference_cmd.split(), stdout=subprocess.PIPE)
-  #   solver = subprocess.run(solver_cmd.split(), stdout=subprocess.PIPE)
+  # def test_k_shortest_paths(self, solver, k, n):
+  #   reference_cmd = f"python -m shortestpaths -v -l -k {k} {n}"
+  #   solver_cmd = f"python -m shortestpaths -v {solver} -k {k} {n}"
+  #   reference = subprocess.run(reference_cmd.split(),
+  #                              stdout=subprocess.PIPE)
+  #   solver = subprocess.run(solver_cmd.split(),
+  #                           stdout=subprocess.PIPE)
   #   reference_out = self.path_costs(reference)
   #   solver_out = self.path_costs(solver)
   #   assert reference_out == solver_out
+
+  @pytest.mark.parametrize(
+    "solver, n, failing, online",
+    [[s, n, f, o]
+     for s in SOLVER
+     for n in GRAPH_SIZES
+     for f in FAILING
+     for o in ONLINE]
+  )
+  def test_replacement_paths(self, solver, n, failing, online):
+    reference_cmd = (f"python -m shortestpaths -v {n} replacement-paths"
+                     f" --failing {failing} {online}")
+    solver_cmd = (f"python -m shortestpaths -v {solver} {n} replacement-paths"
+                  f" --failing {failing} {online}")
+    reference = subprocess.run(reference_cmd.split(), stdout=subprocess.PIPE)
+    solver = subprocess.run(solver_cmd.split(), stdout=subprocess.PIPE)
+    reference_out = self.path_costs(reference)
+    solver_out = self.path_costs(solver)
+    assert reference_out == solver_out
