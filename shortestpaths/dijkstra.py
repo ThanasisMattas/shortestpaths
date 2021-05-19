@@ -246,7 +246,7 @@ def make_checkpoints(reverse_seq: mp.queues.Queue,
   return cps_forward, cps_reverse
 
 
-def _state_idx(i, tape, path, direction):
+def _state_idx(i, tape, path, direction, failing):
   """Evaluates the state index in the tape that corresponds to the failed node.
 
   Args:
@@ -254,22 +254,25 @@ def _state_idx(i, tape, path, direction):
     tape (list)     : either forward or reverse
     path (list)     : the base shortest path
     direction (str) : "forward" or "reverse"
+    failing (str)   : "nodes" or "edges"
 
   Returns:
     idx (int)
   """
+  # Offset the index by source/sink node, because when failing nodes, those
+  # cannot fail.
+  source_offset = bool(failing == "edges")
   if direction == "forward":
-    # min(i, len(tape)) - 1
-    if i < len(tape):
-      idx = i - 1
+    if source_offset + i < len(tape):
+      idx = source_offset + i - 1
     else:
       idx = -1
   else:
-    # min(len(path) - i, len(tape) + 1) - 2
-    if len(path) - i < len(tape) + 1:
-      idx = - (len(tape) + 1 - (len(path) - i) + 1)
+    if len(path) - i < len(tape) + 1 - source_offset:
+      idx = -(len(tape) + 1 - source_offset - (len(path) - i) + 1)
     else:
-      idx = -1
+      idx = - 1
+  # print(f"path_idx: {i}  {direction}: {idx:2}  len(tape): {len(tape)}")
   return idx
 
 
@@ -292,7 +295,7 @@ def _verify_tapes(tapes, path, failing="nodes"):
   for i, u in enumerate(path[start_idx: -start_idx]):
     i_real = i + start_idx
     for direction, tape in check_tapes.items():
-      state = tape[_state_idx(i_real, tape, path, direction)]
+      state = tape[_state_idx(i_real, tape, path, direction, failing)]
       if ((u not in state[0])
               or (state[1][u][0] != 0)
               or (state[1][u][1] != u)):
@@ -398,7 +401,7 @@ def bidirectional_recording(adj_list,
       tapes = tape_2, tape_1
 
   # Uncomment this to run a sanity test on the tapes.
-  # _verify_tapes(tapes, path_data[0], failing="nodes")
+  # _verify_tapes(tapes, path_data[0], failing=failing)
 
   return path_data, tapes
 
@@ -574,13 +577,16 @@ def bidirectional_dijkstra(adj_list,
       failed_forward = failed_reverse = failed
       idx_forward = idx_reverse = failed_path_idx
 
-    if failing == "nodes":
-      # Retrieve the forward and reverse states.
-      # NOTE: We will use again the last states of each tape, so we need to
-      #       deepcopy them. Currently, deepcopy is done at subporcesses crea-
-      #       tion.
-      [to_visit_reverse, visited_reverse, discovered_reverse] = \
-          tapes[1][_state_idx(idx_reverse, tapes[1], base_path, "reverse")]
+    # Retrieve the forward and reverse states.
+    # NOTE: We will use again the last states of each tape, so we need to
+    #       deepcopy them. Currently, deepcopy is done at subporcesses crea-
+    #       tion.
+    [to_visit_reverse, visited_reverse, discovered_reverse] = \
+        tapes[1][_state_idx(idx_reverse,
+                            tapes[1],
+                            base_path,
+                            "reverse",
+                            failing=failing)]
 
     if online:
       # then to_visit and visited are passed as function arguments.
@@ -598,7 +604,11 @@ def bidirectional_dijkstra(adj_list,
         net_n = n - failed - 1
     else:
       [to_visit, visited, discovered_forward] = \
-          tapes[0][_state_idx(idx_reverse, tapes[0], base_path, "forward")]
+          tapes[0][_state_idx(idx_forward,
+                              tapes[0],
+                              base_path,
+                              "forward",
+                              failing=failing)]
       net_n = n
 
     if failing == "edges":
