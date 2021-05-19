@@ -429,17 +429,17 @@ def replacement_paths(adj_list,
       base_path = path_data[0]
       cum_hop_weights = None
 
-  # # Next, find the replacement paths.
-  # if dynamic:
-  #   if online:
-  #     # Only reverse states are recorded on tape.
-  #     to_visit_reverse = None
-  #   else:
-  #     # All necessary data will be retrieved from tapes.
-  #     to_visit = to_visit_reverse = visited = None
-  # else:
-  #   # All data will be copied for each replacement path.
-  #   tapes = None
+  # Next, find the replacement paths.
+  if dynamic:
+    if online:
+      # Only reverse states are recorded on tape.
+      to_visit_reverse = None
+    else:
+      # All necessary data will be retrieved from tapes.
+      to_visit = to_visit_reverse = visited = None
+  else:
+    # All data will be copied for each replacement path.
+    tapes = None
 
   if parallel:
     _repl_path = partial(_replacement_path,

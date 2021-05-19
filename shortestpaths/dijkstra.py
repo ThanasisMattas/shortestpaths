@@ -444,6 +444,9 @@ def _biderectional_dijkstra_branch(adj_list: list,
   while to_visit:
     u_path_cost, u_prev, u = to_visit.pop_low()
 
+    if u == failed:
+      continue
+
     if visited_seq is not None:
       visited_seq.put(u)
 
@@ -625,16 +628,20 @@ def bidirectional_dijkstra(adj_list,
         discovered_reverse.discard(failed_forward)
         to_visit_reverse[failed_forward] = \
             [math.inf, failed_forward, failed_forward]
-    else:
-      # Fail the failed node.
-      # NOTE: 1. This is not necessary, because failed *node* is avoided while
-      #          executing Dijkstra's algorithm.
-      #       2. In case of failing edges, the failed edge was failed one stack
-      #          frame back (at _replacement_path()).
-      del to_visit[failed]
-      del to_visit_reverse[failed]
-      discovered_forward.discard(failed)
-      discovered_reverse.discard(failed)
+    # else:
+    #   # Fail the failed node.
+    #   # NOTE: 1. This is not necessary, because failed *node* is avoided while
+    #   #          executing Dijkstra's algorithm.
+    #   #       2. In case of failing edges, the failed edge was failed one stack
+    #   #          frame back (at _replacement_path()).
+    #   #       3. We should reconnect the failed node, because we will use again
+    #   #          the to_visit PriorityQueue.
+    #   to_visit_failed = to_visit[failed]
+    #   to_visit_reverse_failed = to_visit_reverse[failed]
+    #   del to_visit[failed]
+    #   del to_visit_reverse[failed]
+    #   discovered_forward.discard(failed)
+    #   discovered_reverse.discard(failed)
 
     # Retrieve the prospect path of the state.
     # prospect: [path_cost, forward_search_node, backward_search_node]
@@ -738,6 +745,12 @@ def bidirectional_dijkstra(adj_list,
   reverse_search.start()
   forward_search.join()
   reverse_search.join()
+
+  # if (tapes) and (failing == "nodes"):
+  #   to_visit[failed] = to_visit_failed
+  #   to_visit_reverse[failed] = to_visit_reverse_failed
+  #   discovered_forward.add(failed)
+  #   discovered_reverse.add(failed)
 
   if sum(prospect):
     # then the two searches met, as expected
