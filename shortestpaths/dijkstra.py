@@ -216,11 +216,11 @@ def dijkstra(adj_list,
   return visited
 
 
-def checkpoints_from_queues(reverse_seq: mp.queues.Queue,
-                            sink: Hashable,
-                            path: list,
-                            forward_seq: mp.queues.Queue = None,
-                            source: Hashable = None):
+def make_checkpoints(reverse_seq: mp.queues.Queue,
+                     sink: Hashable,
+                     path: list,
+                     forward_seq: mp.queues.Queue = None,
+                     source: Hashable = None):
   """Generates the recording checkpoints for the path nodes."""
   cps_forward = []
   cps_reverse = []
@@ -253,11 +253,13 @@ def _state_idx(i, tape, path, direction):
     idx (int)
   """
   if direction == "forward":
+    # min(i, len(tape)) - 1
     if i < len(tape):
       idx = i - 1
     else:
       idx = -1
   else:
+    # min(len(path) - i, len(tape) + 1) - 2
     if len(path) - i < len(tape) + 1:
       idx = - (len(tape) + 1 - (len(path) - i) + 1)
     else:
@@ -284,8 +286,7 @@ def _verify_tapes(tapes, path, failing="nodes"):
       state = tape[_state_idx(i, tape, path, direction)]
       if ((i not in state[0])
               or (state[1][i][0] != 0)
-              or (state[1][i][1] != u)
-              or (u not in state[2])):
+              or (state[1][i][1] != u)):
         raise KeyError(error_msg.format(node=u, idx=i, direction=direction))
 
 
@@ -754,11 +755,11 @@ def bidirectional_dijkstra(adj_list,
   )
 
   if record_cps:
-    checkpoints = checkpoints_from_queues(reverse_seq,
-                                          sink,
-                                          path,
-                                          forward_seq,
-                                          source)
+    checkpoints = make_checkpoints(reverse_seq,
+                                   sink,
+                                   path,
+                                   forward_seq,
+                                   source)
     if online:
       return [path, path_cost, cum_hop_weights], checkpoints
     else:
