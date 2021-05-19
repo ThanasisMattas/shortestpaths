@@ -127,13 +127,13 @@ def invert_adj_list(adj_list):
   return i_adj_list
 
 
-def dijkstra_recorder(adj_list,
-                      sink,
-                      to_visit,
-                      visited,
-                      failed=None,
-                      tapes_queue=None,
-                      checkpoints=None):
+def dijkstra(adj_list,
+             sink,
+             to_visit,
+             visited,
+             failed=None,
+             tapes_queue=None,
+             checkpoints=None):
   """Dijkstra's algorithm
 
   Args:
@@ -154,20 +154,22 @@ def dijkstra_recorder(adj_list,
   Returns:
     visited (2D list)        : Each entry is a 2-list for each node:
                                [path_cost, prev_node_id]
-    tape (OrderedDict)       : Each entry is the step-wise state of the
-                               algorithm as a pair:
-                               {node_id: (to_visit, visited)}
-                               using as key the id of the expanded node
+    tape (list)              : Each record is a state for each failed node
+                               [to_visit, visited, discovered_nodes]
   """
   if checkpoints:
     tape = []
     cps = iter(checkpoints)
     cp = next(cps)
-    source = to_visit.peek()[-1]
-    discovered = {source}
+    # Discovered, yet not visited, nodes. This is used to create the potential
+    # shortest paths at bidirectional Dijkstra termination condition.
+    discovered = {to_visit.peek()[-1]}
 
   while to_visit:
     u_path_cost, u_prev, u = to_visit.pop_low()
+
+    if checkpoints:
+      discovered.remove(u)
 
     if u_path_cost == math.inf:
       # -1 denotes an unconnected node and, in that case, node and previous
@@ -178,12 +180,10 @@ def dijkstra_recorder(adj_list,
       visited[u][0] = u_path_cost
     visited[u][1] = u_prev
 
-    if checkpoints:
-      discovered.remove(u)
-
     if u == sink:
       if checkpoints:
-        raise Exception("The states (2nd) recording reached the sink."
+        raise Exception("The tape recording reached the sink, which is not a"
+                        " previous state (checkpoint) to any node."
                         f" Process: {current_process().name}")
       return visited
 
@@ -271,6 +271,55 @@ def checkpoints_from_queues(reverse_seq: mp.queues.Queue,
         cps_forward.append(u_prev)
       u_prev = u
   return cps_forward, cps_reverse
+
+
+def _state_idx(i, tape, path, direction):
+  """Evaluates the state index in the tape that corresponds to the failed node.
+
+  Args:
+    i (int)         : the index of the failed node in the path
+    tape (list)     : either forward or reverse
+    path (list)     : the base shortest path
+    direction (str) : "forward" or "reverse"
+
+  Returns:
+    idx (int)
+  """
+  if direction == "forward":
+    if i < len(tape):
+      idx = i - 1
+    else:
+      idx = -1
+  else:
+    if len(path) - i < len(tape) + 1:
+      idx = - (len(tape) + 1 - (len(path) - i) + 1)
+    else:
+      idx = -1
+  return idx
+
+
+def _verify_tapes(tapes, path, failing="nodes"):
+  """Checks if the states recorded are indeed the previous states of each
+  failed node, by verifying that the failed node isn't visited, yet discovered.
+
+  A recorded state: [to_visit, visited, discovered_but_not_visited_nodes]
+  """
+  error_msg = ("Record for failed node <{node}> with index <{idx}> in the "
+               "{direction} tape is not a previous state because the node is"
+               " visited.")
+
+  check_tapes = {"reverse": tapes[1]}
+  if tapes[0]:
+    check_tapes["forward"] = tapes[0]
+
+  for i, u in enumerate(path):
+    for direction, tape in check_tapes.items():
+      state = tape[_state_idx(i, tape, path, direction)]
+      if ((i not in state[0])
+              or (state[1][i][0] != 0)
+              or (state[1][i][1] != u)
+              or (u not in state[2])):
+        raise KeyError(error_msg.format(node=u, idx=i, direction=direction))
 
 
 # @time_this(wall_clock=True)
