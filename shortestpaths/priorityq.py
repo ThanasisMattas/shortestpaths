@@ -58,6 +58,7 @@ class PriorityQueue:
 
   def __init__(self, data=None):
     self._heapq = []
+    heapq.heapify(self._heapq)
     self._entry_finder = {}
     self._counter = itertools.count()
     if data is None:
