@@ -336,8 +336,8 @@ def verify_tapes(tapes, path, failing="nodes"):
                                         direction=direction))
 
 
-# @time_this
 # @profile
+# @time_this
 def bidirectional_recording(adj_list,
                             inverted_adj_list,
                             source,
@@ -370,9 +370,9 @@ def bidirectional_recording(adj_list,
       inverted_adj_list,
       source,
       sink,
-      copy.deepcopy(to_visit),
-      copy.deepcopy(to_visit_reverse),
-      copy.deepcopy(visited),
+      to_visit,
+      to_visit_reverse,
+      visited,
       online=online,
       record_cps=True,
       verbose=verbose
