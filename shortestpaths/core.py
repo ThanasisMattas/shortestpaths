@@ -631,6 +631,7 @@ def k_shortest_paths(adj_list,
                                                                sink,
                                                                bidirectional)
   # Find the absolute shortest path.
+  # NOTE: Always online and failing edges.
   [shortest_path, shortest_path_cost, cum_hop_weights], checkpoints = \
       _first_shortest_path(adj_list,
                            source,

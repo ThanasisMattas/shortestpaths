@@ -69,7 +69,7 @@ os.environ["BIDIRECTIONAL_SYNC"] = '1'
 
 
 SOLVER = ["-p", "-b", "-b -p", "-d"]
-GRAPH_SIZES = [50, 150, 200]
+GRAPH_SIZES = [150, 200]
 FAILING = ["nodes", "edges"]
 ONLINE = ["--online", ""]
 K = [20]

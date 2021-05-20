@@ -345,6 +345,9 @@ def bidirectional_recording(adj_list,
     verbose=verbose
   )
 
+  if record_only_cps:
+    return path_data, checkpoints
+
   # We won't record states for source and sink, when failing nodes.
   start_idx = int(failing == "nodes")
 
