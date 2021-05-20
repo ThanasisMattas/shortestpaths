@@ -161,7 +161,14 @@ def deb_trace(msg=None, condition=None):
 def print_heap(h):
   h_copy = copy.deepcopy(h)
   while h_copy:
-    print(heapq.heappop(h_copy))
+    entry = heapq.heappop(h_copy)
+    if hasattr(entry, "__len__"):
+      for i in entry:
+        print(i)
+      if h_copy:
+        print()
+    else:
+      print(entry)
 
 
 def path_cum_hop_weights(path, adj_list):
