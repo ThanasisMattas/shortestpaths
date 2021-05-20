@@ -100,7 +100,7 @@ def _first_shortest_path(adj_list,
   return path_data, tapes
 
 
-# @time_this(wall_clock=True)
+# @time_this
 def _replacement_path(failed_path_idx: int,
                       failed: Hashable,
                       failing: Literal["nodes", "edges"],
@@ -204,7 +204,6 @@ def _replacement_path(failed_path_idx: int,
         if j[0][:failed_path_idx + 1] == base_path[:failed_path_idx + 1]:
           failed_edges[j[0][failed_path_idx + 1]] = None
           failed_inverted_edges[j[0][failed_path_idx + 1]] = None
-
       # Don't disconnect the failed edge yet, because it will be disconnected
       # in the subsequent loop.
       del failed_edges[head]
@@ -284,6 +283,8 @@ def _replacement_path(failed_path_idx: int,
     # then replacement_paths was called from k_shortest_paths
     # (online, failing edges always)
     if bidirectional:
+      if tapes:
+        path_data, checkpoints = path_data
       if path_data[0]:
         path_data = [
           base_path[: failed_path_idx] + path_data[0],
@@ -293,6 +294,8 @@ def _replacement_path(failed_path_idx: int,
         ]
       else:
         path_data = [None, None, None]
+      if tapes:
+        path_data.append(checkpoints)
     else:
       if repl_path:
         path_data = [
@@ -330,7 +333,7 @@ def _replacement_path(failed_path_idx: int,
   return path_data
 
 
-# @time_this(wall_clock=True)
+# @time_this
 def replacement_paths(adj_list,
                       n,
                       source,
@@ -381,12 +384,12 @@ def replacement_paths(adj_list,
     repl_paths (list)    : [[path_1, path_1_cost, failed],]
   """
   tapes = None
-  if base_path:
+  if base_path:  # Then, this is called from k_shortest_path().
     repl_paths = []
     if dynamic:
-      # then we need the reverse tape
+      # Then, we need the reverse tape.
       # NOTE: The records start from the parent_spur_node_idx.
-      tapes = dijkstra.bidirectional_recording(
+      _, tapes = dijkstra.bidirectional_recording(
         adj_list=None,
         inverted_adj_list=inverted_adj_list,
         source=source,
@@ -395,10 +398,11 @@ def replacement_paths(adj_list,
         to_visit_reverse=to_visit_reverse,
         visited=visited,
         checkpoints=checkpoints,
-        failing=failing,
+        failing="edges",
         online=True,
         verbose=verbose)
-  else:
+
+  else:  # pure replacement_paths
     to_visit, visited, to_visit_reverse = dijkstra.dijkstra_init(n,
                                                                  source,
                                                                  sink,
@@ -428,6 +432,9 @@ def replacement_paths(adj_list,
       repl_paths = [path_data]
       base_path = path_data[0]
       cum_hop_weights = None
+
+  # Uncomment this to run a sanity test on the tapes.
+  # dijkstra.verify_tapes(tapes, base_path, failing=failing)
 
   # Next, find the replacement paths.
   if dynamic:
@@ -499,7 +506,7 @@ def replacement_paths(adj_list,
         [pr_path, pr_cost, pr_hop_weights, pr_spur_node_idx] = path
       if ((len(prospects) < K - k)
               or (pr_cost < heapq.nsmallest(K - k, prospects)[-1][0])):
-        # Check if the prospect is already found
+        # Check if the prospect is already found.
         prospect_already_found = False
         for p in prospects:
           if (p[0] == pr_cost) and (p[1] == pr_path):
@@ -561,12 +568,12 @@ def _yen(sink,
     for v, edge in failed_edges.items():
       adj_list[u].remove(edge)
 
-    # Remove the Root path nodes from the to_visit PriorityQueue.
+    # Remove the root-path nodes from the to_visit PriorityQueue.
     new_to_visit = copy.deepcopy(to_visit)
     for root_node in last_path[:u_idx]:
       del new_to_visit[root_node]
 
-    # Set the spur node as source and initialize it's cost to root path cost.
+    # Set the spur-node as source and initialize its cost to root-path-cost.
     new_to_visit[u] = [cum_hop_weights[u_idx], u, u]
     new_visited = dijkstra.dijkstra(adj_list,
                                     sink,
@@ -586,7 +593,7 @@ def _yen(sink,
       if ((len(prospects) < K - k)
               or (prospect_cost
                   < heapq.nsmallest(K - k, prospects)[-1][0])):
-        # Check if the prospect is already found
+        # Check if the prospect is already found.
         prospect_already_found = False
         for p_cost, p, c, d in prospects:
           if (p_cost == prospect_cost) and (p == prospect):
@@ -605,6 +612,7 @@ def _yen(sink,
   return prospects
 
 
+# @profile
 @time_this
 def k_shortest_paths(adj_list,
                      source,

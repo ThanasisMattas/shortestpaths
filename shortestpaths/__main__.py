@@ -61,7 +61,7 @@ from shortestpaths import core, graph_generator, post_processing, utils  # noqa 
 @click.option("--show-graph", is_flag=True)
 @click.option("--save-graph", is_flag=True)
 @click.option('-v', "--verbose", count=True)
-# @utils.time_this(wall_clock=True)
+# @utils.time_this
 def main(ctx,
          n,
          weighted,
@@ -143,7 +143,7 @@ def main(ctx,
 @click.option("--online", is_flag=True,
               help="Each replacement path is forced to contain the root sub-"
                    "path, till the previous node of the failed node/edge.")
-# @utils.time_this(wall_clock=True)
+@utils.time_this
 def replacement_paths(ctx, failing, online):
   """CLI command for the replacement paths
 

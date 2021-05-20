@@ -33,7 +33,7 @@ def _clear(tool, dijkstra_options):
 @click.option("--num-graphs", type=click.INT, default=50, show_default=True,)
 @click.option("--num-nodes", type=click.INT, default=500, show_default=True)
 @click.option("--clear/--no-clear", default=False, show_default=True)
-@time_this(wall_clock=True)
+@time_this
 def main(tool, num_graphs, n, clear):
   NUM_GRAPHS = num_graphs
   N = n
