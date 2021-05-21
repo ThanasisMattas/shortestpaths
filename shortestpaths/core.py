@@ -44,60 +44,54 @@ def _first_shortest_path(adj_list,
                          dynamic=False,
                          failing=None,
                          online=False,
-                         record_only_cps=False,
                          verbose=0):
-  tapes = None
   if bidirectional:
-    # If dynamic, 2 recording sessions are executed. At the first, the absolute
-    # shortest path will be generated, as well as the visited nodes sequence
-    # will be recorded on a tape. At the second, for all the intermediate nodes
-    # of the path, the state that corresponds to the immediately proceding vi-
-    # sited node will be recorded on a tape, during both searches.
-    if dynamic:
-      path_data, tapes = dijkstra.bidirectional_recording(
-        adj_list,
-        inverted_adj_list,
-        source,
-        sink,
-        to_visit,
-        to_visit_reverse,
-        visited,
-        failing=failing,
-        online=online,
-        record_only_cps=record_only_cps,
-        verbose=verbose
-      )
-    else:
-      path_data = \
-          dijkstra.bidirectional_dijkstra(adj_list,
-                                          inverted_adj_list,
-                                          source,
-                                          sink,
-                                          copy.deepcopy(to_visit),
-                                          copy.deepcopy(to_visit_reverse),
-                                          copy.deepcopy(visited),
-                                          online=online,
-                                          verbose=verbose)
+    path_data = dijkstra.bidirectional_dijkstra(adj_list,
+                                                inverted_adj_list,
+                                                source,
+                                                sink,
+                                                to_visit,
+                                                to_visit_reverse,
+                                                visited,
+                                                online=online,
+                                                verbose=verbose)
+    if (dynamic) and (not online):
+      # Save the states of the algorithm just before each path-node is visited.
+      tapes = dijkstra.record_states(adj_list,
+                                     inverted_adj_list,
+                                     source,
+                                     sink,
+                                     to_visit,
+                                     to_visit_reverse,
+                                     visited,
+                                     path_data[0],
+                                     path_data[-1],
+                                     failing=failing,
+                                     online=online,
+                                     verbose=verbose)
+      return path_data, tapes
   else:
-    initial_visited = dijkstra.dijkstra(adj_list,
-                                        sink,
-                                        copy.deepcopy(to_visit),
-                                        copy.deepcopy(visited))
-    shortest_path_cost = initial_visited[sink][0]
+    visited_out = dijkstra.dijkstra(adj_list,
+                                    sink,
+                                    copy.deepcopy(to_visit),
+                                    copy.deepcopy(visited))
+    shortest_path_cost = visited_out[sink][0]
 
     shortest_path, cum_hop_weights = dijkstra.extract_path(
       source,
       sink,
-      initial_visited,
+      visited_out,
       with_cum_hop_weights=online,
       verbose=verbose)
 
-    if cum_hop_weights:
+    if online:
+      # When online, we need the cumulative hop weights, to retrieve the root-
+      # path cost up until the failed node/edge.
       path_data = [shortest_path, shortest_path_cost, cum_hop_weights]
     else:
       path_data = [shortest_path, shortest_path_cost, None]
 
-  return path_data, tapes
+  return path_data
 
 
 # @time_this
@@ -354,7 +348,6 @@ def replacement_paths(adj_list,
                       to_visit_reverse=None,
                       visited=None,
                       inverted_adj_list=None,
-                      checkpoints=None,
                       verbose=0):
   """Wrapper that generates the replacement paths, using several different
   methods.
@@ -386,21 +379,6 @@ def replacement_paths(adj_list,
   tapes = None
   if base_path:  # Then, this is a k-shortest paths search.
     repl_paths = []
-    if dynamic:
-      # Then, we need the reverse tape.
-      # NOTE: The records start from the parent_spur_node_idx.
-      _, tapes = dijkstra.bidirectional_recording(
-        adj_list=None,
-        inverted_adj_list=inverted_adj_list,
-        source=source,
-        sink=None,
-        to_visit=None,
-        to_visit_reverse=to_visit_reverse,
-        visited=visited,
-        checkpoints=checkpoints,
-        failing="edges",
-        online=True,
-        verbose=verbose)
   else:  # pure replacement_paths
     to_visit, visited, to_visit_reverse, inverted_adj_list = \
         dijkstra.dijkstra_init(n,
@@ -410,22 +388,24 @@ def replacement_paths(adj_list,
                                bidirectional)
 
     # Find the absolute shortest path.
-    path_data, tapes = _first_shortest_path(adj_list,
-                                            source,
-                                            sink,
-                                            to_visit,
-                                            to_visit_reverse,
-                                            visited,
-                                            inverted_adj_list,
-                                            bidirectional,
-                                            dynamic,
-                                            failing=failing,
-                                            online=online,
-                                            verbose=verbose)
+    path_data = _first_shortest_path(adj_list,
+                                     source,
+                                     sink,
+                                     to_visit,
+                                     to_visit_reverse,
+                                     visited,
+                                     inverted_adj_list,
+                                     bidirectional,
+                                     dynamic,
+                                     failing=failing,
+                                     online=online,
+                                     verbose=verbose)
     if online:
       [base_path, base_path_cost, cum_hop_weights] = path_data
       repl_paths = [[base_path, base_path_cost, None]]
     else:
+      if dynamic:
+        path_data, tapes = path_data
       repl_paths = [path_data]
       base_path = path_data[0]
       cum_hop_weights = None
