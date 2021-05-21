@@ -454,8 +454,12 @@ def replacement_paths(adj_list,
     visited_reverse = copy.deepcopy(visited)
     discovered_reverse = {sink}
     # Delete the entries of the path-nodes from the to_visit PriorityQueue.
-    del to_visit[base_path[:-2]]
-    failed_path_idx = len(base_path) - 2
+    if failing == "nodes":
+      del to_visit[base_path[:-2]]
+      failed_path_idx = len(base_path) - 2
+    else:
+      del to_visit[base_path[:-1]]
+      failed_path_idx = len(base_path) - 1
 
     while to_visit_reverse and failed_path_idx:
 
@@ -464,11 +468,19 @@ def replacement_paths(adj_list,
       else:
         u_next = base_path[failed_path_idx]
       if u_next == base_path[failed_path_idx]:
-        failed = base_path[failed_path_idx]
+        if failing == "nodes":
+          failed = base_path[failed_path_idx]
+          root_path = base_path[:failed_path_idx - 1]
+          failed_idx = failed_path_idx
+        else:
+          # In case of failing edges, failed is the tail of the failed_node.
+          failed = base_path[failed_path_idx - 1]
+          root_path = base_path[:failed_path_idx]
+          failed_idx = failed_path_idx - 1
         # Disconnect root-path-nodes.
         root_path_to_visit_entries = []
         discovered_root_nodes = set()
-        for u_root in base_path[:failed_path_idx - 1]:
+        for u_root in root_path:
           if u_root in to_visit_reverse:
             root_path_to_visit_entries.append(to_visit_reverse[u_root])
             del to_visit_reverse[u_root]
@@ -476,7 +488,7 @@ def replacement_paths(adj_list,
             discovered_reverse.remove(u_root)
             discovered_root_nodes.add(u_root)
         # to_visit_reverse[failed] = [math.inf, failed, failed]
-        repl_paths.append(_replacement_path(failed_path_idx,
+        repl_paths.append(_replacement_path(failed_idx,
                                             failed,
                                             failing,
                                             base_path,
@@ -502,7 +514,10 @@ def replacement_paths(adj_list,
         discovered_root_nodes.clear()
         root_path_to_visit_entries.clear()
 
-        spur_node = base_path[failed_path_idx - 1]
+        if failing == "nodes":
+          spur_node = base_path[failed_path_idx - 1]
+        else:
+          spur_node = failed
         to_visit[spur_node] = [math.inf, spur_node, spur_node]
         failed_path_idx -= 1
 
