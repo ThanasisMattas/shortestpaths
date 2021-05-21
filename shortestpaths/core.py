@@ -26,6 +26,7 @@ import copy
 from functools import partial
 import heapq
 from itertools import count
+import math
 from typing import Hashable, Literal
 
 from shortestpaths import dijkstra
@@ -37,8 +38,8 @@ def _first_shortest_path(adj_list,
                          source,
                          sink,
                          to_visit,
-                         to_visit_reverse=False,
-                         visited=False,
+                         to_visit_reverse,
+                         visited,
                          inverted_adj_list=None,
                          bidirectional=False,
                          dynamic=False,
@@ -54,6 +55,7 @@ def _first_shortest_path(adj_list,
                                                 to_visit_reverse,
                                                 visited,
                                                 online=online,
+                                                meeting_edge_head=True,
                                                 verbose=verbose)
     if (dynamic) and (not online):
       # Save the states of the algorithm just before each path-node is visited.
@@ -68,6 +70,8 @@ def _first_shortest_path(adj_list,
                                      path_data[-1],
                                      failing=failing,
                                      verbose=verbose)
+      # Uncomment this to run a sanity test on the tapes.
+      # dijkstra.verify_tapes(tapes, path_data[0], failing=failing)
       return path_data, tapes
   else:
     visited_out = dijkstra.dijkstra(adj_list,
@@ -104,6 +108,8 @@ def _replacement_path(failed_path_idx: int,
                       to_visit: PriorityQueue = None,
                       to_visit_reverse: PriorityQueue = None,
                       visited: list = None,
+                      visited_reverse: list = None,
+                      discovered_reverse: set = None,
                       bidirectional: bool = False,
                       inverted_adj_list: list = None,
                       tapes: list = None,
@@ -117,8 +123,8 @@ def _replacement_path(failed_path_idx: int,
   if failing == "nodes":
     if online:
       # Delete the nodes of the root path from the PriorityQueue.
-      for u in base_path[:failed_path_idx - 1]:
-        del to_visit[u]
+      if not visited_reverse:
+        del to_visit[base_path[:failed_path_idx - 1]]
       # The spur node becomes the source.
       source = base_path[failed_path_idx - 1]
       # Although the prev node doesn't have to be acurate, however it souldn't
@@ -126,10 +132,9 @@ def _replacement_path(failed_path_idx: int,
       # condition, it would not account as visited.
       to_visit[source] = [cum_hop_weights[failed_path_idx - 1], -1, source]
       # Initialize the path cost with the root_cost.
-      if (bidirectional) and (not tapes):
+      if (bidirectional) and (not tapes) and (not visited_reverse):
         # Delete the nodes of the root path from the reverse PriorityQueue.
-        for u in base_path[:failed_path_idx - 1]:
-          del to_visit_reverse[u]
+        del to_visit_reverse[base_path[:failed_path_idx - 1]]
 
     if bidirectional:
       path_data = dijkstra.bidirectional_dijkstra(
@@ -140,6 +145,8 @@ def _replacement_path(failed_path_idx: int,
         to_visit,
         to_visit_reverse,
         visited,
+        visited_reverse=visited_reverse,
+        discovered_reverse=discovered_reverse,
         failed_path_idx=failed_path_idx,
         failed=failed,
         tapes=tapes,
@@ -162,27 +169,25 @@ def _replacement_path(failed_path_idx: int,
         verbose=verbose
       )
   elif failing == "edges":
-    # In case of dynamic k_shortest_paths, we need to record the checkpoints.
-    record_cps = bool(k_paths) and bool(tapes)
-    # When failing is nodes, the spur path will start *before* the failed node.
-    # On the contrary, when failing is edges, the spur path will start *on* the
-    # tail of the failed edge. So, in order to keep the same code for both in-
-    # stances, failed_path_idx will be increased by one, when failing edges.
+    # NOTE: When failing is nodes, the spur path will start *before* the failed
+    # node. On the contrary, when failing is edges, the spur path will start
+    # *on* the tail of the failed edge.
     tail = failed
     head = base_path[failed_path_idx + 1]
 
     if online:
-      # Delete the nodes of the root path from the PriorityQueue.
-      for u in base_path[:failed_path_idx]:
-        del to_visit[u]
+      if not visited_reverse:
+        # visited_reverse is passed only when dynamic and online.
+        # Delete the nodes of the root path from the PriorityQueue.
+        del to_visit[base_path[:failed_path_idx]]
       # The spur node becomes the source.
       source = tail
       # Although the prev node doesn't have to be accurate, it shouldn't be the
-      # source, because when checking for bidirectional dijkstra termination
-      # condition, it would not account as visited.
+      # source, because when checking for bidirectional Dijkstra's algorithm
+      # termination condition, it would not account as visited.
       to_visit[source] = [cum_hop_weights[failed_path_idx], -1, source]
       # Initialize the path cost with the root_cost.
-      if (bidirectional) and (not tapes):
+      if (bidirectional) and (not tapes) and (not visited_reverse):
         # Delete the nodes of the root path from the reverse PriorityQueue.
         for u in base_path[:failed_path_idx]:
           del to_visit_reverse[u]
@@ -231,6 +236,8 @@ def _replacement_path(failed_path_idx: int,
                 to_visit,
                 to_visit_reverse,
                 visited,
+                visited_reverse=visited_reverse,
+                discovered_reverse=discovered_reverse,
                 failed_path_idx=(failed_path_idx, failed_path_idx + 1),
                 failed=(tail, head),
                 tapes=tapes,
@@ -399,7 +406,11 @@ def replacement_paths(adj_list,
                                      online=online,
                                      verbose=verbose)
     if online:
-      [base_path, base_path_cost, cum_hop_weights] = path_data
+      if bidirectional:
+        [base_path, base_path_cost, cum_hop_weights, meeting_edge_head] = \
+            path_data
+      else:
+        [base_path, base_path_cost, cum_hop_weights] = path_data
       repl_paths = [[base_path, base_path_cost, None]]
     else:
       if dynamic:
@@ -408,22 +419,15 @@ def replacement_paths(adj_list,
       base_path = path_data[0]
       cum_hop_weights = None
 
-  # Uncomment this to run a sanity test on the tapes.
-  # dijkstra.verify_tapes(tapes, base_path, failing=failing)
-
   # Next, find the replacement paths.
-  if dynamic:
-    if online:
-      # Only reverse states are recorded on tape.
-      to_visit_reverse = None
-    else:
-      # All necessary data will be retrieved from tapes.
-      to_visit = to_visit_reverse = visited = None
+  if dynamic and (not online):
+    # All necessary data will be retrieved from tapes.
+    to_visit = to_visit_reverse = visited = None
   else:
-    # All data will be copied for each replacement path.
     tapes = None
 
-  if parallel:
+  if (parallel) and (not (dynamic and online)):
+    # dynamic and online cannot run in parallel
     _repl_path = partial(_replacement_path,
                          failing=failing,
                          base_path=base_path,
@@ -445,10 +449,95 @@ def replacement_paths(adj_list,
       repl_paths += p.map(_repl_path,
                           range(parent_spur_node_idx, len(base_path) - 1),
                           base_path[parent_spur_node_idx: -1])
+  elif dynamic and online:
+    meeting_edge_head_idx = base_path.index(meeting_edge_head) - 1
+    visited_reverse = copy.deepcopy(visited)
+    discovered_reverse = {sink}
+    # Delete the entries of the path-nodes from the to_visit PriorityQueue.
+    del to_visit[base_path[:-2]]
+    failed_path_idx = len(base_path) - 2
+
+    while to_visit_reverse and failed_path_idx:
+
+      if failed_path_idx > meeting_edge_head_idx:
+        u_next = to_visit_reverse.peek()[-1]
+      else:
+        u_next = base_path[failed_path_idx]
+      if u_next == base_path[failed_path_idx]:
+        failed = base_path[failed_path_idx]
+        # Disconnect root-path-nodes.
+        root_path_to_visit_entries = []
+        discovered_root_nodes = set()
+        for u_root in base_path[:failed_path_idx - 1]:
+          if u_root in to_visit_reverse:
+            root_path_to_visit_entries.append(to_visit_reverse[u_root])
+            del to_visit_reverse[u_root]
+          if u_root in discovered_reverse:
+            discovered_reverse.remove(u_root)
+            discovered_root_nodes.add(u_root)
+        # to_visit_reverse[failed] = [math.inf, failed, failed]
+        repl_paths.append(_replacement_path(failed_path_idx,
+                                            failed,
+                                            failing,
+                                            base_path,
+                                            adj_list,
+                                            source,
+                                            sink,
+                                            to_visit,
+                                            to_visit_reverse,
+                                            visited,
+                                            visited_reverse,
+                                            discovered_reverse,
+                                            True,
+                                            inverted_adj_list,
+                                            None,
+                                            True,
+                                            cum_hop_weights,
+                                            k_paths,
+                                            verbose))
+        # Reconnect failed root-path-nodes.
+        for entry in root_path_to_visit_entries:
+          to_visit_reverse[entry[-1]] = entry
+        discovered_reverse.update(discovered_root_nodes)
+        discovered_root_nodes.clear()
+        root_path_to_visit_entries.clear()
+
+        spur_node = base_path[failed_path_idx - 1]
+        to_visit[spur_node] = [math.inf, spur_node, spur_node]
+        failed_path_idx -= 1
+
+      if failed_path_idx <= meeting_edge_head_idx:
+        # Carry on using current node as source for the reverse search, because
+        # the search sphere of the underlying single-direcional search is very
+        # big and at this point the reverse search will always start from here.
+        continue
+
+      u_path_cost, u_prev, u = to_visit_reverse.pop_low()
+      discovered_reverse.discard(u_next)
+
+      if u_path_cost == math.inf:
+        visited_reverse[u][0] = -1
+        continue
+      visited_reverse[u][0] = u_path_cost
+      visited_reverse[u][1] = u_prev
+
+      if u == source:
+        break
+
+      for v, uv_weight in inverted_adj_list[u]:
+        if v in to_visit_reverse:
+          dijkstra.relax_path_cost(v,
+                                   u,
+                                   uv_weight,
+                                   u_path_cost,
+                                   to_visit_reverse)
+          discovered_reverse.add(v)
+    if not k_paths:
+      repl_paths = [repl_paths[0]] + list(reversed(repl_paths[1:]))
   else:
     for i, node in enumerate(base_path[parent_spur_node_idx: -1]):
-      # The source cannot fail, but when failing == "edges", the source consti-
-      # tudes the tail of the 1st failed edge.
+      # The source cannot fail, but when failing == "edges", the source con-
+      # stitutes the tail of the 1st failed edge.
       failed_path_idx = parent_spur_node_idx + i
       if (failing == "nodes") and (failed_path_idx == 0):
         continue
@@ -462,6 +551,8 @@ def replacement_paths(adj_list,
                                           copy.deepcopy(to_visit),
                                           copy.deepcopy(to_visit_reverse),
                                           copy.deepcopy(visited),
+                                          None,
+                                          None,
                                           bidirectional,
                                           inverted_adj_list,
                                           tapes,
