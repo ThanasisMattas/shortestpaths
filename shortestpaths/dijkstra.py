@@ -74,7 +74,7 @@ def _initialize_prospect_path(n,
   return prospect
 
 
-def dijkstra_init(n, source, sink, bidirectional):
+def dijkstra_init(n, source, sink, adj_list, bidirectional):
   """Initializes the data structures that are used by Dijkstra's algorithm.
 
   Returns:
@@ -103,18 +103,19 @@ def dijkstra_init(n, source, sink, bidirectional):
     to_visit_reverse = copy.deepcopy(to_visit)
     to_visit_reverse[source] = [math.inf, source, source]
     to_visit_reverse[sink] = [0, sink, sink]
+    inverted_adj_list = _invert_adj_list(adj_list)
   else:
     to_visit_reverse = None
-  return to_visit, visited, to_visit_reverse
+    inverted_adj_list = None
+  return to_visit, visited, to_visit_reverse, inverted_adj_list
 
 
-# @profile
 def _relax_path_cost(v, u, uv_weight, u_path_cost, to_visit):
   if u_path_cost + uv_weight < to_visit[v][0]:
     to_visit[v] = [u_path_cost + uv_weight, u, v]
 
 
-def invert_adj_list(adj_list):
+def _invert_adj_list(adj_list):
   """Creates the adj_list of the inverted graph in O(n^2).
 
   The inverted graph is the same with the direct, but with inverted edges

@@ -384,7 +384,7 @@ def replacement_paths(adj_list,
     repl_paths (list)    : [[path_1, path_1_cost, failed],]
   """
   tapes = None
-  if base_path:  # Then, this is called from k_shortest_path().
+  if base_path:  # Then, this is a k-shortest paths search.
     repl_paths = []
     if dynamic:
       # Then, we need the reverse tape.
@@ -401,16 +401,13 @@ def replacement_paths(adj_list,
         failing="edges",
         online=True,
         verbose=verbose)
-
   else:  # pure replacement_paths
-    to_visit, visited, to_visit_reverse = dijkstra.dijkstra_init(n,
-                                                                 source,
-                                                                 sink,
-                                                                 bidirectional)
-    if bidirectional:
-      inverted_adj_list = dijkstra.invert_adj_list(adj_list)
-    else:
-      inverted_adj_list = None
+    to_visit, visited, to_visit_reverse, inverted_adj_list = \
+        dijkstra.dijkstra_init(n,
+                               source,
+                               sink,
+                               adj_list,
+                               bidirectional)
 
     # Find the absolute shortest path.
     path_data, tapes = _first_shortest_path(adj_list,
@@ -630,14 +627,13 @@ def k_shortest_paths(adj_list,
     k_paths (list) : [[path: list, path_cost: int, failed_edge: tuple],]
   """
   n = len(adj_list) - 1
-  if bidirectional:
-    inverted_adj_list = dijkstra.invert_adj_list(adj_list)
-  else:
-    inverted_adj_list = None
-  to_visit, visited, to_visit_reverse = dijkstra.dijkstra_init(n,
-                                                               source,
-                                                               sink,
-                                                               bidirectional)
+  to_visit, visited, to_visit_reverse, inverted_adj_list = \
+      dijkstra.dijkstra_init(n,
+                             source,
+                             sink,
+                             adj_list,
+                             bidirectional)
+
   # Find the absolute shortest path.
   # NOTE: Always online and failing edges.
   [shortest_path, shortest_path_cost, cum_hop_weights], checkpoints = \

@@ -1,2 +1,7 @@
 ignore:
     - "shortestpaths/post_processing.py"
+
+status:
+    project: no
+    patch: yes
+    changes: no
