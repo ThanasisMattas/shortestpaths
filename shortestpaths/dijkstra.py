@@ -160,7 +160,8 @@ def dijkstra(adj_list,
   """
   if subpath:
     tape = []
-    next_path_node = next(subpath)
+    subpath_iter = iter(subpath)
+    next_path_node = next(subpath_iter)
     # Discovered, yet not visited, nodes. This is used to create the potential
     # shortest paths at bidirectional Dijkstra termination condition.
     discovered = {to_visit.peek()[-1]}
@@ -174,7 +175,7 @@ def dijkstra(adj_list,
                     copy.deepcopy(visited),
                     copy.copy(discovered)])
         try:
-          next_path_node = next(subpath)
+          next_path_node = next(subpath_iter)
         except StopIteration:
           if isinstance(tapes_queue, mp.queues.Queue):
             tapes_queue.put(tape)
@@ -379,7 +380,6 @@ def record_states(adj_list,
                   base_path,
                   meeting_edge_head,
                   failing=None,
-                  online=False,
                   verbose=0):
   """Memoizes the states of the algorithm on a tape."""
   if verbose >= 2:
@@ -388,66 +388,59 @@ def record_states(adj_list,
     logger.setLevel(logging.INFO)
 
   # When failing nodes, states for source and sink will not be recorded.
-  offset = int(failing == "nodes")
   tapes_queue = Queue()
-  reverse_subpath = reversed(
-    base_path[base_path.index(meeting_edge_head): -offset]
-  )
+  if failing == "nodes":
+    forward_subpath = base_path[1: base_path.index(meeting_edge_head)]
+    reverse_subpath = list(reversed(
+      base_path[base_path.index(meeting_edge_head): -1]
+    ))
+  else:
+    forward_subpath = base_path[:base_path.index(meeting_edge_head)]
+    reverse_subpath = list(reversed(
+      base_path[base_path.index(meeting_edge_head):]
+    ))
+  if forward_subpath == []:
+    forward_subpath = [source]
   if reverse_subpath == []:
     reverse_subpath = [sink]
 
-  if online:
-    tape_reverse = dijkstra(inverted_adj_list,
-                            source,
-                            copy.deepcopy(to_visit_reverse),
-                            copy.deepcopy(visited),
-                            failing,
-                            None,
-                            reverse_subpath)
-    return None, tape_reverse
-  else:
-    forward_subpath = iter(
-      base_path[offset: base_path.index(meeting_edge_head)])
-    if forward_subpath == []:
-      forward_subpath = [source]
-    forward_search = Process(name="forward_single_directional_search",
-                             target=dijkstra,
-                             args=(adj_list,
-                                   sink,
-                                   to_visit,
-                                   visited,
-                                   failing,
-                                   tapes_queue,
-                                   forward_subpath))
-    reverse_search = Process(name="reverse_single_directional_search",
-                             target=dijkstra,
-                             args=(inverted_adj_list,
-                                   source,
-                                   to_visit_reverse,
-                                   visited,
-                                   failing,
-                                   tapes_queue,
-                                   reverse_subpath))
+  forward_search = Process(name="forward_single_directional_search",
+                           target=dijkstra,
+                           args=(adj_list,
+                                 sink,
+                                 to_visit,
+                                 visited,
+                                 failing,
+                                 tapes_queue,
+                                 forward_subpath))
+  reverse_search = Process(name="reverse_single_directional_search",
+                           target=dijkstra,
+                           args=(inverted_adj_list,
+                                 source,
+                                 to_visit_reverse,
+                                 visited,
+                                 failing,
+                                 tapes_queue,
+                                 reverse_subpath))
 
-    # Deaemonize the processes to be terminated upon exit.
-    forward_search.daemon = True
-    reverse_search.daemon = True
-    forward_search.start()
-    reverse_search.start()
-    # We need to use the consumer before joining the processes, because the
-    # data is quite big. The underlying thread that pops from the dequeue and
-    # makes data available, usues a pipe or a Unix socket, which have a limited
-    # capacity. When the pipe or socket are full, the thread blocks on the sys-
-    # call, resulting to a deadlock, because join waits for the thread to ter-
-    # minate.
-    tape_1 = tapes_queue.get()
-    tape_2 = tapes_queue.get()
-    # Find out which is which.
-    if sink in tape_1[0][0]:
-      # (if sink in 1st cp's to_visit)
-      return tape_1, tape_2
-    else:
-      return tape_2, tape_1
+  # Deaemonize the processes to be terminated upon exit.
+  forward_search.daemon = True
+  reverse_search.daemon = True
+  forward_search.start()
+  reverse_search.start()
+  # We need to use the consumer before joining the processes, because the
+  # data is quite big. The underlying thread that pops from the dequeue and
+  # makes data available, usues a pipe or a Unix socket, which have a limited
+  # capacity. When the pipe or socket are full, the thread blocks on the sys-
+  # call, resulting to a deadlock, because join waits for the thread to ter-
+  # minate.
+  tape_1 = tapes_queue.get()
+  tape_2 = tapes_queue.get()
+  # Find out which is which.
+  if len(tape_1) == len(forward_subpath):
+    return tape_1, tape_2
+  else:
+    return tape_2, tape_1
 
 
 def _visited_offsets(n):

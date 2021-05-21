@@ -67,7 +67,6 @@ def _first_shortest_path(adj_list,
                                      path_data[0],
                                      path_data[-1],
                                      failing=failing,
-                                     online=online,
                                      verbose=verbose)
       return path_data, tapes
   else:
@@ -237,7 +236,6 @@ def _replacement_path(failed_path_idx: int,
                 tapes=tapes,
                 online=online,
                 base_path=base_path,
-                record_cps=record_cps,
                 verbose=verbose
               )
               # Reconnect the failed edge.
