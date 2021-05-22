@@ -97,6 +97,27 @@ def _first_shortest_path(adj_list,
   return path_data
 
 
+def _push_prospect(path,
+                   path_cost,
+                   path_hop_weights,
+                   spur_node_idx,
+                   K,
+                   k,
+                   prospects):
+  if ((len(prospects) < K - k)
+          or (path_cost < heapq.nsmallest(K - k, prospects)[-1][0])):
+    # Check if the prospect is already found.
+    prospect_already_found = False
+    for p_cost, p, c, d in prospects:
+      if (p_cost == path_cost) and (p == path):
+        prospect_already_found = True
+        break
+    if not prospect_already_found:
+      heapq.heappush(prospects,
+                     (path_cost, path, path_hop_weights, spur_node_idx))
+  return prospects
+
+
 # @time_this
 def _replacement_path(failed_path_idx: int,
                       failed: Hashable,
@@ -581,29 +602,8 @@ def replacement_paths(adj_list,
   if k_paths:
     # Update the prospects heap, using the repl_paths found.
     for path in repl_paths:
-      if dynamic:
-        [pr_path, pr_cost, pr_hop_weights, pr_spur_node_idx, pr_cps] = path
-      else:
-        [pr_path, pr_cost, pr_hop_weights, pr_spur_node_idx] = path
-      if ((len(prospects) < K - k)
-              or (pr_cost < heapq.nsmallest(K - k, prospects)[-1][0])):
-        # Check if the prospect is already found.
-        prospect_already_found = False
-        for p in prospects:
-          if (p[0] == pr_cost) and (p[1] == pr_path):
-            prospect_already_found = True
-            break
-        if not prospect_already_found:
-          if dynamic:
-            heapq.heappush(
-              prospects,
-              (pr_cost, pr_path, pr_hop_weights, pr_spur_node_idx, pr_cps)
-            )
-          else:
-            heapq.heappush(
-              prospects,
-              (pr_cost, pr_path, pr_hop_weights, pr_spur_node_idx)
-            )
+      # [pr_path, pr_cost, pr_hop_weights, pr_spur_node_idx] = path
+      _push_prospect(*path, K, k, prospects)
     return prospects
   else:
     return repl_paths
@@ -671,20 +671,13 @@ def _yen(sink,
       prospect = last_path[:u_idx] + spur
       prospect_hop_weights = cum_hop_weights[:u_idx] + spur_hop_weights
 
-      if ((len(prospects) < K - k)
-              or (prospect_cost
-                  < heapq.nsmallest(K - k, prospects)[-1][0])):
-        # Check if the prospect is already found.
-        prospect_already_found = False
-        for p_cost, p, c, d in prospects:
-          if (p_cost == prospect_cost) and (p == prospect):
-            prospect_already_found = True
-            break
-        if not prospect_already_found:
-          heapq.heappush(
-            prospects,
-            (prospect_cost, prospect, prospect_hop_weights, u_idx)
-          )
+      _push_prospect(prospect,
+                     prospect_cost,
+                     prospect_hop_weights,
+                     u_idx,
+                     K,
+                     k,
+                     prospects)
 
     # Restore the failed edges.
     for v, edge in failed_edges.items():
@@ -757,9 +750,9 @@ def k_shortest_paths(adj_list,
                        prospects,
                        cum_hop_weights,
                        lawler)
-    if verbose >= 2:
-      print(f"k: {k + 1:{len(str(K))}}"
-            f"    spur paths: {_yen.counter.__reduce__()[1][0]}")
+      if verbose >= 2:
+        print(f"k: {k + 1:{len(str(K))}}"
+              f"    spur paths: {_yen.counter.__reduce__()[1][0]}")
     else:
       prospects = replacement_paths(adj_list,
                                     n,
