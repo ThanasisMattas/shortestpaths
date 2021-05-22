@@ -155,6 +155,18 @@ def _fail_found_spur_edges(adj_list,
   return failed_edges
 
 
+def _reconnect_spur_edges(spur_node,
+                          adj_list,
+                          failed_edges,
+                          inverted_adj_list=None,
+                          failed_inverted_edges=None):
+  for _, edge in failed_edges.items():
+    adj_list[spur_node].add(edge)
+  if inverted_adj_list:
+    for u, edge in failed_inverted_edges.items():
+      inverted_adj_list[u].add(edge)
+
+
 # @time_this
 def _replacement_path(failed_path_idx: int,
                       failed: Hashable,
@@ -285,14 +297,13 @@ def _replacement_path(failed_path_idx: int,
         # Reconnect the failed edge.
         adj_list[tail].add(neighbor)
         break
-
     # Reconnect the failed edges
     if k_paths:
-      for v, edge in failed_edges.items():
-        adj_list[failed].add(edge)
-      if bidirectional:
-        for u, edge in failed_inverted_edges.items():
-          inverted_adj_list[u].add(edge)
+      _reconnect_spur_edges(failed,
+                            adj_list,
+                            failed_edges,
+                            inverted_adj_list,
+                            failed_inverted_edges)
 
     failed = (tail, head)
   else:
@@ -508,7 +519,6 @@ def replacement_paths(adj_list,
           if u_root in discovered_reverse:
             discovered_reverse.remove(u_root)
             discovered_root_nodes.add(u_root)
-        # to_visit_reverse[failed] = [math.inf, failed, failed]
         repl_paths.append(_replacement_path(failed_idx,
                                             failed,
                                             failing,
@@ -676,8 +686,7 @@ def _yen(sink,
                      prospects)
 
     # Restore the failed edges.
-    for v, edge in failed_edges.items():
-      adj_list[u].add(edge)
+    _reconnect_spur_edges(adj_list, failed_edges)
     failed_edges.clear()
   return prospects
 
@@ -770,7 +779,6 @@ def k_shortest_paths(adj_list,
                                     to_visit_reverse=to_visit_reverse,
                                     visited=visited,
                                     inverted_adj_list=inverted_adj_list,
-                                    checkpoints=checkpoints,
                                     verbose=verbose)
     # Add the best prospect to the k_paths list
     if prospects:
@@ -787,8 +795,6 @@ def k_shortest_paths(adj_list,
       k_paths.append([last_path, kth_path[0], None])
       cum_hop_weights = kth_path[2]
       parent_spur_node_idx = kth_path[3]
-      if dynamic:
-        checkpoints = kth_path[4]
     else:
       break
   return k_paths
