@@ -118,6 +118,43 @@ def _push_prospect(path,
   return prospects
 
 
+def _fail_found_spur_edges(adj_list,
+                           spur_node,
+                           spur_node_path_idx,
+                           base_path,
+                           k_paths,
+                           inverted_adj_list=None,
+                           head=None):
+  """Failes the edges having spur-node as tail, for each of the K - k found
+  paths, that have the same root-path with the prospect-path."""
+  # {head: (head, edge_cost)}
+  failed_edges = dict()
+  # {invertd_tail (head): (inverted_head (tail), edge_cost)}
+  failed_inverted_edges = dict()
+  for j in k_paths:
+    if j[0][:spur_node_path_idx + 1] == base_path[:spur_node_path_idx + 1]:
+      failed_edges[j[0][spur_node_path_idx + 1]] = None
+      failed_inverted_edges[j[0][spur_node_path_idx + 1]] = None
+  # Don't disconnect the failed edge yet, because it will be disconnected
+  # in the subsequent loop.
+  if head:
+    del failed_edges[head]
+    del failed_inverted_edges[head]
+
+  for v, uv_weight in adj_list[spur_node]:
+    if v in failed_edges.keys():
+      failed_edges[v] = (v, uv_weight)
+      failed_inverted_edges[v] = (spur_node, uv_weight)
+  for v, edge in failed_edges.items():
+    adj_list[spur_node].remove(edge)
+
+  if inverted_adj_list:
+    for u, edge in failed_inverted_edges.items():
+      inverted_adj_list[u].remove(edge)
+    return failed_edges, failed_inverted_edges
+  return failed_edges
+
+
 # @time_this
 def _replacement_path(failed_path_idx: int,
                       failed: Hashable,
@@ -190,65 +227,28 @@ def _replacement_path(failed_path_idx: int,
         verbose=verbose
       )
   elif failing == "edges":
-    # NOTE: When failing is nodes, the spur path will start *before* the failed
-    # node. On the contrary, when failing is edges, the spur path will start
-    # *on* the tail of the failed edge.
-    tail = failed
-    head = base_path[failed_path_idx + 1]
-
-    if online:
-      if not visited_reverse:
-        # visited_reverse is passed only when dynamic and online.
-        # Delete the nodes of the root path from the PriorityQueue.
-        del to_visit[base_path[:failed_path_idx]]
-      # The spur node becomes the source.
-      source = tail
-      # Although the prev node doesn't have to be accurate, it shouldn't be the
-      # source, because when checking for bidirectional Dijkstra's algorithm
-      # termination condition, it would not account as visited.
-      to_visit[source] = [cum_hop_weights[failed_path_idx], -1, source]
-      # Initialize the path cost with the root_cost.
-      if (bidirectional) and (not tapes) and (not visited_reverse):
-        # Delete the nodes of the root path from the reverse PriorityQueue.
-        for u in base_path[:failed_path_idx]:
-          del to_visit_reverse[u]
-
     if k_paths:
       # Fail the (i, i + 1) edges of the found k - 1 shortest paths.
-      # {head: (head, edge_cost)}
-      failed_edges = dict()
-      # {invertd_tail (head): (inverted_head (tail), edge_cost)}
-      failed_inverted_edges = dict()
-      for j in k_paths:
-        if j[0][:failed_path_idx + 1] == base_path[:failed_path_idx + 1]:
-          failed_edges[j[0][failed_path_idx + 1]] = None
-          failed_inverted_edges[j[0][failed_path_idx + 1]] = None
-      # Don't disconnect the failed edge yet, because it will be disconnected
-      # in the subsequent loop.
-      del failed_edges[head]
-      del failed_inverted_edges[head]
-
-      for v, uv_weight in adj_list[failed]:
-        if v in failed_edges.keys():
-          failed_edges[v] = (v, uv_weight)
-          failed_inverted_edges[v] = (failed, uv_weight)
-      for v, edge in failed_edges.items():
-        adj_list[failed].remove(edge)
-
-      if bidirectional:
-        for u, edge in failed_inverted_edges.items():
-          inverted_adj_list[u].remove(edge)
+      failed_edges, failed_inverted_edges = _fail_found_spur_edges(
+        adj_list,
+        failed,
+        failed_path_idx,
+        base_path,
+        k_paths,
+        inverted_adj_list=inverted_adj_list,
+        head=head
+      )
 
     # Fail the edge.
     for neighbor in adj_list[tail]:
       if neighbor[0] == head:
-        adj_list[tail].discard(neighbor)
+        adj_list[tail].remove(neighbor)
         # Find the replacement path.
         if bidirectional:
           # Fail the edge on the inverted_adj_list.
           for ne in inverted_adj_list[head]:
             if ne[0] == tail:
-              inverted_adj_list[head].discard(ne)
+              inverted_adj_list[head].remove(ne)
               path_data = dijkstra.bidirectional_dijkstra(
                 adj_list,
                 inverted_adj_list,
@@ -639,15 +639,11 @@ def _yen(sink,
     u_idx = i + last_u_idx
     # Fail the (i, i + 1) edges of the found k - 1 shortest paths.
     # {head: (head, edge_cost)}
-    failed_edges = dict()
-    for j in k_paths:
-      if j[0][:u_idx + 1] == last_path[:u_idx + 1]:
-        failed_edges[j[0][u_idx + 1]] = None
-    for v, uv_weight in adj_list[u]:
-      if v in failed_edges.keys():
-        failed_edges[v] = (v, uv_weight)
-    for v, edge in failed_edges.items():
-      adj_list[u].remove(edge)
+    failed_edges = _fail_found_spur_edges(adj_list,
+                                          u,
+                                          u_idx,
+                                          last_path,
+                                          k_paths)
 
     # Remove the root-path nodes from the to_visit PriorityQueue.
     new_to_visit = copy.deepcopy(to_visit)
