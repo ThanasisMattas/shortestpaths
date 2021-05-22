@@ -608,18 +608,18 @@ def k_shortest_paths(adj_list,
 
   # Find the absolute shortest path.
   # NOTE: Always online and failing edges.
-  path_data = _first_shortest_path(adj_list,
-                                   source,
-                                   sink,
-                                   to_visit,
-                                   to_visit_reverse,
-                                   visited,
-                                   inverted_adj_list,
-                                   bidirectional,
-                                   dynamic,
-                                   failing="edges",
-                                   online=True,
-                                   verbose=verbose)
+  path_data, _ = _first_shortest_path(adj_list,
+                                      source,
+                                      sink,
+                                      to_visit,
+                                      to_visit_reverse,
+                                      visited,
+                                      inverted_adj_list,
+                                      bidirectional,
+                                      dynamic,
+                                      failing="edges",
+                                      online=True,
+                                      verbose=verbose)
 
   k_paths = [path_data]
   last_path = path_data[0]
