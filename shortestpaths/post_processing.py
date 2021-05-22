@@ -27,17 +27,17 @@ COLORS = ['mediumblue', 'm', 'g', 'k', 'r', 'c', 'y', 'w']
 def path_label(path, path_number, failing):
   if failing is None:
       failed_msg = ''
-  elif path[2] is None:
+  elif path[3] is None:
     # then nothing failed, because this is the absolute shortest path
     failed_msg = f"failed {failing[:-1]}: -"
-  elif (isinstance(path[2], tuple)) and (len(path[2]) == 2):
+  elif (isinstance(path[3], tuple)) and (len(path[3]) == 2):
     # then it is a single edge
-    failed_msg = f"failed {failing[:-1]}: {str(path[2])}"
-  elif not hasattr(path[2], "__len__"):
-    failed_msg = f"failed {failing[:-1]}: {str(path[2])}"
+    failed_msg = f"failed {failing[:-1]}: {str(path[3])}"
+  elif not hasattr(path[3], "__len__"):
+    failed_msg = f"failed {failing[:-1]}: {str(path[3])}"
   else:
     # then it is a list of failed nodes or edges
-    failed_msg = f"failed {failing}: {str(list(path[2]))}"
+    failed_msg = f"failed {failing}: {str(list(path[3]))}"
   label = (f"path_{path_number}: {str(path[0])}\ncost: {path[1]}"
            f"    {failed_msg}")
   return label
@@ -68,7 +68,7 @@ def plot_graph(G,
                draw_edge_weights=False):
   """Plots the graph and all the generated paths in spring_layout."""
   for i in range(len(paths_data)):
-    if (not hasattr(paths_data[i], "__len__")) or (len(paths_data[i]) != 3):
+    if (not hasattr(paths_data[i], "__len__")) or (len(paths_data[i]) != 5):
       warnings.warn(f"An invalid path detected. Path_data: {paths_data[i]}")
       del paths_data[i]
   # , k=10 / sqrt(G.number_of_nodes())
@@ -118,19 +118,19 @@ def plot_graph(G,
 
     # Mark the disconnceted edge or node with an ×.
     if failing == "nodes":
-      if path[2] not in [None, [None]]:
-        if hasattr(path[2], "__len__"):
-          nodelist = path[2]
+      if path[3] not in [None, [None]]:
+        if hasattr(path[3], "__len__"):
+          nodelist = path[3]
         else:
-          nodelist = [path[2]]
+          nodelist = [path[3]]
         nx.draw_networkx_nodes(G, pos=pos, nodelist=nodelist, node_color=color,
                                node_shape='x', node_size=failed_node_size,
                                linewidths=3)
     elif failing == "edges":
       # Check for the case of the absolute shortest path, where there is no
       # disconnected edge.
-      if path[2] is not None:
-        nx.draw_networkx_edge_labels(G, pos, edge_labels={path[2]: '×'},  # ✕×✗
+      if path[3] is not None:
+        nx.draw_networkx_edge_labels(G, pos, edge_labels={path[3]: '×'},  # ✕×✗
                                      font_size=50, font_color=color,
                                      bbox=dict(alpha=0), rotate=False)
     elif failing is None:
@@ -171,16 +171,17 @@ def print_paths(paths, failing=None):
     cost_str_len = max(cost_str_len, len(str(path[1])))
 
   for k, path in enumerate(paths):
-    msg = (f"path {k + 1:>{num_paths_str_len}}: {str(path[0]):{path_str_len}}   "
+    msg = (f"path {k + 1:>{num_paths_str_len}}:"
+           f" {str(path[0]):{path_str_len}}   "
            f"cost: {path[1]:>{cost_str_len}}")
     if failing:
-      msg += f"   failed {failing[:-1]}: {path[2]}"
+      msg += f"   failed {failing[:-1]}: {path[3]}"
     click.echo(msg)
 
 
 def plot_adaptive_dijkstra(G,
                            paths_data,
-                           disconnected_nodes,
+                           failed_nodes,
                            nodes_visited_sequence,
                            checkpoint_node):
   """Plots the adaptive Dijkstra's algorithms."""
@@ -201,7 +202,7 @@ def plot_adaptive_dijkstra(G,
                          linewidths=3, label="retrieved state")
 
   # 2. Draw the disconnected nodes
-  nx.draw_networkx_nodes(G, pos=pos, nodelist=disconnected_nodes, node_color='r',
+  nx.draw_networkx_nodes(G, pos=pos, nodelist=failed_nodes, node_color='r',
                          node_shape='x', node_size=800, linewidths=3)
 
   # colors = iter(['b', 'm', 'g', 'k', 'r', 'c', 'y', 'w'])
@@ -227,7 +228,7 @@ def plot_adaptive_dijkstra(G,
     path_edges_sequence = list(zip(path[0], path[0][1:]))
 
     label = (f"path_{i + 1}: {str(path[0])}\ncost: {path[1]}    "
-             f"disconnected nodes: {str(list(path[2]))}")
+             f"disconnected nodes: {str(list(path[3]))}")
 
     # Draw the path
     nx.draw_networkx_edges(G, pos=pos, edgelist=path_edges_sequence,
@@ -235,7 +236,7 @@ def plot_adaptive_dijkstra(G,
                            width=len(paths_data) + 9 - 6 * i, label=label)
 
     # Mark the disconnceted node with an X.
-    nx.draw_networkx_nodes(G, pos=pos, nodelist=path[2], node_color=color,
+    nx.draw_networkx_nodes(G, pos=pos, nodelist=path[3], node_color=color,
                            node_shape='x', node_size=800, linewidths=3)
 
   # Draw 'Source' & 'Sink' labels.
@@ -249,8 +250,8 @@ def plot_adaptive_dijkstra(G,
 
   frame_title = (f"#nodes: {G.number_of_nodes()}    "
                  f"#edges: {G.number_of_edges()}")
-  if disconnected_nodes:
-    frame_title += f"\ndisconnected nodes: {list(disconnected_nodes)}"
+  if failed_nodes:
+    frame_title += f"\ndisconnected nodes: {list(failed_nodes)}"
   plt.title(frame_title)
   plt.legend()
   plt.show()

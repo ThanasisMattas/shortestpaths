@@ -501,7 +501,6 @@ def bidirectional_dijkstra(adj_list,
                            tapes=None,
                            online=False,
                            base_path=None,
-                           meeting_edge_head=False,
                            verbose=0):
   """Implementation of the bidirectional Dijkstra's algorithm.
 
@@ -727,13 +726,7 @@ def bidirectional_dijkstra(adj_list,
     verbose=verbose,
     edge_weight=edge_weight
   )
-  if online:
-    if meeting_edge_head:
-      return [path, path_cost, cum_hop_weights, prospect[2]]
-    else:
-      return [path, path_cost, cum_hop_weights]
-  else:
-    return [path, path_cost, failed, prospect[2]]
+  return path, path_cost, cum_hop_weights, prospect[2]
 
 
 def extract_bidirectional_path(source,
