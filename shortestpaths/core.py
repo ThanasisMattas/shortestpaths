@@ -571,13 +571,7 @@ def replacement_paths(adj_list,
   if k_paths:
     # Update the prospects heap, using the repl_paths found.
     for path in repl_paths:
-      yen.push_prospect(path[0],
-                        path[1],
-                        path[2],
-                        failed_path_idx,
-                        K,
-                        k,
-                        prospects)
+      yen.push_prospect(*path, K, k, prospects)
     return prospects
   else:
     return repl_paths
@@ -672,13 +666,8 @@ def k_shortest_paths(adj_list,
                                     verbose=verbose)
     # Add the best prospect to the k_paths list
     if prospects:
-      last_path, cum_hop_weights, parent_spur_node_idx = yen.push_kth_path(
-        prospects,
-        K,
-        k,
-        last_path,
-        k_paths
-      )
+      last_path, cum_hop_weights, parent_spur_node_idx, meeting_edge_head = \
+          yen.push_kth_path(prospects, K, k, last_path, k_paths)
       if cum_hop_weights is None:
         # Then, all k_paths were found.
         break

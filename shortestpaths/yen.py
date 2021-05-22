@@ -79,6 +79,7 @@ def push_prospect(path,
                   path_cost,
                   path_hop_weights,
                   spur_node_idx,
+                  meeting_edge_head,
                   K,
                   k,
                   prospects):
@@ -86,13 +87,15 @@ def push_prospect(path,
           or (path_cost < heapq.nsmallest(K - k, prospects)[-1][0])):
     # Check if the prospect is already found.
     prospect_already_found = False
-    for p_cost, p, c, d in prospects:
-      if (p_cost == path_cost) and (p == path):
+    for prospect in prospects:
+      if (prospect[0] == path_cost) and (prospect[1] == path):
         prospect_already_found = True
         break
     if not prospect_already_found:
-      heapq.heappush(prospects,
-                     (path_cost, path, path_hop_weights, spur_node_idx))
+      heapq.heappush(
+        prospects,
+        (path_cost, path, path_hop_weights, spur_node_idx, meeting_edge_head)
+      )
   return prospects
 
 
@@ -106,11 +109,8 @@ def push_kth_path(prospects, K, k, last_path, k_paths):
       k_paths.append([kth_path[1], kth_path[0], None, None])
     return None, None
   kth_path = heapq.heappop(prospects)
-  last_path = kth_path[1]
-  k_paths.append([last_path, kth_path[0], None, None])
-  cum_hop_weights = kth_path[2]
-  parent_spur_node_idx = kth_path[3]
-  return last_path, cum_hop_weights, parent_spur_node_idx
+  k_paths.append([kth_path[1], kth_path[0], None, None])
+  return kth_path[1:]
 
 
 def update_prospects(sink,
@@ -177,6 +177,7 @@ def update_prospects(sink,
                                 prospect_cost,
                                 prospect_hop_weights,
                                 u_idx,
+                                None,
                                 K,
                                 k,
                                 prospects)
