@@ -16,10 +16,9 @@
     - Using a heap instead of list (Yen's B), to store candidate paths.
     - If at least K - k candidates with the same cost as the (k - 1)th path
       were already found, append them to the k_paths list (Yen's A) and return.
-
-  TODO: Add main, so it can run as a separate script.
 """
 
+import copy
 import heapq
 
 from shortestpaths import dijkstra
@@ -58,8 +57,7 @@ def fail_found_spur_edges(adj_list,
   if inverted_adj_list:
     for u, edge in failed_inverted_edges.items():
       inverted_adj_list[u].remove(edge)
-    return failed_edges, failed_inverted_edges
-  return failed_edges
+  return failed_edges, failed_inverted_edges
 
 
 def reconnect_spur_edges(spur_node,
@@ -69,9 +67,11 @@ def reconnect_spur_edges(spur_node,
                          failed_inverted_edges=None):
   for _, edge in failed_edges.items():
     adj_list[spur_node].add(edge)
+  failed_edges.clear()
   if inverted_adj_list:
     for u, edge in failed_inverted_edges.items():
       inverted_adj_list[u].add(edge)
+    failed_inverted_edges.clear()
 
 
 def push_prospect(path,
@@ -145,32 +145,32 @@ def update_prospects(sink,
 
     u_idx = i + parent_spur_node_idx
     # Fail the (i, i + 1) edges of the found k - 1 shortest paths.
-    failed_edges = fail_found_spur_edges(adj_list,
-                                         u,
-                                         u_idx,
-                                         last_path,
-                                         k_paths)
-
+    failed_edges, _ = fail_found_spur_edges(adj_list,
+                                            u,
+                                            u_idx,
+                                            last_path,
+                                            k_paths)
     # Fail the root-path nodes from the to_visit PriorityQueue. Note that the
     # PriorityQueue should have been deepcopied.
-    del to_visit[last_path[:u_idx]]
+    new_to_visit = copy.deepcopy(to_visit)
+    del new_to_visit[last_path[:u_idx]]
 
     # Set the spur-node as source and initialize its cost to root-path-cost.
-    to_visit[u] = [cum_hop_weights[u_idx], u, u]
-    new_visited = dijkstra.dijkstra(adj_list,
-                                    sink,
-                                    to_visit,
-                                    visited)
-    prospect_cost = new_visited[sink][0]
-    spur, spur_hop_weights = dijkstra.extract_path(
-      u,
+    new_to_visit[u] = [cum_hop_weights[u_idx], u, u]
+
+    spur, prospect_cost, spur_weights, _ = dijkstra.unidirectional_dijkstra(
+      adj_list,
       sink,
-      new_visited,
+      new_to_visit,
+      copy.deepcopy(visited),
+      None,
       with_cum_hop_weights=True,
+      verbose=verbose
     )
+
     if spur:
       prospect = last_path[:u_idx] + spur
-      prospect_hop_weights = cum_hop_weights[:u_idx] + spur_hop_weights
+      prospect_hop_weights = cum_hop_weights[:u_idx] + spur_weights
 
       push_prospect(prospect,
                     prospect_cost,
@@ -181,8 +181,8 @@ def update_prospects(sink,
                     prospects)
 
     # Restore the failed edges.
-    reconnect_spur_edges(adj_list, failed_edges)
-    failed_edges.clear()
+    reconnect_spur_edges(u, adj_list, failed_edges)
 
   if verbose >= 2:
     print(f"k: {k + 1:{len(str(K))}}   spur paths: {spur_counter}")
+  return prospects

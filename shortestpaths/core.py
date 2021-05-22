@@ -176,7 +176,7 @@ def _replacement_path(failed_path_idx: int,
       # Fail the (i, i + 1) edges of the found k - 1 shortest paths.
       failed_edges, failed_inverted_edges = yen.fail_found_spur_edges(
         adj_list,
-        failed,
+        tail,
         failed_path_idx,
         base_path,
         k_paths,
@@ -229,7 +229,7 @@ def _replacement_path(failed_path_idx: int,
         break
     if k_paths:
       # Reconnect the failed edges
-      yen.reconnect_spur_edges(failed,
+      yen.reconnect_spur_edges(tail,
                                adj_list,
                                failed_edges,
                                inverted_adj_list,
@@ -249,7 +249,6 @@ def _replacement_path(failed_path_idx: int,
   return repl_path, repl_path_cost, repl_weights, failed, meeting_edge_head
 
 
-# @profile
 def _dynamic_online_replacement_paths(adj_list,
                                       source,
                                       sink,
@@ -288,10 +287,7 @@ def _dynamic_online_replacement_paths(adj_list,
   # meeting_edge_head of the base_path is the point where we stop updating
   # the reverse search state, using that final state for all the subsequent
   # searches.
-  if k_paths:
-    meeting_edge_head_idx = (len(base_path) - parent_spur_node_idx) // 2
-  else:
-    meeting_edge_head_idx = base_path.index(meeting_edge_head) - 2
+  last_state_path_idx = base_path.index(meeting_edge_head) - 1
   visited_reverse = copy.deepcopy(visited)
   discovered_reverse = {sink}
 
@@ -318,7 +314,7 @@ def _dynamic_online_replacement_paths(adj_list,
     # since the search space becomes large. Therefore, from that point on the
     # reverse state of each subsequent bidirectional spur-path search will get
     # this last state.
-    if failed_path_idx > meeting_edge_head_idx:
+    if failed_path_idx > last_state_path_idx:
       # print(failed_path_idx)
       u_next = to_visit_reverse.peek()[-1]
     else:
@@ -385,7 +381,7 @@ def _dynamic_online_replacement_paths(adj_list,
       to_visit[spur_node] = [math.inf, spur_node, spur_node]
       failed_path_idx -= 1
 
-    if failed_path_idx <= meeting_edge_head_idx:
+    if failed_path_idx <= last_state_path_idx:
       # Carry on using current node as source for the reverse search, because
       # the search sphere of the underlying unidirecional search got very big
       # and building more informed states became very heavy. The extra distance
@@ -575,7 +571,13 @@ def replacement_paths(adj_list,
   if k_paths:
     # Update the prospects heap, using the repl_paths found.
     for path in repl_paths:
-      yen.push_prospect(*path, K, k, prospects)
+      yen.push_prospect(path[0],
+                        path[1],
+                        path[2],
+                        failed_path_idx,
+                        K,
+                        k,
+                        prospects)
     return prospects
   else:
     return repl_paths
@@ -628,14 +630,14 @@ def k_shortest_paths(adj_list,
   # Holding the potential shortest paths (Yen's B).
   prospects = []
   heapq.heapify(prospects)
-  parent_spur_node_idx = 1
+  parent_spur_node_idx = 0
 
   for k in range(1, K):
     if yen_ or lawler:
       prospects = yen.update_prospects(sink,
                                        adj_list,
-                                       copy.deepcopy(to_visit),
-                                       copy.deepcopy(visited),
+                                       to_visit,
+                                       visited,
                                        K,
                                        k,
                                        last_path,

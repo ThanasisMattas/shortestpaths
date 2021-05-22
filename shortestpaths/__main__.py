@@ -118,7 +118,7 @@ def main(ctx,
                                   bidirectional=bidirectional,
                                   parallel=parallel,
                                   dynamic=dynamic,
-                                  yen=yen,
+                                  yen_=yen,
                                   lawler=lawler,
                                   verbose=verbose)
 
