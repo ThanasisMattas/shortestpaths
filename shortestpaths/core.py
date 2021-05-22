@@ -25,11 +25,10 @@ from concurrent.futures import ProcessPoolExecutor
 import copy
 from functools import partial
 import heapq
-from itertools import count
 import math
 from typing import Hashable, Literal
 
-from shortestpaths import dijkstra
+from shortestpaths import dijkstra, yen
 from shortestpaths.priorityq import PriorityQueue
 from shortestpaths.utils import print_heap, time_this  # noqa: F401
 
@@ -95,76 +94,6 @@ def _first_shortest_path(adj_list,
       path_data = [shortest_path, shortest_path_cost, None]
 
   return path_data
-
-
-def _push_prospect(path,
-                   path_cost,
-                   path_hop_weights,
-                   spur_node_idx,
-                   K,
-                   k,
-                   prospects):
-  if ((len(prospects) < K - k)
-          or (path_cost < heapq.nsmallest(K - k, prospects)[-1][0])):
-    # Check if the prospect is already found.
-    prospect_already_found = False
-    for p_cost, p, c, d in prospects:
-      if (p_cost == path_cost) and (p == path):
-        prospect_already_found = True
-        break
-    if not prospect_already_found:
-      heapq.heappush(prospects,
-                     (path_cost, path, path_hop_weights, spur_node_idx))
-  return prospects
-
-
-def _fail_found_spur_edges(adj_list,
-                           spur_node,
-                           spur_node_path_idx,
-                           base_path,
-                           k_paths,
-                           inverted_adj_list=None,
-                           head=None):
-  """Failes the edges having spur-node as tail, for each of the K - k found
-  paths, that have the same root-path with the prospect-path."""
-  # {head: (head, edge_cost)}
-  failed_edges = dict()
-  # {invertd_tail (head): (inverted_head (tail), edge_cost)}
-  failed_inverted_edges = dict()
-  for j in k_paths:
-    if j[0][:spur_node_path_idx + 1] == base_path[:spur_node_path_idx + 1]:
-      failed_edges[j[0][spur_node_path_idx + 1]] = None
-      failed_inverted_edges[j[0][spur_node_path_idx + 1]] = None
-  # Don't disconnect the failed edge yet, because it will be disconnected
-  # in the subsequent loop.
-  if head:
-    del failed_edges[head]
-    del failed_inverted_edges[head]
-
-  for v, uv_weight in adj_list[spur_node]:
-    if v in failed_edges.keys():
-      failed_edges[v] = (v, uv_weight)
-      failed_inverted_edges[v] = (spur_node, uv_weight)
-  for v, edge in failed_edges.items():
-    adj_list[spur_node].remove(edge)
-
-  if inverted_adj_list:
-    for u, edge in failed_inverted_edges.items():
-      inverted_adj_list[u].remove(edge)
-    return failed_edges, failed_inverted_edges
-  return failed_edges
-
-
-def _reconnect_spur_edges(spur_node,
-                          adj_list,
-                          failed_edges,
-                          inverted_adj_list=None,
-                          failed_inverted_edges=None):
-  for _, edge in failed_edges.items():
-    adj_list[spur_node].add(edge)
-  if inverted_adj_list:
-    for u, edge in failed_inverted_edges.items():
-      inverted_adj_list[u].add(edge)
 
 
 # @time_this
@@ -241,7 +170,7 @@ def _replacement_path(failed_path_idx: int,
   elif failing == "edges":
     if k_paths:
       # Fail the (i, i + 1) edges of the found k - 1 shortest paths.
-      failed_edges, failed_inverted_edges = _fail_found_spur_edges(
+      failed_edges, failed_inverted_edges = yen.fail_found_spur_edges(
         adj_list,
         failed,
         failed_path_idx,
@@ -299,11 +228,11 @@ def _replacement_path(failed_path_idx: int,
         break
     # Reconnect the failed edges
     if k_paths:
-      _reconnect_spur_edges(failed,
-                            adj_list,
-                            failed_edges,
-                            inverted_adj_list,
-                            failed_inverted_edges)
+      yen.reconnect_spur_edges(failed,
+                               adj_list,
+                               failed_edges,
+                               inverted_adj_list,
+                               failed_inverted_edges)
 
     failed = (tail, head)
   else:
@@ -613,82 +542,10 @@ def replacement_paths(adj_list,
     # Update the prospects heap, using the repl_paths found.
     for path in repl_paths:
       # [pr_path, pr_cost, pr_hop_weights, pr_spur_node_idx] = path
-      _push_prospect(*path, K, k, prospects)
+      yen.push_prospect(*path, K, k, prospects)
     return prospects
   else:
     return repl_paths
-
-
-def _yen(sink,
-         adj_list,
-         to_visit,
-         visited,
-         K,
-         k,
-         last_path,
-         last_u_idx,
-         k_paths,
-         prospects,
-         cum_hop_weights,
-         lawler=False):
-  """Implementation of Yen's k-shortests paths algorithm with improvements.
-
-  Improvements (see Brander-Sinclair 1996):
-    - Not searching for deviation paths already found. (Lawler 1972)
-    - Using a heap instead of list (Yen's B), to store candidate paths.
-    - If at least K - k candidates with the same cost as the (k - 1)th path
-      were already found, append them to the k_paths list (Yen's A) and return.
-  """
-  if not lawler:
-    last_u_idx = 0
-
-  # Construct the deviation paths of the last found shortest path.
-  # (u is the spur node)
-  for i, u in enumerate(last_path[last_u_idx: -1]):
-    next(_yen.counter)
-    u_idx = i + last_u_idx
-    # Fail the (i, i + 1) edges of the found k - 1 shortest paths.
-    # {head: (head, edge_cost)}
-    failed_edges = _fail_found_spur_edges(adj_list,
-                                          u,
-                                          u_idx,
-                                          last_path,
-                                          k_paths)
-
-    # Remove the root-path nodes from the to_visit PriorityQueue.
-    new_to_visit = copy.deepcopy(to_visit)
-    for root_node in last_path[:u_idx]:
-      del new_to_visit[root_node]
-
-    # Set the spur-node as source and initialize its cost to root-path-cost.
-    new_to_visit[u] = [cum_hop_weights[u_idx], u, u]
-    new_visited = dijkstra.dijkstra(adj_list,
-                                    sink,
-                                    new_to_visit,
-                                    copy.deepcopy(visited))
-    prospect_cost = new_visited[sink][0]
-    spur, spur_hop_weights = dijkstra.extract_path(
-      u,
-      sink,
-      new_visited,
-      with_cum_hop_weights=True,
-    )
-    if spur:
-      prospect = last_path[:u_idx] + spur
-      prospect_hop_weights = cum_hop_weights[:u_idx] + spur_hop_weights
-
-      _push_prospect(prospect,
-                     prospect_cost,
-                     prospect_hop_weights,
-                     u_idx,
-                     K,
-                     k,
-                     prospects)
-
-    # Restore the failed edges.
-    _reconnect_spur_edges(adj_list, failed_edges)
-    failed_edges.clear()
-  return prospects
 
 
 # @profile
@@ -738,26 +595,23 @@ def k_shortest_paths(adj_list,
   prospects = []
   heapq.heapify(prospects)
   last_path = shortest_path
-  parent_spur_node_idx = 0
-  _yen.counter = count(0)
+  parent_spur_node_idx = 1
 
   for k in range(1, K):
     if yen or lawler:
-      prospects = _yen(sink,
-                       adj_list,
-                       to_visit,
-                       visited,
-                       K,
-                       k,
-                       last_path,
-                       parent_spur_node_idx,
-                       k_paths,
-                       prospects,
-                       cum_hop_weights,
-                       lawler)
-      if verbose >= 2:
-        print(f"k: {k + 1:{len(str(K))}}"
-              f"    spur paths: {_yen.counter.__reduce__()[1][0]}")
+      prospects = yen.update_prospects(sink,
+                                       adj_list,
+                                       copy.deepcopy(to_visit),
+                                       copy.deepcopy(visited),
+                                       K,
+                                       k,
+                                       last_path,
+                                       parent_spur_node_idx,
+                                       k_paths,
+                                       prospects,
+                                       cum_hop_weights,
+                                       lawler,
+                                       verbose)
     else:
       prospects = replacement_paths(adj_list,
                                     n,
@@ -782,19 +636,16 @@ def k_shortest_paths(adj_list,
                                     verbose=verbose)
     # Add the best prospect to the k_paths list
     if prospects:
-      # Check if at least K - k prospects with the same cost as the (k - 1)th
-      # path were already found.
-      if ((len(prospects) >= K - k)
-              and heapq.nsmallest(K - k, prospects)[-1][0] == last_path[0]):
-        for _ in range(K - k):
-          kth_path = heapq.heappop(prospects)
-          k_paths.append([kth_path[1], kth_path[0], None])
+      cum_hop_weights, parent_spur_node_idx = yen.push_kth_path(
+        prospects,
+        K,
+        k,
+        last_path,
+        k_paths
+      )
+      if cum_hop_weights is None:
+        # Then, all k_paths were found.
         break
-      kth_path = heapq.heappop(prospects)
-      last_path = kth_path[1]
-      k_paths.append([last_path, kth_path[0], None])
-      cum_hop_weights = kth_path[2]
-      parent_spur_node_idx = kth_path[3]
     else:
       break
   return k_paths
