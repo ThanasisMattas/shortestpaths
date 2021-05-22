@@ -672,7 +672,7 @@ def k_shortest_paths(adj_list,
                                     verbose=verbose)
     # Add the best prospect to the k_paths list
     if prospects:
-      cum_hop_weights, parent_spur_node_idx = yen.push_kth_path(
+      last_path, cum_hop_weights, parent_spur_node_idx = yen.push_kth_path(
         prospects,
         K,
         k,

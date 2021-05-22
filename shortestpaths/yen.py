@@ -41,6 +41,7 @@ def fail_found_spur_edges(adj_list,
     if j[0][:spur_node_path_idx + 1] == base_path[:spur_node_path_idx + 1]:
       failed_edges[j[0][spur_node_path_idx + 1]] = None
       failed_inverted_edges[j[0][spur_node_path_idx + 1]] = None
+
   # Don't disconnect the failed edge yet, because it will be disconnected
   # in the subsequent loop.
   if head:
@@ -102,14 +103,14 @@ def push_kth_path(prospects, K, k, last_path, k_paths):
           and heapq.nsmallest(K - k, prospects)[-1][0] == last_path[0]):
     for _ in range(K - k):
       kth_path = heapq.heappop(prospects)
-      k_paths.append([kth_path[1], kth_path[0], None])
+      k_paths.append([kth_path[1], kth_path[0], None, None])
     return None, None
   kth_path = heapq.heappop(prospects)
   last_path = kth_path[1]
-  k_paths.append([last_path, kth_path[0], None])
+  k_paths.append([last_path, kth_path[0], None, None])
   cum_hop_weights = kth_path[2]
   parent_spur_node_idx = kth_path[3]
-  return cum_hop_weights, parent_spur_node_idx
+  return last_path, cum_hop_weights, parent_spur_node_idx
 
 
 def update_prospects(sink,
@@ -125,7 +126,7 @@ def update_prospects(sink,
                      cum_hop_weights,
                      lawler=False,
                      verbose=0):
-  """Finds the replacement-paths of the (k-1)-th path and updates the prospects
+  """Finds the deviation-paths of the (k-1)-th path and updates the prospects
   heap.
 
   - Replacement-paths search starts form the parent_spur_node_idx, as suggested
@@ -172,13 +173,13 @@ def update_prospects(sink,
       prospect = last_path[:u_idx] + spur
       prospect_hop_weights = cum_hop_weights[:u_idx] + spur_weights
 
-      push_prospect(prospect,
-                    prospect_cost,
-                    prospect_hop_weights,
-                    u_idx,
-                    K,
-                    k,
-                    prospects)
+      prospects = push_prospect(prospect,
+                                prospect_cost,
+                                prospect_hop_weights,
+                                u_idx,
+                                K,
+                                k,
+                                prospects)
 
     # Restore the failed edges.
     reconnect_spur_edges(u, adj_list, failed_edges)
