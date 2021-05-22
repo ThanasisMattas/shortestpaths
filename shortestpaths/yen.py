@@ -25,13 +25,13 @@ import heapq
 from shortestpaths import dijkstra
 
 
-def _fail_found_spur_edges(adj_list,
-                           spur_node,
-                           spur_node_path_idx,
-                           base_path,
-                           k_paths,
-                           inverted_adj_list=None,
-                           head=None):
+def fail_found_spur_edges(adj_list,
+                          spur_node,
+                          spur_node_path_idx,
+                          base_path,
+                          k_paths,
+                          inverted_adj_list=None,
+                          head=None):
   """Failes the edges having spur-node as tail, for each of the K - k found
   paths, that have the same root-path with the prospect-path."""
   # {head: (head, edge_cost)}
@@ -145,11 +145,11 @@ def update_prospects(sink,
 
     u_idx = i + parent_spur_node_idx
     # Fail the (i, i + 1) edges of the found k - 1 shortest paths.
-    failed_edges = _fail_found_spur_edges(adj_list,
-                                          u,
-                                          u_idx,
-                                          last_path,
-                                          k_paths)
+    failed_edges = fail_found_spur_edges(adj_list,
+                                         u,
+                                         u_idx,
+                                         last_path,
+                                         k_paths)
 
     # Fail the root-path nodes from the to_visit PriorityQueue. Note that the
     # PriorityQueue should have been deepcopied.
