@@ -71,29 +71,20 @@ def _first_shortest_path(adj_list,
                                      verbose=verbose)
       # Uncomment this to run a sanity test on the tapes.
       # dijkstra.verify_tapes(tapes, path_data[0], failing=failing)
-      return path_data, tapes
   else:
-    visited_out = dijkstra.dijkstra(adj_list,
-                                    sink,
-                                    copy.deepcopy(to_visit),
-                                    copy.deepcopy(visited))
-    shortest_path_cost = visited_out[sink][0]
-
-    shortest_path, cum_hop_weights = dijkstra.extract_path(
-      source,
+    path_data = dijkstra.unidirectional_dijkstra(
+      adj_list,
       sink,
-      visited_out,
+      copy.deepcopy(to_visit),
+      copy.deepcopy(visited),
       with_cum_hop_weights=online,
-      verbose=verbose)
+      verbose=verbose
+    )
 
-    if online:
-      # When online, we need the cumulative hop weights, to retrieve the root-
-      # path cost up until the failed node/edge.
-      path_data = [shortest_path, shortest_path_cost, cum_hop_weights]
-    else:
-      path_data = [shortest_path, shortest_path_cost, None]
-
-  return path_data
+  # Insert None for failed node/edge, to forn the _replacement_path() return
+  # format.
+  path_data.insert(3, None)
+  return path_data, tapes
 
 
 # @time_this
@@ -154,16 +145,12 @@ def _replacement_path(failed_path_idx: int,
         verbose=verbose
       )
     else:
-      repl_visited = dijkstra.dijkstra(adj_list,
-                                       sink,
-                                       to_visit,
-                                       visited,
-                                       failed)
-      repl_path_cost = repl_visited[sink][0]
-      repl_path, repl_weights = dijkstra.extract_path(
-        source,
+      path_data = dijkstra.unidirectional_dijkstra(
+        adj_list,
         sink,
-        repl_visited,
+        to_visit,
+        visited,
+        failed,
         with_cum_hop_weights=online,
         verbose=verbose
       )
@@ -211,15 +198,11 @@ def _replacement_path(failed_path_idx: int,
               inverted_adj_list[head].add(ne)
               break
         else:
-          repl_visited = dijkstra.dijkstra(adj_list,
-                                           sink,
-                                           to_visit,
-                                           visited)
-          repl_path_cost = repl_visited[sink][0]
-          repl_path, repl_weights = dijkstra.extract_path(
-            source,
+          path_data = dijkstra.unidirectional_dijkstra(
+            adj_list,
             sink,
-            repl_visited,
+            to_visit,
+            visited,
             with_cum_hop_weights=online,
             verbose=verbose
           )

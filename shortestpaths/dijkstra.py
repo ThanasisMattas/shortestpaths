@@ -316,7 +316,7 @@ def record_states(adj_list,
   if reverse_subpath == []:
     reverse_subpath = [sink]
 
-  forward_search = Process(name="forward_single_directional_search",
+  forward_search = Process(name="forward_unidirectional_search",
                            target=dijkstra,
                            args=(adj_list,
                                  sink,
@@ -325,7 +325,7 @@ def record_states(adj_list,
                                  failing,
                                  tapes_queue,
                                  forward_subpath))
-  reverse_search = Process(name="reverse_single_directional_search",
+  reverse_search = Process(name="reverse_unidirectional_search",
                            target=dijkstra,
                            args=(inverted_adj_list,
                                  source,
@@ -353,6 +353,36 @@ def record_states(adj_list,
     return tape_1, tape_2
   else:
     return tape_2, tape_1
+
+
+def unidirectional_dijkstra(adj_list,
+                            sink,
+                            to_visit,
+                            visited,
+                            failed,
+                            with_cum_hop_weights=False,
+                            verbose=0):
+  """Wrapper of dijkstra() and extract_path(), in order to have the same usage
+  with bidirectional_dijkstra().
+  """
+  source = to_visit.peek()[-1]
+  visited_out = dijkstra(adj_list,
+                         sink,
+                         to_visit,
+                         visited,
+                         failed)
+  path_cost = visited_out[sink][0]
+  # When online, we need the cumulative hop weights, to retrieve the root-
+  # path cost up until the failed node/edge.
+  path, cum_hop_weights = extract_path(
+    source,
+    sink,
+    visited_out,
+    with_cum_hop_weights=with_cum_hop_weights,
+    verbose=verbose
+  )
+  # None stands for meeting_edge_head returned by bidirectional_dijkstra().
+  return path, path_cost, cum_hop_weights, None
 
 
 def _visited_offsets(n):
