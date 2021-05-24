@@ -82,8 +82,12 @@ class PriorityQueue:
 
   def __deepcopy__(self, *args, **kargs):
     new_obj = PriorityQueue()
-    new_obj._heapq = copy.deepcopy(self._heapq, *args, **kargs)
-    new_obj._entry_finder = copy.deepcopy(self._entry_finder, *args, **kargs)
+    for entry in self._heapq:
+      if entry[-1] != self._REMOVED:
+        entry_copy = entry.copy()
+        new_obj._heapq.append(entry_copy)
+        new_obj._entry_finder[entry_copy[-1]] = entry_copy
+    heapq.heapify(new_obj._heapq)
     new_obj._counter = copy.copy(self._counter)
     return new_obj
 
