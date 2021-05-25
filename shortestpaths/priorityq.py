@@ -100,7 +100,7 @@ class PriorityQueue:
     return False
 
   def __getitem__(self, entry_id):
-    entry = copy.deepcopy(self._entry_finder[entry_id])
+    entry = self._entry_finder[entry_id].copy()
     # remove the counter
     del entry[-3]
     return entry
@@ -173,7 +173,7 @@ class PriorityQueue:
     while entry[-1] == self._REMOVED:
       heapq.heappop(self._heapq)
       entry = self._heapq[0]
-    entry = copy.deepcopy(entry)
+    entry = entry.copy()
     del entry[-3]
     return entry
 
