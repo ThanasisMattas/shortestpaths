@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+#
 # __main__.py is part of ShortestPaths
 #
 # ShortestPaths is free software; you may redistribute it and/or modify it
@@ -14,16 +16,19 @@
 Usage: shortestpaths [OPTIONS] N COMMAND [OPTIONS]
 
 Examples:
-shortestpaths 100
-shortestpaths -s 0 --layout-seed 1 -k 5 200
-shortestpaths 200 replacement-paths --failing edges
-shortestpaths -b -p 300 replacement-paths -f nodes
-shortestpaths -d 300 replacement-paths -f nodes
+shortestpaths -v 100
+shortestpaths --show-graph -k 5 100
+shortestpaths -v -d -k 20 1000
+shortestpaths -v --show-graph 200 replacement-paths --failing edges
+shortestpaths -v --show-graph 200 replacement-paths --failing edges --online
 """
 
 import click
 
-from shortestpaths import core, graph_generator, post_processing, utils  # noqa F401
+from shortestpaths import (core,  # noqa F401
+                           graph_generator,
+                           post_processing,
+                           utils)
 
 
 @click.group(invoke_without_command=True)
@@ -87,51 +92,52 @@ def main(ctx,
                                              max_edge_weight=max_edge_weight,
                                              max_node_weight=max_node_weight,
                                              random_seed=random_seed)
-
   if dynamic:
     bidirectional = True
+  if bidirectional:
+    adj_list_reverse = graph_generator.adj_list_reversed(adj_list)
+  else:
+    adj_list_reverse = None
 
+  init_config = {
+    "adj_list": adj_list,
+    "adj_list_reverse": adj_list_reverse,
+    "source": 1,
+    "sink": n
+  }
+  mode = {
+    "bidirectional": bidirectional,
+    "parallel": parallel,
+    "dynamic": dynamic,
+    "failing": "edges",
+    "online": True,
+    "verbose": verbose
+  }
+  ctx_config = {
+    "init_config": init_config,
+    "mode": mode,
+    "G": G,
+    "layout_seed": layout_seed,
+    "show_graph": show_graph,
+    "save_graph": save_graph,
+  }
   if ctx.invoked_subcommand is not None:
-    # populate ctx.obj
-    ctx_config = {
-      "adj_list": adj_list,
-      "G": G,
-      "n": n,
-      "bidirectional": bidirectional,
-      "parallel": parallel,
-      "dynamic": dynamic,
-      "layout_seed": layout_seed,
-      "show_graph": show_graph,
-      "save_graph": save_graph,
-      "verbose": verbose
-    }
     if ctx.invoked_subcommand == "dynamic_graph_demo":
       ctx_config["random_seed"] = random_seed
     ctx.obj.update(ctx_config)
     return
 
+  mode.update({"yen_": yen, "lawler": lawler})
+
   # 2. Paths generation
-  k_paths = core.k_shortest_paths(adj_list=adj_list,
-                                  source=1,
-                                  sink=n,
-                                  K=K,
-                                  bidirectional=bidirectional,
-                                  parallel=parallel,
-                                  dynamic=dynamic,
-                                  yen_=yen,
-                                  lawler=lawler,
-                                  verbose=verbose)
+  k_paths = core.k_shortest_paths(K, init_config, mode)
 
   # 3. Post-processing
   if verbose:
     post_processing.print_paths(k_paths)
   if save_graph or show_graph:
-    post_processing.plot_graph(G,
-                               k_paths,
-                               None,
-                               save_graph,
-                               show_graph,
-                               layout_seed=layout_seed)
+    ctx_config.pop("init_config")
+    post_processing.plot_graph(paths_data=k_paths, **ctx_config)
 
 
 @main.command()
@@ -141,8 +147,11 @@ def main(ctx,
               help="Setting what to fail, path edges or path nodes, in order"
                    " to produce the replacement paths.")
 @click.option("--online", is_flag=True,
-              help="Each replacement path is forced to contain the root sub-"
-                   "path, till the previous node of the failed node/edge.")
+              help=("When online, the path up until the failure is kept as it"
+                    " is (the algorithm is getting informed upon meeting the"
+                    " failed node or edge), whereas when not online, a new"
+                    " search starts from the source, ignoring the parent-path"
+                    " (the algorithm is a priori informed about the failure)"))
 @utils.time_this
 def replacement_paths(ctx, failing, online):
   """CLI command for the replacement paths
@@ -150,28 +159,21 @@ def replacement_paths(ctx, failing, online):
   Args:
     ctx(click.core.Context) : has obj dict with the parameters of the group
     failing (str)           : "edges" or "nodes" (CLI option)
+    online (bool)           : When online, the path up until the failure is
+                              kept as it is (the algorithm is getting informed
+                              upon meeting the failed node or edge), whereas
+                              when not online, a new search starts from the
+                              source, ignoring the parent-path (the algorithm
+                              is a priori informed about the failure).
+                              (CLI option)
   """
-  verbose = ctx.obj.pop("verbose", 0)
+  ctx.obj["mode"].update({"failing": failing, "online": online})
+  r_paths = core.replacement_paths(ctx.obj["mode"], ctx.obj.pop("init_config"))
 
-  r_paths = core.replacement_paths(
-    ctx.obj.pop("adj_list"),
-    n=ctx.obj.get("n", 100),
-    source=1,
-    sink=ctx.obj.pop("n", 100),
-    failing=failing,
-    bidirectional=ctx.obj.pop("bidirectional", False),
-    parallel=ctx.obj.pop("parallel", False),
-    dynamic=ctx.obj.pop("dynamic", False),
-    online=online,
-    verbose=verbose
-  )
-
-  if verbose:
-    post_processing.print_paths(r_paths, failing)
+  if ctx.obj["mode"]["verbose"]:
+    post_processing.print_paths(r_paths, ctx.obj["mode"]["failing"])
   if ctx.obj["save_graph"] or ctx.obj["show_graph"]:
-    post_processing.plot_graph(paths_data=r_paths,
-                               failing=failing,
-                               **ctx.obj)
+    post_processing.plot_graph(paths_data=r_paths, **ctx.obj)
 
 
 @main.command()

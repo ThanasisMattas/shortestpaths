@@ -61,7 +61,7 @@ def _node_sizes(G):
 
 def plot_graph(G,
                paths_data,
-               failing: Literal["edges", "nodes", None]="edges",  # noqa: E252
+               failing: Literal["edges", "nodes", None] = None,
                save_graph=False,
                show_graph=True,
                layout_seed=None,

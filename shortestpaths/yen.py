@@ -18,7 +18,6 @@
       were already found, append them to the k_paths list (Yen's A) and return.
 """
 
-import copy
 import heapq
 
 from shortestpaths import dijkstra
@@ -29,7 +28,7 @@ def fail_found_spur_edges(adj_list,
                           spur_node_path_idx,
                           base_path,
                           k_paths,
-                          inverted_adj_list=None,
+                          adj_list_reverse=None,
                           head=None):
   """Failes the edges having spur-node as tail, for each of the K - k found
   paths, that have the same root-path with the prospect-path."""
@@ -55,29 +54,29 @@ def fail_found_spur_edges(adj_list,
   for v, edge in failed_edges.items():
     adj_list[spur_node].remove(edge)
 
-  if inverted_adj_list:
+  if adj_list_reverse:
     for u, edge in failed_inverted_edges.items():
-      inverted_adj_list[u].remove(edge)
+      adj_list_reverse[u].remove(edge)
   return failed_edges, failed_inverted_edges
 
 
 def reconnect_spur_edges(spur_node,
                          adj_list,
                          failed_edges,
-                         inverted_adj_list=None,
+                         adj_list_reverse=None,
                          failed_inverted_edges=None):
   for _, edge in failed_edges.items():
     adj_list[spur_node].add(edge)
   failed_edges.clear()
-  if inverted_adj_list:
+  if adj_list_reverse:
     for u, edge in failed_inverted_edges.items():
-      inverted_adj_list[u].add(edge)
+      adj_list_reverse[u].add(edge)
     failed_inverted_edges.clear()
 
 
 def push_prospect(path,
                   path_cost,
-                  path_hop_weights,
+                  cum_hop_weights,
                   spur_node_idx,
                   meeting_edge_head,
                   K,
@@ -94,38 +93,19 @@ def push_prospect(path,
     if not prospect_already_found:
       heapq.heappush(
         prospects,
-        (path_cost, path, path_hop_weights, spur_node_idx, meeting_edge_head)
+        [path_cost, path, cum_hop_weights, spur_node_idx, meeting_edge_head]
       )
   return prospects
 
 
-def push_kth_path(prospects, K, k, last_path, k_paths):
-  # Check if at least K - k prospects with the same cost as the (k - 1)th
-  # path were already found.
-  if ((len(prospects) >= K - k)
-          and heapq.nsmallest(K - k, prospects)[-1][0] == last_path[0]):
-    for _ in range(K - k):
-      kth_path = heapq.heappop(prospects)
-      k_paths.append([kth_path[1], kth_path[0], None, None])
-    return None, None
-  kth_path = heapq.heappop(prospects)
-  k_paths.append([kth_path[1], kth_path[0], None, None])
-  return kth_path[1:]
-
-
-def update_prospects(sink,
-                     adj_list,
-                     to_visit,
-                     visited,
+def update_prospects(k,
                      K,
-                     k,
-                     last_path,
-                     parent_spur_node_idx,
                      k_paths,
+                     mode,
+                     init_config,
+                     parent_spur_node_idx,
                      prospects,
-                     cum_hop_weights,
-                     lawler=False,
-                     verbose=0):
+                     cum_hop_weights):
   """Finds the deviation-paths of the (k-1)-th path and updates the prospects
   heap.
 
@@ -136,7 +116,8 @@ def update_prospects(sink,
   # This counter is used to print the spur-paths search difference produced
   # by Lawler's modification.
   spur_counter = 0
-  if not lawler:
+  last_path = k_paths[-1][0]
+  if not mode["lawler"]:
     parent_spur_node_idx = 0
 
   # Construct the deviation paths of the last found shortest path.
@@ -146,27 +127,22 @@ def update_prospects(sink,
 
     u_idx = i + parent_spur_node_idx
     # Fail the (i, i + 1) edges of the found k - 1 shortest paths.
-    failed_edges, _ = fail_found_spur_edges(adj_list,
+    failed_edges, _ = fail_found_spur_edges(init_config["adj_list"],
                                             u,
                                             u_idx,
                                             last_path,
                                             k_paths)
     # Fail the root-path nodes from the to_visit PriorityQueue. Note that the
     # PriorityQueue should have been deepcopied.
-    new_to_visit = copy.deepcopy(to_visit)
-    del new_to_visit[last_path[:u_idx]]
+    dijkstra_config, _ = dijkstra.dijkstra_init(**init_config)
+    del dijkstra_config["to_visit"][last_path[:u_idx]]
 
     # Set the spur-node as source and initialize its cost to root-path-cost.
-    new_to_visit[u] = [cum_hop_weights[u_idx], u, u]
+    dijkstra_config["to_visit"][u] = [cum_hop_weights[u_idx], u, u]
 
     spur, prospect_cost, spur_weights, _ = dijkstra.unidirectional_dijkstra(
-      adj_list,
-      sink,
-      new_to_visit,
-      copy.deepcopy(visited),
-      None,
-      with_cum_hop_weights=True,
-      verbose=verbose
+      dijkstra_config,
+      mode
     )
 
     if spur:
@@ -183,8 +159,8 @@ def update_prospects(sink,
                                 prospects)
 
     # Restore the failed edges.
-    reconnect_spur_edges(u, adj_list, failed_edges)
+    reconnect_spur_edges(u, init_config["adj_list"], failed_edges)
 
-  if verbose >= 2:
+  if mode["verbose"] >= 2:
     print(f"k: {k + 1:{len(str(K))}}   spur paths: {spur_counter}")
   return prospects
