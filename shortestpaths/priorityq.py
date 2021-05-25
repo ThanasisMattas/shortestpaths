@@ -178,7 +178,8 @@ class PriorityQueue:
     return entry
 
   def __iter__(self):
-    heapq_ = copy.deepcopy(self._heapq)
+    heapq_ = [x.copy() for x in self._heapq]
+    heapq.heapify(heapq_)
     for _ in range(len(heapq_)):
       entry = heapq.heappop(heapq_)
       if entry[-1] in self._entry_finder:
