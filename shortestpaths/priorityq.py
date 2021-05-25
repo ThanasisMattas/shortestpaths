@@ -195,5 +195,8 @@ class PriorityQueue:
     return list(self._entry_finder.keys())
 
   def relax_priority(self, entry):
-    if entry[0] < self._entry_finder[entry[-1]][0]:
-      self[entry[-1]] = entry
+    if entry[-1] in self._entry_finder:
+      if entry[0] < self._entry_finder[entry[-1]][0]:
+        self[entry[-1]] = entry
+    else:
+      raise KeyError({entry[-1]})

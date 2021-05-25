@@ -28,7 +28,7 @@ class TestPriorityQueue():
                  [1, 8, 9],
                  [8, 3, 12],
                  [5, 11, 10]]
-    self.pq = PriorityQueue(copy.deepcopy(self.data))
+    self.pq = PriorityQueue([entry.copy() for entry in self.data])
     self.length = len(self.data)
 
   def teardown_method(self):
@@ -165,3 +165,12 @@ class TestPriorityQueue():
     # symmetric difference
     diff = set(pq_keys) ^ set(raw_data_keys)
     assert not diff
+
+  def test_relax_priority(self):
+    self.pq.relax_priority([3, 5, 1])
+    assert self.pq[1] == [3, 5, 1]
+    self.pq.relax_priority([4, 5, 1])
+    assert self.pq[1] == [3, 5, 1]
+    with pytest.raises(KeyError) as ke:
+      self.pq.relax_priority([4, 5, 99])
+    assert len(self.pq) == self.length
