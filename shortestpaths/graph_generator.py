@@ -230,3 +230,16 @@ def random_graph(n,
   # plt.scatter(edge_lengths, probs)
   # plt.show()
   return adj_list, G
+
+
+def adj_list_reversed(adj_list):
+  """Creates the adj_list of the inverted graph in O(n^2).
+
+  The inverted graph is the same with the direct, but with inverted edges
+  direction.
+  """
+  i_adj_list = [set() for _ in range(len(adj_list))]
+  for node, neighbors in enumerate(adj_list):
+    for neighbor in neighbors:
+      i_adj_list[neighbor[0]].add((node, neighbor[1]))
+  return i_adj_list
