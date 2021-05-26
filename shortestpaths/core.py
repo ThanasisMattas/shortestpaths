@@ -315,8 +315,7 @@ def _dynamic_online_replacement_paths(mode,
         - spur-edges that are included to previous found k-1 paths with the
           same root-path as the potential path being probed are deleted from
           both adjacency lists and reconnected back
-        - root-path-nodes are deleted from the PriorityQueue and reconnected
-          back
+        - root-path-nodes are deleted from both PriorityQueue's
 
   Args:
     forward_config (dict)      : forward search kwargs (default: None)
@@ -343,7 +342,6 @@ def _dynamic_online_replacement_paths(mode,
   # The reverse search state stops being updated at meeting_edge_head. That
   # final state is used for all the subsequent searches.
   last_state_path_idx = base_path.index(meeting_edge_head) - 1
-  # last_state_path_idx = 2
   # discovered_reverse = {init_config["sink"]}
 
   # Initialize the first failed node/edge, which is the second to last node or
@@ -385,17 +383,6 @@ def _dynamic_online_replacement_paths(mode,
         # spur_node = failed
         failed_idx = failed_path_idx - 1
 
-      # Disconnect root-path-nodes.
-      # root_path_to_visit_entries = []
-      # discovered_root_nodes = set()
-      # for u_root in root_path:
-      #   if u_root in reverse_config["to_visit"]:
-      #     root_path_to_visit_entries.append(reverse_config["to_visit"][u_root])
-      #     del reverse_config["to_visit"][u_root]
-      #   if u_root in discovered_reverse:
-      #     discovered_reverse.remove(u_root)
-      #     discovered_root_nodes.add(u_root)
-
       # Bidirectional spur search
       forward_config, _ = dijkstra.dijkstra_init(**init_config)
       reverse_config_copy = {
@@ -415,17 +402,6 @@ def _dynamic_online_replacement_paths(mode,
                                           None,
                                           k_paths))
 
-      # Reconnect failed root-path-nodes.
-      # for entry in root_path_to_visit_entries:
-      #   reverse_config["to_visit"][entry[-1]] = entry
-      # discovered_reverse.update(discovered_root_nodes)
-      # discovered_root_nodes.clear()
-      # root_path_to_visit_entries.clear()
-
-      # The only item that changed from the to_visit PriorityQueue before it
-      # was deepcopied on multiporcessing was the spur node, so here we restore
-      # its value. Also, this way we form the root-path for the next search.
-      # forward_config["to_visit"][spur_node] = [math.inf, spur_node, spur_node]
       failed_path_idx -= 1
 
     if failed_path_idx <= last_state_path_idx:
@@ -552,6 +528,7 @@ def k_shortest_paths(K, init_config, mode):
   """
   # Find the absolute shortest path.
   path_data, _ = _first_shortest_path(mode, init_config)
+  path_data = path_data[:3] + (0, path_data[4])
   k_paths = [path_data]
   # Holding the potential shortest paths (Yen's B).
   prospects = []
@@ -564,8 +541,9 @@ def k_shortest_paths(K, init_config, mode):
                                        k_paths,
                                        mode,
                                        init_config,
-                                       path_data,
-                                       prospects)
+                                       path_data[3],
+                                       prospects,
+                                       path_data[2])
     else:
       repl_paths = replacement_paths(mode,
                                      init_config,
