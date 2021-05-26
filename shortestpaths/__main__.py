@@ -36,6 +36,7 @@ from shortestpaths import (core,  # noqa F401
 @click.argument("n", type=click.INT)
 @click.option("--unweighted", "weighted", is_flag=True,
               default=True, show_default="weighted")
+@click.option("--directed", is_flag=True)
 @click.option("--weights-on", default="edges-and-nodes", show_default=True,
               type=click.Choice(["edges", "nodes", "edges-and-nodes"],
                                 case_sensitive=False))
@@ -70,6 +71,7 @@ from shortestpaths import (core,  # noqa F401
 def main(ctx,
          n,
          weighted,
+         directed,
          weights_on,
          max_edge_weight,
          max_node_weight,
@@ -88,6 +90,7 @@ def main(ctx,
   # 1. Preprocessing
   adj_list, G = graph_generator.random_graph(n=n,
                                              weighted=weighted,
+                                             directed=directed,
                                              weights_on=weights_on,
                                              max_edge_weight=max_edge_weight,
                                              max_node_weight=max_node_weight,

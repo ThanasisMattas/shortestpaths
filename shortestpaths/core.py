@@ -70,7 +70,7 @@ def _first_shortest_path(mode, init_config):
                                      path_data[0],
                                      path_data[3])
       # Uncomment this to run a sanity test on the tapes.
-      # dijkstra.verify_tapes(tapes, path_data[0], failing=failing)
+      # dijkstra.verify_tapes(tapes, path_data[0], failing=mode["failing"])
   else:
     path_data = dijkstra.unidirectional_dijkstra(forward_config, mode)
 

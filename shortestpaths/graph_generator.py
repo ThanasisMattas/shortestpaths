@@ -13,7 +13,7 @@
 Erdős-Rényi model.
 """
 
-from itertools import combinations
+from itertools import combinations, permutations
 import math
 import random
 
@@ -125,6 +125,7 @@ def _edge_weight(edge,
 # @time_this
 def random_graph(n,
                  weighted=True,
+                 directed=True,
                  weights_on="edges",
                  max_edge_weight=1000,
                  max_node_weight=1000,
@@ -142,9 +143,10 @@ def random_graph(n,
        the adjacency list, it is not correct when adding the weighted edges to
        the nx.Graph object, but that's ok, because the nx.Graph object is used
        only for plotting.
-    2. The undirected, simple graph is converted to a directed multigraph, sin-
-       ce each undirected edge breaks into two edges with opposite directions
-       and different weights. Namely,
+    2. The undirected graph is converted to a digraph, since each undirected
+       edge breaks into two edges with opposite directions and different
+       weights. For each hop, we pay the weight of the edge plus the weight of
+       the head. Namely,
 
                  {a, b}, weight_a, weight_b, weight_edge
                                 becomes
@@ -154,6 +156,7 @@ def random_graph(n,
 
        This way each edge is related to one value, instead of three, therefore
        Dijkstra's algorithm can operate without modifications.
+    3. In case of a digraph, the edge_weight is increased by the head weight.
 
   Args:
     n (int)               : number of nodes
@@ -183,7 +186,6 @@ def random_graph(n,
   if weight_mode in ["nodes", "edges-and-nodes"]:
     node_weights = random.choices(range(max_node_weight + 1), k=n + 1)
   # Number of edges of the complete graph: n * (n - 1) // 2
-  edge_weights = random.choices(range(max_edge_weight + 1), k=n * (n - 1) // 2)
   center_factor = 0.3
   center = center_factor * n
 
@@ -192,35 +194,67 @@ def random_graph(n,
 
   # Iterate through all possible edges, randomly weight them and randomly desi-
   # de which to keep.
-  for i, edge in enumerate(combinations(nodes, 2)):
-    # The closer the nodes are, the more probable it is that they are connected
-    # with an edge and the edge-weight is lower.
-    # (This way, it is more realistic - edges of nearby nodes cost less - and
-    # paths with too few nodes, that go straight to the sink, are avoided.)
-    # Namely, distance (up) (down) edge_probability.
-    edge_probability = _edge_probability(edge,
-                                         gradient=0.2,
-                                         center=center,
-                                         cap=0.7)
-    # probs[i] = edge_probability
-    # edge_lengths[i] = abs(edge[0] - edge[1])
-    edge_initial_weight = edge_weights[i]
+  if directed:  # permutations: n (n - 1)
+    edge_weights = random.choices(range(max_edge_weight + 1),
+                                  k=n * (n - 1))
+    for i, edge in enumerate(permutations(nodes, 2)):
+      # The closer the nodes are, the more probable it is that they are connec-
+      # ted with an edge and the edge-weight is lower. This way, it is more
+      # realistic - edges of nearby nodes cost less - and paths with too few
+      # nodes, that go straight to the sink, are avoided.
+      # Namely, distance (up) (down) edge_probability.
+      edge_probability = _edge_probability(edge,
+                                           gradient=0.2,
+                                           center=center,
+                                           cap=0.7)
+      # probs[i] = edge_probability
+      # edge_lengths[i] = abs(edge[0] - edge[1])
+      edge_initial_weight = edge_weights[i]
 
-    random_probability = random.random()
-    if edge_probability > random_probability:
-      edge_weight = _edge_weight(edge,
-                                 n,
-                                 weight_mode,
-                                 edge_initial_weight)
-      if weight_mode in ["nodes", "edges-and-nodes"]:
-        tail_weight = node_weights[edge[0]]
-        head_weight = node_weights[edge[1]]
-        adj_list[edge[0]].add((edge[1], edge_weight + head_weight))
-        adj_list[edge[1]].add((edge[0], edge_weight + tail_weight))
-      else:
-        adj_list[edge[0]].add((edge[1], edge_weight))
-        adj_list[edge[1]].add((edge[0], edge_weight))
-      edges.add((*edge, edge_weight))
+      random_probability = random.random()
+      if edge_probability > random_probability:
+        edge_weight = _edge_weight(edge,
+                                   n,
+                                   weight_mode,
+                                   edge_initial_weight)
+        if weight_mode in ["nodes", "edges-and-nodes"]:
+          head_weight = node_weights[edge[1]]
+          adj_list[edge[0]].add((edge[1], edge_weight + head_weight))
+        else:
+          adj_list[edge[0]].add((edge[1], edge_weight))
+        edges.add((*edge, edge_weight))
+  else:  # combinations: n (n - 1) / 2
+    edge_weights = random.choices(range(max_edge_weight + 1),
+                                  k=n * (n - 1) // 2)
+    for i, edge in enumerate(combinations(nodes, 2)):
+      # The closer the nodes are, the more probable it is that they are connec-
+      # ted with an edge and the edge-weight is lower. This way, it is more
+      # realistic - edges of nearby nodes cost less - and paths with too few
+      # nodes, that go straight to the sink, are avoided.
+      # Namely, distance (up) (down) edge_probability.
+      edge_probability = _edge_probability(edge,
+                                           gradient=0.2,
+                                           center=center,
+                                           cap=0.7)
+      # probs[i] = edge_probability
+      # edge_lengths[i] = abs(edge[0] - edge[1])
+      edge_initial_weight = edge_weights[i]
+
+      random_probability = random.random()
+      if edge_probability > random_probability:
+        edge_weight = _edge_weight(edge,
+                                   n,
+                                   weight_mode,
+                                   edge_initial_weight)
+        if weight_mode in ["nodes", "edges-and-nodes"]:
+          tail_weight = node_weights[edge[0]]
+          head_weight = node_weights[edge[1]]
+          adj_list[edge[0]].add((edge[1], edge_weight + head_weight))
+          adj_list[edge[1]].add((edge[0], edge_weight + tail_weight))
+        else:
+          adj_list[edge[0]].add((edge[1], edge_weight))
+          adj_list[edge[1]].add((edge[0], edge_weight))
+        edges.add((*edge, edge_weight))
 
   G = nx.Graph()
   G.add_nodes_from(nodes)
