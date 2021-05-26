@@ -135,17 +135,12 @@ def _replacement_path(failed_path_idx: int,
     if mode["online"]:
       discovered_forward = set()
     else:
-      if mode["failing"] == "edges":
-        failed_idx_forward = failed_path_idx[0]
-        failed_idx_reverse = failed_path_idx[1]
-      else:
-        failed_idx_forward = failed_idx_reverse = failed_path_idx
       forward_config, discovered_forward = dijkstra.retrieve_state(
           "forward",
           tapes,
           init_config,
           base_path,
-          failed_idx_forward,
+          failed_path_idx,
           mode["failing"]
       )
       reverse_config, discovered_reverse = dijkstra.retrieve_state(
@@ -153,7 +148,7 @@ def _replacement_path(failed_path_idx: int,
           tapes,
           init_config,
           base_path,
-          failed_idx_reverse,
+          failed_path_idx + int(mode["failing"] == "edges"),
           mode["failing"]
       )
       if mode["failing"] == "edges":
