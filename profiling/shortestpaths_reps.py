@@ -69,8 +69,6 @@ def measure(n,
     end = timer()
     times[k].append(end - start)
 
-  adj_list.clear()
-  init_config["adj_list_reverse"].clear()
   return times
 
 
