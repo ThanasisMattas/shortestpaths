@@ -245,7 +245,7 @@ def _replacement_path(failed_path_idx: int,
           failed_path_idx,
           base_path,
           k_paths,
-          adj_list_reverse=reverse_config["adj_list"],
+          adj_list_reverse=reverse_config.get("adj_list"),
           head=head
       )
 
@@ -275,7 +275,7 @@ def _replacement_path(failed_path_idx: int,
       yen.reconnect_spur_edges(tail,
                                forward_config["adj_list"],
                                failed_edges,
-                               reverse_config["adj_list"],
+                               reverse_config.get("adj_list"),
                                failed_inverted_edges)
   repl_path, repl_path_cost, repl_weights, meeting_edge_head = path_data
   # NOTE: The cost of the root path should be added here or used to initialize
@@ -481,10 +481,10 @@ def replacement_paths(mode,
     repl_paths += _dynamic_online_replacement_paths(
         mode,
         init_config,
-        path_data[0],  # base_path
-        path_data[2],  # cum_hop_weights
-        parent_spur_node_idx,
-        path_data[4],  # meeting_edge_head
+        base_path,             # path_data[0]
+        cum_hop_weights,       # path_data[2]
+        parent_spur_node_idx,  # path_data[3]
+        path_data[4],          # meeting_edge_head
         k_paths
     )
   elif mode.pop("parallel", False):
