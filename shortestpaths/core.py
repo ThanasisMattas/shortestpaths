@@ -433,6 +433,7 @@ def _dynamic_online_replacement_paths(mode,
   if k_paths:
     for path_node in base_path[:-1]:
       forward_config["to_visit"][path_node] = [math.inf, path_node, path_node]
+    init_config["adj_list_reverse"] = adj_list_reverse
   else:
     repl_paths = list(reversed(repl_paths))
   return repl_paths
