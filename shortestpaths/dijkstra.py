@@ -31,7 +31,7 @@ from shortestpaths.priorityq import PriorityQueue
 from shortestpaths.utils import time_this  # noqa: F401
 
 
-def _was_visited(visited, u):
+def was_visited(visited, u):
   if (visited[u][0] == 0) and (visited[u][1] == u):
     return False
   return True
@@ -72,8 +72,8 @@ def prospect_init(to_visit,
     # There are two ways of forming a prospect path.
     #  1. The two searches had visited the same node
     #  2. One search discovered a node the other visited.
-    if _was_visited(visited, u):
-      if _was_visited(visited_reverse, u):
+    if was_visited(visited, u):
+      if was_visited(visited_reverse, u):
         new_prospect_cost = visited[u][0] + visited_reverse[u][0]
         if new_prospect_cost < prospect_cost:
           prospect = [new_prospect_cost, u, u, 0]
@@ -88,7 +88,7 @@ def prospect_init(to_visit,
         if new_prospect_cost < prospect_cost:
           prospect = [new_prospect_cost, u, v, uv_weight]
           prospect_cost = new_prospect_cost
-    if _was_visited(visited_reverse, u):
+    if was_visited(visited_reverse, u):
       if u in discovered_forward:
         # Then, it was discovered when visiting the tail v:
         v = to_visit[u][-2]
@@ -784,7 +784,7 @@ def _dijkstra_step(adj_list,
     if v == failed:
       continue
     if v in to_visit:
-      if _was_visited(opposite_visited, v):
+      if was_visited(opposite_visited, v):
         prospect_cost = (u_path_cost + uv_weight + opposite_visited[v][0])
         if (prospect_cost < prospect[0]) or (sum(prospect) == 0):
           prospect[0] = prospect_cost
