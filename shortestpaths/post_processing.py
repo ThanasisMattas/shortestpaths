@@ -13,7 +13,6 @@
 
 from datetime import datetime
 import os
-from typing import Literal
 
 import click
 import matplotlib.pyplot as plt
@@ -26,7 +25,7 @@ COLORS = ['mediumblue', 'm', 'g', 'k', 'r', 'c', 'y', 'w']
 
 
 def path_label(path, path_number, failing):
-  if failing is None:
+  if (failing is None) or (len(path) == 2):
       failed_msg = ''
   elif path[3] is None:
     # then nothing failed, because this is the absolute shortest path
@@ -60,9 +59,9 @@ def _node_sizes(G):
   return node_size, path_node_size, failed_node_size
 
 
-def plot_graph(G,
-               paths_data,
-               failing: Literal["edges", "nodes", None] = None,
+def plot_graph(paths_data,
+               G,
+               mode,
                save_graph=False,
                show_graph=True,
                layout_seed=None,
@@ -104,7 +103,7 @@ def plot_graph(G,
     # Generate the legend label
 
     color = next(colors)
-    label = path_label(path, i + 1, failing)
+    label = path_label(path, i + 1, mode["failing"])
     path_edges_sequence = list(zip(path[0], path[0][1:]))
     # arrows=False, arrowsize=20, arrowstyle='fancy',
     # min_source_margin=1, min_target_margin=1,
@@ -115,8 +114,8 @@ def plot_graph(G,
                            width=len(paths_data) + 15 - 4.5 * i, label=label)
 
     # Mark the disconnceted edge or node with an ×.
-    if failing == "nodes":
-      if path[3] not in [None, [None]]:
+    if mode["failing"] == "nodes":
+      if (len(path) > 2) and (path[3] not in [None, [None]]):
         if hasattr(path[3], "__len__"):
           nodelist = path[3]
         else:
@@ -124,14 +123,14 @@ def plot_graph(G,
         nx.draw_networkx_nodes(G, pos=pos, nodelist=nodelist, node_color=color,
                                node_shape='x', node_size=failed_node_size,
                                linewidths=3)
-    elif failing == "edges":
+    elif mode["failing"] == "edges":
       # Check for the case of the absolute shortest path, where there is no
       # disconnected edge.
-      if path[3] is not None:
+      if (len(path) > 2) and (path[3] is not None):
         nx.draw_networkx_edge_labels(G, pos, edge_labels={path[3]: '×'},  # ✕×✗
                                      font_size=50, font_color=color,
                                      bbox=dict(alpha=0), rotate=False)
-    elif failing is None:
+    elif mode["failing"] is None:
       pass
     else:
       raise ValueError("failing should be 'edges', 'nodes' or None")

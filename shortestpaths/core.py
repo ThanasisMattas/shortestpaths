@@ -583,7 +583,7 @@ def k_shortest_paths(K, mode, init_config):
   # Find the absolute shortest path.
   path_data, _ = _first_shortest_path(mode, init_config)
   path_data = path_data[:3] + (0, path_data[4])
-  k_paths = [path_data]
+  k_paths = [(path_data[0], path_data[1])]
   # Holding the potential shortest paths (Yen's B).
   prospects = []
   heapq.heapify(prospects)

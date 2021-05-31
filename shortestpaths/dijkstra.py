@@ -9,7 +9,9 @@
 #
 # (C) 2020 Athanasios Mattas
 # ==========================================================================
-"""Bidirectional and dynamic implementations of Dijkstra's algorithm"""
+"""Bidirectional, parallel and dynamic programming implementations of
+Dijkstra's algorithm
+"""
 
 import copy
 import logging
@@ -59,7 +61,7 @@ def prospect_init(to_visit,
                                          path_cost,
                                          meeting_edge_tail,
                                          meeting_edge_head,
-                                         edge_weight
+                                         meeting_edge_weight
                                        ]
   """
   prospect_cost = math.inf
