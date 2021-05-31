@@ -42,7 +42,7 @@ def _edge_weight_bias(edge, n) -> float:
 def _edge_probability(edge,
                       gradient=1,
                       center=None,
-                      cap=0.7) -> float:
+                      p_0=1) -> float:
   """Evaluates the probability an edge exists, by the "proximity" of its nodes.
 
   This probability will be used to build the Gilbert version of the Erdős-Rényi
@@ -98,12 +98,12 @@ def _edge_probability(edge,
   """
   exponent = -gradient * (abs(edge[0] - edge[1]) - center)
   if exponent >= 5:
-    return min(1, cap)
+    return p_0
   elif exponent <= -5:
     return 0
   else:
     sigmoid = 1 / (1 + math.exp(exponent))
-    return min(1 - sigmoid, cap)
+    return p_0 * (1 - sigmoid)
 
 
 def _edge_weight(edge,
@@ -187,6 +187,8 @@ def random_graph(n,
     node_weights = random.choices(range(max_node_weight + 1), k=n + 1)
   # Number of edges of the complete graph: n * (n - 1) // 2
   center_factor = 0.3
+  gradient = 0.5
+  p_0 = 0.7
   center = center_factor * n
 
   # probs = [0.1 for _ in range(n * (n - 1) // 2)]
