@@ -87,7 +87,7 @@ class TestShortestPaths():
   @pytest.mark.parametrize(
     "s, k, n, d",
     [[s, k, n, d]
-     for s in SOLVER + ["-y", "-l"] if "d" not in s
+     for s in SOLVER + ["-y", "-l"]
      for k in K
      for n in GRAPH_SIZES
      for d in DIRECTED]
