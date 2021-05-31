@@ -59,7 +59,7 @@ def _node_sizes(G):
   return node_size, path_node_size, failed_node_size
 
 
-def plot_graph(paths_data,
+def plot_paths(paths_data,
                G,
                mode,
                save_graph=False,

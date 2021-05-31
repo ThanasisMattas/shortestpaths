@@ -140,7 +140,7 @@ def main(ctx,
     post_processing.print_paths(k_paths)
   if save_graph or show_graph:
     ctx_config.pop("init_config")
-    post_processing.plot_graph(paths_data=k_paths, **ctx_config)
+    post_processing.plot_paths(paths_data=k_paths, **ctx_config)
 
 
 @main.command()
@@ -176,7 +176,7 @@ def replacement_paths(ctx, failing, online):
   if ctx.obj["mode"]["verbose"]:
     post_processing.print_paths(r_paths, ctx.obj["mode"]["failing"])
   if ctx.obj["save_graph"] or ctx.obj["show_graph"]:
-    post_processing.plot_graph(paths_data=r_paths, **ctx.obj)
+    post_processing.plot_paths(paths_data=r_paths, **ctx.obj)
 
 
 @main.command()
