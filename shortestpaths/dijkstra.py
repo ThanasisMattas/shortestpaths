@@ -451,7 +451,7 @@ def record_states_parallel(mode, init_config, base_path, meeting_edge_head):
 
 
 def retrieve_state(direction,
-                   tapes,
+                   tape,
                    init_config,
                    base_path,
                    failed_path_idx,
@@ -472,19 +472,17 @@ def retrieve_state(direction,
   """
 
   if direction == "forward":
-    tapes_idx = 0
     adj_list = init_config["adj_list"]
     sink = init_config["sink"]
   else:
-    tapes_idx = 1
     adj_list = init_config["adj_list_reverse"]
     sink = init_config["source"]
   state_idx = _state_idx(failed_path_idx,
-                         tapes[tapes_idx],
+                         tape,
                          base_path,
                          direction,
                          failing=failing)
-  [to_visit, visited, discovered] = tapes[tapes_idx][state_idx]
+  [to_visit, visited, discovered] = tape[state_idx]
   if state_idx == -1:
     # NOTE: We will use again the last states of each tape, so we need to deep-
     #       copy them.
