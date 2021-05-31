@@ -557,11 +557,11 @@ def k_shortest_paths(K, init_config, mode):
       if (len(prospects) >= K - k) and (border_cost == last_path_cost):
         for _ in range(K - k):
           path_data = heapq.heappop(prospects)
-          k_paths.append([path_data[1], path_data[0], None, None])
+          k_paths.append((path_data[1], path_data[0]))
         break
       path_data = heapq.heappop(prospects)
+      k_paths.append((path_data[1], path_data[0]))
       path_data[0], path_data[1] = path_data[1], path_data[0]
-      k_paths.append(path_data)
     else:
       break
   return k_paths
