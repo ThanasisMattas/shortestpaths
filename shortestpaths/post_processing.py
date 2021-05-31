@@ -68,8 +68,11 @@ def plot_paths(paths_data,
                draw_edge_weights=False):
   """Plots the graph and all the generated paths in spring_layout."""
   utils.verify_paths(paths_data)
-  # , k=10 / sqrt(G.number_of_nodes())
-  pos = nx.spring_layout(G, seed=layout_seed)
+  from math import sqrt
+  # , k=10 / sqrt(G.number_of_nodes())  # the default spring coefficient
+  pos = nx.spring_layout(G,
+                         seed=layout_seed,
+                         k=150 / sqrt(G.number_of_nodes()))
 
   # Layouts
   # -------
