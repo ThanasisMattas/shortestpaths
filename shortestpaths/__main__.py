@@ -133,7 +133,7 @@ def main(ctx,
   mode.update({"yen_": yen, "lawler": lawler})
 
   # 2. Paths generation
-  k_paths = core.k_shortest_paths(K, init_config, mode)
+  k_paths = core.k_shortest_paths(K, mode, init_config)
 
   # 3. Post-processing
   if verbose:

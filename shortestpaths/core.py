@@ -9,16 +9,16 @@
 #
 # (C) 2020 Athanasios Mattas
 # ==========================================================================
-"""Bidirectional, dynamic and parallel algorithms for the replacement paths and
-the k-shortest paths.
+"""Bidirectional, parallel and dynamic programming algorithms for the
+replacement paths and the k-shortest paths problems.
 
-Versions implemented:
+Replacement-paths versions implemented:
   - edge-exclusion
   - node-exclusion
   - on-line
   - off-line
 
-Yen's algorithm is implemented as a compare base.
+Yen's algorithm is implemented as a reference to compare with.
 """
 
 from concurrent.futures import ProcessPoolExecutor
@@ -36,23 +36,33 @@ def _first_shortest_path(mode, init_config):
   """Generates the 1st shortest path, initializing the replacement-paths or the
   k-shortest paths search.
 
+  Args:
+    mode (dict)        : the configuration of the problem
+    init_config (dict) : kwargs for dijkstra_init()
+
   Returns:
-    path_data (list)      : [path,
-                             path_cost,
-                             cum_hop_weights,
-                             None,  # failed node/edge
-                             meeting_edge_head]
-    tapes (tuple)         : The recorded states used for dynamic programming.
-                            Only when (mode["dynamic"] and not mode["online"]).
-                            (
-                              [to_visit,
-                               visited,
-                               discovered_forward],
-                              [to_visit_reverse,
-                               visited_reverse,
-                               discovered_reverse]
-                            )
-                            (default: None)
+    path_data (list)   : [
+                           path,
+                           path_cost,
+                           cum_hop_weights,
+                           None,  # failed node/edge
+                           meeting_edge_head
+                         ]
+    tapes (tuple)      : The recorded states used for dynamic programming.
+                         Only when (mode["dynamic"]) and (not mode["online"]).
+                         (
+                           [
+                             to_visit,
+                             visited,
+                             discovered_forward
+                           ],
+                           [
+                             to_visit_reverse,
+                              visited_reverse,
+                              discovered_reverse
+                           ]
+                         )
+                         (default: None)
   """
   tapes = None
   forward_config, reverse_config = dijkstra.dijkstra_init(**init_config)
@@ -83,6 +93,17 @@ def _delete_root_path_nodes(mode,
                             root_path,
                             to_visit,
                             to_visit_reverse=None):
+  """Deletes the root-path-nodes from the PriorityQueue, n case of the *online*
+  replacement paths.
+
+  The PriorityQueue's are mutated.
+
+  Args:
+    mode (dict)                      : the configuration of the problem
+    root_path (list)                 : up to the spur-node
+    to_visit (PriorityQueue)         : the forward PriorityQueue
+    to_visit_reverse (PriorityQueue) : the reverse PriorityQueue (dufalt: None)
+  """
   if not mode["online"]:
     raise Exception("Trying to delete root-path-nodes in offline mode.")
   del to_visit[root_path]
@@ -96,7 +117,7 @@ def _replacement_path(failed_path_idx: int,
                       failed: Hashable,
                       base_path: list,
                       mode: dict,
-                      init_config: dict = None,
+                      init_config: dict,
                       forward_config: dict = None,
                       reverse_config: dict = None,
                       cum_hop_weights: list = None,
@@ -105,20 +126,53 @@ def _replacement_path(failed_path_idx: int,
                       discovered_reverse: set = None) -> list:
   """Generates one replacement path, failing one node or edge.
 
+  When using dynamic programming in off-line mode, the *tapes* will hold the
+  memoized states of both searches. The function retrieves some state before
+  the failed node for both directions. In case of failing edges instead of no-
+  des, the forward search retrieves the state of a node visited before the tail
+  and the reverse search retrieves the state of a node visited before the head.
+
+  An insight when retrieving a state, is that the algorithm completely ignores
+  the path, as Dijkstra's algorithm would do while solving.
+
+  When solving for the k-shortest paths, the 3rd return value is the
+  failed_path_idx instead of failed, being the parent_spur_node_idx for the
+  forthcoming replacement paths of this path.
+
+    - failed node   :  *
+      forward state :  .
+      reverse state :  o
+      both visited  : .o
+
+           .     .   .o  o
+              .   .       o     o
+        .   .  .     *   o  o
+           .     .o     o     o
+          .    .   .     .o
+
+    - failed edge : *---*
+
+           .     .   .o  o
+              .   .       o     o
+        .   .  .     *---*  o
+           .     .o     o     o
+          .    .   .     .o
+
   Args:
     failed_path_idx (int)    : the index of the failed node (or the tail of the
                                failed edge) on the base-path
     failed (int | tuple)     : the failed node or edge
     base_path (list)         : the parent-path
     mode (dict)              : the configuration of the problem
+    init_config (dict)       : kwargs for dijkstra_init()
     forward_config (dict)    : forward search kwargs (default: None)
     reverse_config (dict)    : reverse search kwargs (default: None)
     cum_hop_weights (lsit)   : the cumulative hop weights of the base-path
-    tapes (tuple)            : the algorithm states, when offline and using
-                               dynamic programming (dijkstra._record_states())
-    discovered_reverse (set) : discovered but not visited nodes of the reverse
-                               search
+    tapes (tuple)            : the algorithm states - when offline and using
+                               dynamic programming (default: None)
     k_paths (list)           : the k-shortest paths holder (default: None)
+    discovered_reverse (set) : discovered but not visited nodes of the reverse
+                               search (default: None)
 
   Returns:
     repl_path, repl_path_cost, repl_weights, failed, meeting_edge_head
@@ -313,16 +367,15 @@ def _dynamic_online_replacement_paths(mode,
         - root-path-nodes are deleted from both PriorityQueue's
 
   Args:
-    forward_config (dict)      : forward search kwargs (default: None)
-    reverse_config (dict)      : reverse search kwargs (default: None)
     mode (dict)                : the configuration of the problem
+    init_config (dict)         : kwargs for dijkstra_init()
     base_path (list)           : the parent-path
-    parent_spur_node_idx (int) : used as a starting point of spur-paths search
-                                 as suggested by Lawler
-    k_paths (list)             : the k-shortest paths holder (default: None)
-    repl_paths (list)          : initialized with the base-path, if the problem
-                                 is the replacement-paths
     cum_hop_weights (list)     : the cumulative hop weights of the base-path
+    parent_spur_node_idx (int) : used as a starting point of spur-paths search,
+                                 as suggested by Lawler
+    meeting_edge_head (int)    : used as the last point of updating the reverse
+                                 search state
+    k_paths (list)             : the k-shortest paths holder (default: None)
 
   Returns:
     repl_paths (list)          : see _replacement_path()
@@ -444,21 +497,21 @@ def replacement_paths(mode,
   methods.
 
   Args:
-    mode (dict)           : the configuration of the problem
-    adj_list (list)       : [{(neighbor, edge_weight),},] (default: None)
-    source (int)          : (default: None)
-    sink (int)            : (default: None)
-    k (int)               : k-shortest paths iterator (default: None)
-    forward_config (dict) : forward search kwargs (default: None)
-    reverse_config (dict) : reverse search kwargs (default: None)
-    k_paths_config (dict) : k-paths search kwargs (default: None)
+    mode (dict)        : the configuration of the problem
+    init_config (dict) : kwargs for dijkstra_init()
+    path_data (list)   : see _replacement_path() (default: None)
+    k_paths (list)     : when used with k-paths search (default: None)
 
   Returns:
-    repl_paths (list)     : [[path_1, path_1_cost, failed],]
-                            If the problem is the replacement-paths, the base-
-                            path is included, whereas if the problem is the k-
-                            shortest paths, repl_paths contains only the repla-
-                            cement paths.
+    repl_paths (list)  : [
+                           (
+                             path,
+                             path_cost,
+                             cum_hop_weights,
+                             failed,  # failed_path_idx when k-shortest paths
+                             meeting_edge_head
+                           ),
+                         ]
   """
   # 1. Find/retrieve the absolute shortest path.
   if path_data:
@@ -514,13 +567,18 @@ def replacement_paths(mode,
 
 # @profile
 @time_this
-def k_shortest_paths(K, init_config, mode):
+def k_shortest_paths(K, mode, init_config):
   """Generates k_shortest_paths
 
   NOTE: Always online and failing edges.
 
+  Args:
+    K (int)            : number of shortest paths to generate
+    mode (dict)        : the configuration of the problem
+    init_config (dict) : kwargs for dijkstra_init()
+
   Returns:
-    k_paths (list) : [[path: list, path_cost: int, failed_edge: tuple],]
+    k_paths (list)     : [[path: list, path_cost],]
   """
   # Find the absolute shortest path.
   path_data, _ = _first_shortest_path(mode, init_config)

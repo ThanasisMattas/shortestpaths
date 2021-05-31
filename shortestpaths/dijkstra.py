@@ -42,6 +42,26 @@ def prospect_init(to_visit,
                   discovered_forward,
                   discovered_reverse,
                   root_path=None):
+  """Initializes the prospect path, upon states retrieval.
+
+  Args:
+    to_visit (PriorityQueue)         : the forward PriorityQueue
+    to_visit_reverse (PriorityQueue) : the reverse PriorityQueue
+    visited (list)                   : the forward Dijkstra results
+    visited_reverse (list)           : the reverse Dijkstra results
+    discovered_forward (set)         : discovered but not visited - forward
+    discovered_reverse (set)         : discovered but not visited - reverse
+    root_path (list)                 : when online, in order to ignore the node
+                                       being probed, if it belongs to the root
+
+  Returns:
+    prospect (list)                  : [
+                                         path_cost,
+                                         meeting_edge_tail,
+                                         meeting_edge_head,
+                                         edge_weight
+                                       ]
+  """
   prospect_cost = math.inf
   prospect = [0, 0, 0, 0]
   for u in range(1, len(visited)):
@@ -81,12 +101,22 @@ def prospect_init(to_visit,
 
 
 def to_visit_init(n, source):
+  """Initializes the PriorityQueue.
+
+  Each entry is a triple : [path_to_node_cost, prev_node, node]
+  Initialized with       : [inf, node, node]
+  """
   to_visit = PriorityQueue([[math.inf, i, i] for i in range(1, n + 1)])
   to_visit[source] = [0, source, source]
   return to_visit
 
 
 def visited_init(n):
+  """Initializes the list holding the Dijkstra's algorithm results.
+
+  Each entry is a 2-list : [path_to_node_cost, prev_node]
+  Initialized with       : [0, current_node]
+  """
   return [[0, i] for i in range(n + 1)]
 
 
@@ -163,7 +193,7 @@ def dijkstra(adj_list,
                                [path_cost, prev_node_id, node_id]
     visited (list)           : Each entry is a 2-list:
                                [path_cost, prev_node_id]
-    failed (hashable)        : Nodes to avoid (defaults to None)
+    failed (hashable)        : Failed node to avoid (defaults to None)
     tapes_queue
         (mp.queues.Queue)    : If true, the step-wise state of the algorithm
                                will be recorded on a tape.
@@ -172,7 +202,7 @@ def dijkstra(adj_list,
   Returns:
     visited (list)           : Each entry is a 2-list for each node:
                                [path_cost, prev_node_id]
-    tape (list)              : Each record is a state for each failed node
+    tape (list)              : Each record is a state for each failed node:
                                [to_visit, visited, discovered_nodes]
   """
   if subpath:
@@ -294,7 +324,29 @@ def verify_tapes(tapes, path, failing="nodes"):
 # @profile
 # @time_this
 def record_states(mode, init_config, base_path, meeting_edge_head):
-  """Memoizes the states of the algorithm on a tape."""
+  """Memoizes the states of the algorithm on a tape.
+  Args:
+    mode (dict)             : the configuration of the problem
+    init_config (dict)      : kwargs for dijkstra_init()
+    base_path (list)        : the parent-path
+    meeting_edge_head (int) : used to separate forward and reverse sub-paths
+
+  Returns:
+  tape_forward (list)       : [
+                                [
+                                  to_visit,
+                                  visited,
+                                  discovered_forward
+                                ],
+                              ]
+  tape_reverse (list)       : [
+                                [
+                                  to_visit_reverse,
+                                  visited_reverse,
+                                  discovered_reverse
+                                ],
+                              ]
+  """
   if mode["verbose"] >= 2:
     log_to_stderr()
     logger = get_logger()
@@ -322,7 +374,30 @@ def record_states(mode, init_config, base_path, meeting_edge_head):
 
 
 def record_states_parallel(mode, init_config, base_path, meeting_edge_head):
-  """Memoizes the states of the algorithm on a tape (parallel version)."""
+  """Memoizes the states of the algorithm on a tape (parallel version).
+
+  Args:
+    mode (dict)             : the configuration of the problem
+    init_config (dict)      : kwargs for dijkstra_init()
+    base_path (list)        : the parent-path
+    meeting_edge_head (int) : used to separate forward and reverse sub-paths
+
+  Returns:
+  tape_forward (list)       : [
+                                [
+                                  to_visit,
+                                  visited,
+                                  discovered_forward
+                                ],
+                              ]
+  tape_reverse (list)       : [
+                                [
+                                  to_visit_reverse,
+                                  visited_reverse,
+                                  discovered_reverse
+                                ],
+                              ]
+  """
   if mode["verbose"] >= 2:
     log_to_stderr()
     logger = get_logger()
@@ -381,6 +456,20 @@ def retrieve_state(direction,
                    base_path,
                    failed_path_idx,
                    failing):
+  """Retrieves the state that corresponds to the failed node or edge.
+
+  Args:
+    direction (str)       : "forward" or "reverse"
+    tapes (list)          : the recored states
+    init_config (dict)    : kwargs for dijkstra_init()
+    base_path (list)      : the parent-path
+    failed_path_idx (int) : the base-path-idx of the failed node
+    failing (str)         : "nodes" or "edges"
+
+  Returns:
+    config (dict)         : kwargs for dijkstra.dijkstra()
+    discovered (set)      : nodes discovered but not visited
+  """
 
   if direction == "forward":
     tapes_idx = 0
@@ -414,6 +503,14 @@ def retrieve_state(direction,
 def unidirectional_dijkstra(dijkstra_config, mode, failed=None):
   """Wrapper of dijkstra() and extract_path(), in order to have the same usage
   with bidirectional_dijkstra().
+
+  Args:
+    dijkstra_config (dict) : kwargs for dijkstra.dijkstra()
+    mode (dict)            : the configuration of the problem
+    failed (hashable)      : the failed node or edge (default: None)
+
+  Returns:
+    path, path_cost, cum_hop_weights, None
   """
   source = dijkstra_config["to_visit"].peek()[-1]
   sink = dijkstra_config["sink"]
@@ -427,6 +524,8 @@ def unidirectional_dijkstra(dijkstra_config, mode, failed=None):
 
 
 def _visited_offsets(n):
+  """Offset to retrieve the column major packed visited data for each search.
+  """
   process_name = current_process().name
   if process_name.startswith("forward"):
     is_forward = True
@@ -451,6 +550,21 @@ def _biderectional_dijkstra_branch(adj_list: list,
                                    kill: Event,
                                    failed: Hashable = None,
                                    sync: tuple = None):
+  """The target function for either the forward or the reverse search process.
+
+  Args:
+    adj_list (list)            : the adjacency list
+    sink (int)                 : the source or the spur-node, if it is the
+                                 reverse search
+    to_visit (PriorityQueue)   : the PriorityQueue
+    visited_costs (Array)      : column major packed costs of both searches
+    visited_prev_nodes (Array) : column major packed prev nodes of the searches
+    prospect (Array)           : see bidirectional Dijkstra termination
+    priorityq_top (Array)      : the top values of both PriorityQueue's
+    kill (Event)               : flag to notify the other process to finish
+    failed (hashable)          : the failed node
+    sync (tuple)               : 2 Event's to synchronize the two searches
+  """
   # visited_costs and visited_prev_nodes are a single vector shared by both
   # searches; thus, each search has to work with the proper slice.
   n = len(adj_list) - 1
@@ -532,38 +646,21 @@ def bidirectional_dijkstra_parallel(forward_config,
                                     mode,
                                     failed=None):
   """Implementation of the bidirectional Dijkstra's algorithm.
+  (parallel version)
 
-  Calls forward and reverse searches on two processes and builds the path. For
-  the termination condition see <Goldberg et al. 2006 "Efficient Point-to-Point
-  Shortest Path Algorithms">.
+  Calls forward and reverse searches on two processes and builds the path.
 
-  When using dynamic programming, tapes will hold the states of both searches.
-  The function retrieves one state before the failed node for both directions.
-  In case of failing edges instead of nodes, in order to get the replacement
-  paths, the state of tha tail of the edge is retrieved for the forward search
-  and the state that corresponds to the head for the reverse.
+  For the termination condition see:
+  Goldberg et al. 2006 "Efficient Point-to-Point Shortest Path Algorithms".
 
-  An insight when retrieving a state, is that the algorithm completely ignores
-  the path, as Dijkstra's algorithm would do while solving.
+  Args:
+    forward_config (dict) : forward search kwargs
+    reverse_config (dict) : reverse serach kwargs
+    mode (dict)           : the configuration of the simulation
+    failed (hashable)     : the failed node, if any (default: None)
 
-    - failed node   :  *
-      forward state :  .
-      reverse state :  o
-      both visited  : .o
-
-           .     .   .o  o
-              .   .       o     o
-        .   .  .     *   o  o
-           .     .o     o     o
-          .    .   .     .o
-
-    - failed edge : *---*
-
-           .     .   .o  o
-              .   .       o     o
-        .   .  .     *---*  o
-           .     .o     o     o
-          .    .   .     .o
+  Returns:
+    path, path_cost, cum_hop_weights, meeting_edge_head
   """
   n = len(forward_config["adj_list"]) - 1
   to_visit = forward_config["to_visit"]
@@ -661,6 +758,10 @@ def _dijkstra_step(adj_list,
                    prospect=None,
                    is_forward=None,
                    failed=None):
+  """One step inside the <while PriorityQueue> loop.
+
+  Used for the alternately steps of the two searches at bidirectional Dijkstra.
+  """
   u_path_cost, u_prev, u = to_visit.pop_low()
   priorityq_top = to_visit.peek()[0]
   if priorityq_top == math.inf:
@@ -712,33 +813,14 @@ def bidirectional_dijkstra(forward_config,
   For the termination condition see:
   Goldberg et al. 2006 "Efficient Point-to-Point Shortest Path Algorithms".
 
-  When using dynamic programming, tapes will hold the states of both searches.
-  The function retrieves one state before the failed node for both directions.
-  In case of failing edges instead of nodes, in order to get the replacement
-  paths, the state of tha tail of the edge is retrieved for the forward search
-  and the state that corresponds to the head for the reverse.
+  Args:
+    forward_config (dict) : forward search kwargs
+    reverse_config (dict) : reverse serach kwargs
+    mode (dict)           : the configuration of the simulation
+    failed (hashable)     : the failed node, if any (default: None)
 
-  An insight when retrieving a state, is that the algorithm is completely igno-
-  rant of the path, as Dijkstra's algorithm would do while solving.
-
-    - failed node   :  *
-      forward state :  .
-      reverse state :  o
-      both visited  : .o
-
-           .     .   .o  o
-              .   .       o     o
-        .   .  .     *   o  o
-           .     .o     o     o
-          .    .   .     .o
-
-    - failed edge : *---*
-
-           .     .   .o  o
-              .   .       o     o
-        .   .  .     *---*  o
-           .     .o     o     o
-          .    .   .     .o
+  Returns:
+    path, path_cost, cum_hop_weights, meeting_edge_head
   """
   if mode["verbose"] >= 2:
     log_to_stderr()
@@ -791,6 +873,27 @@ def extract_bidirectional_path(source,
                                visited_prev_nodes=None,
                                visited=None,
                                visited_reverse=None):
+  """Calls extract_path() for both searches and connects the subpaths.
+
+  Args:
+    source, sink (hashable)
+    prospect (Array | list)    : [
+                                   path_cost,
+                                   meeting_edge_tail,
+                                   meeting_edge_head,
+                                   meeting_edge_weight
+                                 ]
+    mode (dict)                : the configuration of the problem
+    n (int)                    : the order of the graph
+    visited_costs (Array)      : column major packed visited costs
+    visited_prev_nodes (Array) : column major packed visited prev nodes
+    visited (list)             : Dijkstra's alg forward results
+    visited_reverse (list)     : Dijkstra's alg reverse results
+
+  Returns:
+    path (list)                : the path-nodes
+    weights (list)             : the cumulative hop weights of the path
+  """
   if (visited is None) and (visited_reverse is None):
     visited_concatenated = list(zip(visited_costs, visited_prev_nodes))
     visited = visited_concatenated[:n + 1]
@@ -835,12 +938,14 @@ def extract_path(source, sink, visited, mode):
   jumping through previous nodes, until the source node.
 
   Args:
-    visited (2D list)           : each entry is a 2-list: [path_cost, u_prev]
-    source, sink (hashable)     : the ids of source and sink nodes
+    source, sink (hashable) : the ids of source and sink nodes
+    visited (list)          : Dijkstra's alg forward results
+                              each entry is a 2-list: [path_cost, prev_node]
+    mode (dict)             : the configuration of the problem
 
   Returns:
-    path (list)                 : list of the consecutive nodes in the path
-    weights (list | None)       : the comulative hop-weights
+    path (list)             : list of the consecutive nodes in the path
+    weights (list | None)   : the cumulative hop-weights of the path
   """
   if mode["online"]:
     weights = [visited[sink][0]]
