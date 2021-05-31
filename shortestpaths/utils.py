@@ -21,6 +21,7 @@ from operator import itemgetter
 from os.path import basename, realpath
 from timeit import default_timer as timer
 from typing import Iterable
+import warnings
 
 import click
 
@@ -136,3 +137,17 @@ def path_cum_hop_weights(path, adj_list):
     if len(cum_hop_weights) < i + 2:
       raise Exception(f"Path: {path} is disconnected at {path[i: i + 2]}")
   return cum_hop_weights
+
+
+def verify_paths(paths_data):
+  """Verifies that each path has at least a nodes-list and a cost."""
+  invalid_paths_idxs = []
+  offset = 0
+  for i in range(len(paths_data)):
+    if ((not hasattr(paths_data[i - offset], "__len__"))
+            and (paths_data[i - offset] is not None)):
+      invalid_paths_idxs.append(i)
+      del paths_data[i - offset]
+      offset += 1
+  if invalid_paths_idxs:
+      warnings.warn(f"Invalid paths indexes: {invalid_paths_idxs}")

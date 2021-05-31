@@ -14,11 +14,12 @@
 from datetime import datetime
 import os
 from typing import Literal
-import warnings
 
 import click
 import matplotlib.pyplot as plt
 import networkx as nx
+
+from shortestpaths import utils
 
 
 COLORS = ['mediumblue', 'm', 'g', 'k', 'r', 'c', 'y', 'w']
@@ -67,10 +68,7 @@ def plot_graph(G,
                layout_seed=None,
                draw_edge_weights=False):
   """Plots the graph and all the generated paths in spring_layout."""
-  for i in range(len(paths_data)):
-    if (not hasattr(paths_data[i], "__len__")) or (len(paths_data[i]) != 5):
-      warnings.warn(f"An invalid path detected. Path_data: {paths_data[i]}")
-      del paths_data[i]
+  utils.verify_paths(paths_data)
   # , k=10 / sqrt(G.number_of_nodes())
   pos = nx.spring_layout(G, seed=layout_seed)
 
