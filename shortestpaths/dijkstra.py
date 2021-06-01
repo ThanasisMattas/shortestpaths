@@ -912,7 +912,7 @@ def extract_bidirectional_path(source,
 
   if prospect[1] == prospect[2]:
     path += reversed(reverse_path[:-1])
-    if mode["online"]:
+    if mode.get("online"):
       # reverse_weights:
       # [0, 10, 30] --> [30 , 20] + weights[-1] each
       if reverse_weights:
@@ -921,7 +921,7 @@ def extract_bidirectional_path(source,
       weights += reversed(reverse_weights)
   else:
     path += reversed(reverse_path)
-    if mode["online"]:
+    if mode.get("online"):
       # reverse_weights:
       # [0, 10, 30] --> [30, 20, 0] + weights[-1] + edge_weights each
       reverse_weights = [reverse_weights[-1] - w + prospect[3] + weights[-1]
@@ -947,7 +947,7 @@ def extract_path(source, sink, visited, mode):
     path (list)             : list of the consecutive nodes in the path
     weights (list | None)   : the cumulative hop-weights of the path
   """
-  if mode["online"]:
+  if mode.get("online"):
     weights = [visited[sink][0]]
     path = [sink]
     u = sink
@@ -958,7 +958,7 @@ def extract_path(source, sink, visited, mode):
         # Some node/edge failures may disconnect the graph. This can be dete-
         # cted because at initialization u_prev is set to u. In that case, a
         # warning is printed and the execution moves to the next path, if any.
-        if mode["verbose"] >= 2:
+        if mode.get("verbose", 0) >= 2:
           warnings.warn(f"The source ({source}) is not connected to the sink"
                         f" ({sink}).")
         return [], []
@@ -977,7 +977,7 @@ def extract_path(source, sink, visited, mode):
       u_prev = visited[u][1]
       path.append(u_prev)
       if u == u_prev:
-        if mode["verbose"] >= 2:
+        if mode.get("verbose", 0) >= 2:
           warnings.warn(f"The source ({source}) is not connected to the sink"
                         f" ({sink}).")
         return [], None
