@@ -81,7 +81,8 @@ def plot_paths(paths_data,
   # , k=10 / sqrt(G.number_of_nodes())  # the default spring coefficient
   pos = nx.spring_layout(G,
                          seed=layout_seed,
-                         k=150 / sqrt(G.number_of_nodes()))
+                         k=10 / sqrt(G.number_of_nodes()))
+  fig, ax = plt.subplots(figsize=(9 * 1.618, 9))
 
   # Layouts
   # -------
@@ -92,11 +93,11 @@ def plot_paths(paths_data,
 
   # 1. Draw the graph
   node_size, path_node_size, failed_node_size = _node_sizes(G)
-  nx.draw_networkx(G, pos, node_size=node_size, width=0.25, alpha=0.3,
+  nx.draw_networkx(G, pos, ax=ax, node_size=node_size, width=0.25, alpha=0.3,
                    with_labels=False, arrows=False)
   if draw_edge_weights:
     edge_labels = nx.get_edge_attributes(G, "weight")
-    nx.draw_networkx_edge_labels(G, pos, edge_labels=edge_labels)
+    nx.draw_networkx_edge_labels(G, pos, ax=ax, edge_labels=edge_labels)
 
   # 2. Draw the nodes of all the paths
   all_paths_nodes = set()
@@ -106,8 +107,9 @@ def plot_paths(paths_data,
   for node, (x, y) in pos.items():
     if node in all_paths_nodes:
       plt.text(x, y, node, fontsize=14, ha='center', va='center')
-  nx.draw_networkx_nodes(G, pos=pos, nodelist=all_paths_nodes, edgecolors='k',
-                         node_size=path_node_size, node_color="deepskyblue")
+  nx.draw_networkx_nodes(G, pos=pos, ax=ax,
+                         nodelist=all_paths_nodes, node_size=path_node_size,
+                         edgecolors='k', node_color="dodgerblue", alpha=0.7)
 
   # 3. Draw the paths
   colors = iter(COLORS)
@@ -121,8 +123,8 @@ def plot_paths(paths_data,
     # min_source_margin=1, min_target_margin=1,
     # from matplotlib.patches import ConnectionStyle
     # connectionstyle=ConnectionStyle("Arc3", rad=0.2),
-    nx.draw_networkx_edges(G, pos=pos, edgelist=path_edges_sequence,
-                           edge_color=color, arrows=False,
+    nx.draw_networkx_edges(G, pos=pos, ax=ax, edgelist=path_edges_sequence,
+                           edge_color=color, alpha=0.8, arrows=False,
                            width=len(paths_data) + 15 - 4.5 * i, label=label)
 
     # Mark the disconnceted edge or node with an ×.
@@ -132,14 +134,14 @@ def plot_paths(paths_data,
           nodelist = path[3]
         else:
           nodelist = [path[3]]
-        nx.draw_networkx_nodes(G, pos=pos, nodelist=nodelist, node_color=color,
-                               node_shape='x', node_size=failed_node_size,
-                               linewidths=3)
+        nx.draw_networkx_nodes(G, pos=pos, ax=ax, nodelist=nodelist,
+                               node_color=color, node_shape='x',
+                               node_size=failed_node_size, linewidths=3)
     elif mode["failing"] == "edges":
       # Check for the case of the absolute shortest path, where there is no
       # disconnected edge.
       if (len(path) > 2) and (path[3] is not None):
-        nx.draw_networkx_edge_labels(G, pos, edge_labels={path[3]: '×'},  # ✕×✗
+        nx.draw_networkx_edge_labels(G, pos, ax=ax, edge_labels={path[3]: '×'},  # ✕×✗
                                      font_size=50, font_color=color,
                                      bbox=dict(alpha=0), rotate=False)
     elif mode["failing"] is None:
@@ -166,7 +168,7 @@ def plot_paths(paths_data,
     date_n_time = str(datetime.now())[:19]
     date_n_time = date_n_time.replace(':', '-').replace(' ', '_')
     file_name = f"graph_vis_{date_n_time}.png"
-    plt.savefig(os.path.join(os.getcwd(), file_name))
+    plt.savefig(os.path.join(os.getcwd(), file_name), dpi=fig.dpi)
   if show_graph:
     plt.show()
 
@@ -304,17 +306,19 @@ def state_vis(to_visit, visited, source, sink, layout_seed=1, G=None):
     pos = nx.spring_layout(G, seed=layout_seed)
     node_size, path_node_size, failed_node_size = _node_sizes(G)
     nx.draw_networkx(G, pos, node_size=node_size, width=0.2, alpha=0.3,
-                     arrows=False, with_labels=False, ax=ax[1])  # with_labels=False,
+                     arrows=False, with_labels=False, ax=ax[1])
     for node, (x, y) in pos.items():
       plt.text(x, y, node, fontsize=14, ha='center', va='center')
 
     # add visited
-    nx.draw_networkx_nodes(G, pos=pos, nodelist=visited_nodes_list, edgecolors='k',
-                           node_size=path_node_size, node_color="deepskyblue",
+    nx.draw_networkx_nodes(G, pos=pos, nodelist=visited_nodes_list,
+                           edgecolors='k', node_color="deepskyblue",
+                           node_size=path_node_size,
                            label="visited")
     # add not visited
-    nx.draw_networkx_nodes(G, pos=pos, nodelist=to_visit_nodes, edgecolors='k',
-                           node_size=path_node_size, node_color="orange",
+    nx.draw_networkx_nodes(G, pos=pos, nodelist=to_visit_nodes,
+                           edgecolors='k', node_color="#ff7f0e",
+                           node_size=path_node_size,
                            label="not visited")
 
   plt.tight_layout()
