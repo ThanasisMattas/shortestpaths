@@ -140,8 +140,8 @@ def plot_paths(paths_data,
     elif mode["failing"] == "edges":
       # Check for the case of the absolute shortest path, where there is no
       # disconnected edge.
-      if (len(path) > 2) and (path[3] is not None):
-        nx.draw_networkx_edge_labels(G, pos, ax=ax, edge_labels={path[3]: '×'},  # ✕×✗
+      if (len(path) > 2) and (path[3] is not None):  # ✕×✗
+        nx.draw_networkx_edge_labels(G, pos, ax=ax, edge_labels={path[3]: '×'},
                                      font_size=50, font_color=color,
                                      bbox=dict(alpha=0), rotate=False)
     elif mode["failing"] is None:
@@ -158,9 +158,16 @@ def plot_paths(paths_data,
   #                         font_color='k', font_size=20,
   #                         bbox=dict(boxstyle="square", fc='w', ec='k'))
 
-  frame_title = (f"#nodes: {G.number_of_nodes()}   "
-                 f"#edges: {G.number_of_edges()}   "
-                 f"#paths: {len(paths_data)}")
+  if (len(path) > 2) and (path[3] is not None):
+    online_status = "on-line" if mode.get('online') else "off-line"
+    frame_title = ("Replacement-paths\n"
+                   f"mode: {online_status} / failing {mode.get('failing')}")
+  else:
+    frame_title = "k-shortest paths"
+
+  frame_title += (f"\n#nodes: {G.number_of_nodes()}   "
+                  f"#edges: {G.number_of_edges()}   "
+                  f"#paths: {len(paths_data)}")
   plt.title(frame_title)
   plt.legend()
 
