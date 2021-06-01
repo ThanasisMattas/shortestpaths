@@ -60,6 +60,15 @@ def _node_sizes(G):
   return node_size, path_node_size, failed_node_size
 
 
+def visited_nodes(visited):
+  """Returns a list of the visited nodes."""
+  nodes = []
+  for u in range(1, len(visited)):
+    if dijkstra.was_visited(visited, u):
+      nodes.append(u)
+  return nodes
+
+
 def plot_paths(paths_data,
                G,
                mode,
@@ -257,46 +266,61 @@ def plot_adaptive_dijkstra(G,
   plt.show()
 
 
-def state_vis(to_visit, visited, layout_seed=1, G=None):
+def state_vis(to_visit, visited, source, sink, layout_seed=1, G=None):
+  """Generates a Dijkstra's algorithm state visualization."""
   to_visit_nodes = to_visit.keys()
-  visited_nodes = G.nodes.difference(to_visit_nodes)
-  height = []
-  for node in visited:
-    if visited[0] == 0:
-      height.append(to_visit[node[1]][0])
+  # visited_nodes = G.nodes.difference(to_visit_nodes)
+  visited_nodes_list = visited_nodes(visited)
+  visited_height = [0 for _ in range(1, len(visited))]
+  to_visit_height = [0 for _ in range(1, len(visited))]
+  sink_height = []
+  for i, entry in enumerate(visited[1:]):
+    node = i + 1
+    if node == source:
+      continue
+    elif node == sink:
+      try:
+        sink_height.append(to_visit[sink][0])
+      except KeyError:
+        sink_height.append(visited[sink][0])
+    elif entry[0] == 0:
+      to_visit_height[node] = to_visit[node][0]
     else:
-      height.append(visited[0])
+      visited_height[node] = entry[0]
 
-  if G is not None:
-    fig, ax = plt.subplots(2, 1)
-    ax[0].bar(range(G.number_of_nodes), height[1:])
+  if G is None:
+    fig, ax = plt.subplots(figsize=(8 * 1.618, 8))
+    ax.bar(range(1, len(visited)), visited_height)
+    ax.bar(range(1, len(visited)), to_visit_height)
+    ax.bar([sink], sink_height, color='r')
+  else:
+    fig, ax = plt.subplots(1, 2, figsize=(8 * 1.618, 8))
+    ax[0].bar(range(1, G.number_of_nodes() + 1), visited_height)
+    ax[0].bar(range(1, G.number_of_nodes() + 1), to_visit_height)
+    ax[0].bar([sink], sink_height, color='r')
+    ax[0].set_xlabel("node id")
+    ax[0].set_ylabel("path_to_node_cost")
 
     pos = nx.spring_layout(G, seed=layout_seed)
     node_size, path_node_size, failed_node_size = _node_sizes(G)
-    nx.draw_networkx(G, pos, node_size=node_size, width=0.25, alpha=0.3,
-                     arrows=False, ax=ax[1])  # with_labels=False,
-    nx.draw_networkx_nodes(G, pos=pos, nodelist=visited_nodes, edgecolors='k',
-                           node_size=path_node_size, node_color="deepskyblue",
-                           label="visited nodes")
-    nx.draw_networkx_nodes(G, pos=pos, nodelist=to_visit_nodes, edgecolors='k',
-                           node_size=path_node_size, node_color="r",
-                           label="not visited nodes")
-  else:
-    fig, ax = plt.subplots()
-  ax.bar(range(G.number_of_nodes), height[1:])
+    nx.draw_networkx(G, pos, node_size=node_size, width=0.2, alpha=0.3,
+                     arrows=False, with_labels=False, ax=ax[1])  # with_labels=False,
+    for node, (x, y) in pos.items():
+      plt.text(x, y, node, fontsize=14, ha='center', va='center')
 
-  plt.title("State visualization")
+    # add visited
+    nx.draw_networkx_nodes(G, pos=pos, nodelist=visited_nodes_list, edgecolors='k',
+                           node_size=path_node_size, node_color="deepskyblue",
+                           label="visited")
+    # add not visited
+    nx.draw_networkx_nodes(G, pos=pos, nodelist=to_visit_nodes, edgecolors='k',
+                           node_size=path_node_size, node_color="orange",
+                           label="not visited")
+
+  plt.tight_layout()
+  fig.suptitle("State visualization", fontsize=16)
   plt.legend()
   plt.show()
-
-
-def visited_nodes(visited):
-  """Returns a list of the visited nodes."""
-  nodes = []
-  for u in range(1, len(visited)):
-    if dijkstra.was_visited(visited, u):
-      nodes.append(u)
-  return nodes
 
 
 def plot_search_sphere(G,
