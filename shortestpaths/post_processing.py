@@ -12,13 +12,14 @@
 """Handles the post processing."""
 
 from datetime import datetime
+from math import sqrt
 import os
 
 import click
 import matplotlib.pyplot as plt
 import networkx as nx
 
-from shortestpaths import utils
+from shortestpaths import dijkstra, utils
 
 
 COLORS = ['mediumblue', 'm', 'g', 'k', 'r', 'c', 'y', 'w']
@@ -46,11 +47,11 @@ def path_label(path, path_number, failing):
 def _node_sizes(G):
   if G.number_of_nodes() < 400:
     node_size = 450
-    path_node_size = 600
+    path_node_size = 700
     failed_node_size = 800
   elif G.number_of_nodes() < 2200:
     node_size = 450 - G.number_of_nodes() // 5
-    path_node_size = 600 - G.number_of_nodes() // 10
+    path_node_size = 800 - G.number_of_nodes() // 10
     failed_node_size = 800 - G.number_of_nodes() // 10
   else:
     node_size = 10
@@ -68,7 +69,6 @@ def plot_paths(paths_data,
                draw_edge_weights=False):
   """Plots the graph and all the generated paths in spring_layout."""
   utils.verify_paths(paths_data)
-  from math import sqrt
   # , k=10 / sqrt(G.number_of_nodes())  # the default spring coefficient
   pos = nx.spring_layout(G,
                          seed=layout_seed,
@@ -288,3 +288,108 @@ def state_vis(to_visit, visited, layout_seed=1, G=None):
   plt.title("State visualization")
   plt.legend()
   plt.show()
+
+
+def visited_nodes(visited):
+  """Returns a list of the visited nodes."""
+  nodes = []
+  for u in range(1, len(visited)):
+    if dijkstra.was_visited(visited, u):
+      nodes.append(u)
+  return nodes
+
+
+def plot_search_sphere(G,
+                       visited,
+                       path,
+                       show_graph=True,
+                       save_graph=False,
+                       layout_seed=0,
+                       visited_reverse=None,
+                       meeting_edge_head=None):
+  """Plots the visited nodes of the uni/bi-directional search."""
+  visited_nodes_forward = visited_nodes(visited)
+  num_visited_forward = len(visited_nodes_forward)
+  if visited_reverse is None:
+    algorithm = "Dijkstra's algorithm"
+    file_name = "dijkstra"
+    path_forward = path
+  else:
+    algorithm = "Bidirectional Dijkstra's algorithm"
+    file_name = "bidirectional"
+    visited_nodes_reverse = visited_nodes(visited_reverse)
+    num_visited_reverse = len(visited_nodes_reverse)
+    meeting_edge_head_idx = path.index(meeting_edge_head)
+    path_forward = path[:meeting_edge_head_idx]
+    path_reverse = path[meeting_edge_head_idx:]
+
+  fig = plt.figure(figsize=(10 * 1.8, 10))
+  pos = nx.spring_layout(G,
+                         seed=layout_seed,
+                         k=80 / sqrt(G.number_of_nodes()))
+
+  # 1. Draw the graph
+  node_size, path_node_size, failed_node_size = _node_sizes(G)
+  nx.draw_networkx(G, pos, node_size=node_size, width=0.15, alpha=0.3,
+                   with_labels=False, arrows=False)
+
+  # 2. Draw the visited nodes
+  nx.draw_networkx_nodes(G, pos=pos, nodelist=visited_nodes_forward,
+                         node_color='goldenrod', node_size=650, linewidths=0,
+                         label="forward search", alpha=0.6)
+  if visited_reverse is not None:
+    nx.draw_networkx_nodes(G, pos=pos, nodelist=visited_nodes_reverse,
+                           node_color='g', node_size=650, linewidths=0,
+                           label="reverse search", alpha=0.6)
+
+  # 3. Draw the path-nodes
+  for node, (x, y) in pos.items():
+    if node in path:
+      plt.text(x, y, node, fontsize=14, ha='center', va='center')
+
+  nx.draw_networkx_nodes(G, pos=pos, nodelist=path_forward, edgecolors='k',
+                         node_size=path_node_size, node_color="goldenrod")
+  if visited_reverse is not None:
+    nx.draw_networkx_nodes(G, pos=pos, nodelist=path_reverse, edgecolors='k',
+                           node_size=path_node_size, node_color="g")
+
+  # 4. Draw the path
+  if visited_reverse:
+    forward_edge_color = "darkgoldenrod"
+    label = f"forward subpath: {path_forward}"
+  else:
+    forward_edge_color = 'k'
+    label = f"path: {path_forward}"
+  path_edges_sequence = list(zip(path_forward[:-1], path_forward[1:]))
+  nx.draw_networkx_edges(G, pos=pos, edgelist=path_edges_sequence,
+                         edge_color=forward_edge_color, arrows=False,
+                         width=6, label=label)
+  if visited_reverse is not None:
+    # then, draw the reverse subpath
+    path_edges_sequence = list(zip(path_reverse[:-1], path_reverse[1:]))
+    nx.draw_networkx_edges(G, pos=pos, edgelist=path_edges_sequence,
+                           edge_color='darkgreen', arrows=False,
+                           width=6, label=f"reverse subpath: {path_reverse}")
+    meeting_edge = [(path_forward[-1], path_reverse[0])]
+    nx.draw_networkx_edges(G, pos=pos, edgelist=meeting_edge,
+                           edge_color='k', arrows=False,
+                           width=5, label=f"meeting edge: {meeting_edge[0]}")
+
+  if visited_reverse is None:
+    num_visited_total = num_visited_forward
+  else:
+    num_visited_total = num_visited_forward + num_visited_reverse
+  frame_title = (f"{algorithm} search space\n"
+                 f"n: {G.number_of_nodes()}"
+                 f"   m: {G.number_of_edges()}"
+                 f"   nodes visited: {num_visited_total}")
+  plt.title(frame_title)
+  plt.legend()
+
+  if save_graph:
+    date_n_time = str(datetime.now())[:19]
+    date_n_time = date_n_time.replace(':', '-').replace(' ', '_')
+    file_name = (f"search_sphere_{file_name}_{date_n_time}.png")
+    plt.savefig(os.path.join(os.getcwd(), file_name), dpi=fig.dpi)
+  if show_graph:
+    plt.show()
