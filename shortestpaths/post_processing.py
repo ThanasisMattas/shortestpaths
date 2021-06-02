@@ -22,7 +22,16 @@ import networkx as nx
 from shortestpaths import dijkstra, utils
 
 
-COLORS = ['mediumblue', 'm', 'g', 'k', 'r', 'c', 'y', 'w']
+COLORS = [
+    # "dimgray",
+    "mediumblue",
+    "#c71585",  # redviolet
+    "aqua",
+    'k',
+    "r",
+    "darkorange",
+    "#bf00ff",  # electric purple
+]
 
 
 def path_label(path, path_number, failing):
@@ -46,13 +55,13 @@ def path_label(path, path_number, failing):
 
 def _node_sizes(G):
   if G.number_of_nodes() < 400:
-    node_size = 450
-    path_node_size = 700
-    failed_node_size = 800
+    node_size = 800
+    path_node_size = 2200
+    failed_node_size = 2400
   elif G.number_of_nodes() < 2200:
-    node_size = 450 - G.number_of_nodes() // 5
-    path_node_size = 800 - G.number_of_nodes() // 10
-    failed_node_size = 800 - G.number_of_nodes() // 10
+    node_size = 800 - G.number_of_nodes() // 5
+    path_node_size = 2200 - G.number_of_nodes() // 10
+    failed_node_size = 2400 - G.number_of_nodes() // 10
   else:
     node_size = 10
     path_node_size = 350
@@ -78,11 +87,18 @@ def plot_paths(paths_data,
                draw_edge_weights=False):
   """Plots the graph and all the generated paths in spring_layout."""
   utils.verify_paths(paths_data)
+  if save_graph:
+    figsize = (10 * 1.8, 10)
+    dpi = 200
+  else:
+    figsize = (8 * 1.8, 8)
+    dpi = 100
+
+  fig = plt.figure(figsize=figsize, dpi=dpi)
   # , k=10 / sqrt(G.number_of_nodes())  # the default spring coefficient
   pos = nx.spring_layout(G,
                          seed=layout_seed,
                          k=10 / sqrt(G.number_of_nodes()))
-  fig, ax = plt.subplots(figsize=(9 * 1.618, 9))
 
   # Layouts
   # -------
@@ -93,11 +109,11 @@ def plot_paths(paths_data,
 
   # 1. Draw the graph
   node_size, path_node_size, failed_node_size = _node_sizes(G)
-  nx.draw_networkx(G, pos, ax=ax, node_size=node_size, width=0.25, alpha=0.3,
+  nx.draw_networkx(G, pos, node_size=node_size, width=0.3, alpha=0.3,
                    with_labels=False, arrows=False)
   if draw_edge_weights:
     edge_labels = nx.get_edge_attributes(G, "weight")
-    nx.draw_networkx_edge_labels(G, pos, ax=ax, edge_labels=edge_labels)
+    nx.draw_networkx_edge_labels(G, pos, edge_labels=edge_labels)
 
   # 2. Draw the nodes of all the paths
   all_paths_nodes = set()
@@ -106,10 +122,10 @@ def plot_paths(paths_data,
   # Change the font of the labels of the path nodes and restore alpha=None.
   for node, (x, y) in pos.items():
     if node in all_paths_nodes:
-      plt.text(x, y, node, fontsize=14, ha='center', va='center')
-  nx.draw_networkx_nodes(G, pos=pos, ax=ax,
+      plt.text(x, y, node, fontsize=24, ha='center', va='center')
+  nx.draw_networkx_nodes(G, pos=pos,
                          nodelist=all_paths_nodes, node_size=path_node_size,
-                         edgecolors='k', node_color="dodgerblue", alpha=0.7)
+                         edgecolors='k', node_color="deepskyblue", alpha=0.8)
 
   # 3. Draw the paths
   colors = iter(COLORS)
@@ -123,9 +139,9 @@ def plot_paths(paths_data,
     # min_source_margin=1, min_target_margin=1,
     # from matplotlib.patches import ConnectionStyle
     # connectionstyle=ConnectionStyle("Arc3", rad=0.2),
-    nx.draw_networkx_edges(G, pos=pos, ax=ax, edgelist=path_edges_sequence,
+    nx.draw_networkx_edges(G, pos=pos, edgelist=path_edges_sequence,
                            edge_color=color, alpha=0.8, arrows=False,
-                           width=len(paths_data) + 15 - 4.5 * i, label=label)
+                           width=len(paths_data) + 25 - 6.5 * i, label=label)
 
     # Mark the disconnceted edge or node with an ×.
     if mode["failing"] == "nodes":
@@ -134,15 +150,15 @@ def plot_paths(paths_data,
           nodelist = path[3]
         else:
           nodelist = [path[3]]
-        nx.draw_networkx_nodes(G, pos=pos, ax=ax, nodelist=nodelist,
+        nx.draw_networkx_nodes(G, pos=pos, nodelist=nodelist,
                                node_color=color, node_shape='x',
-                               node_size=failed_node_size, linewidths=3)
+                               node_size=failed_node_size, linewidths=5)
     elif mode["failing"] == "edges":
       # Check for the case of the absolute shortest path, where there is no
       # disconnected edge.
       if (len(path) > 2) and (path[3] is not None):  # ✕×✗
-        nx.draw_networkx_edge_labels(G, pos, ax=ax, edge_labels={path[3]: '×'},
-                                     font_size=50, font_color=color,
+        nx.draw_networkx_edge_labels(G, pos, edge_labels={path[3]: '×'},
+                                     font_size=60, font_color=color,
                                      bbox=dict(alpha=0), rotate=False)
     elif mode["failing"] is None:
       pass
