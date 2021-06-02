@@ -19,7 +19,7 @@ import click
 import matplotlib.pyplot as plt
 import networkx as nx
 
-from shortestpaths import dijkstra, utils
+from shortestpaths import dijkstra, graph_generator, utils
 
 
 COLORS = [
@@ -461,3 +461,42 @@ def plot_search_sphere(G,
     plt.savefig(os.path.join(os.getcwd(), file_name), dpi=fig.dpi)
   if show_graph:
     plt.show()
+
+
+def graph_density_contour(n, directed=True, weights_on="edges-and-nodes"):
+  """Plots density(sigmoid_center, initial_probability)."""
+  import numpy as np
+  densities = [[0] * 10 for _ in range(10)]
+
+  for c in range(1, 11):
+    for p in range(1, 11):
+      G, probs, edge_lengths, edge_lengths_true = graph_generator.random_graph(
+          n,
+          directed=directed,
+          weights_on=weights_on,
+          random_seed=1,
+          center_portion=c / 10,
+          gradient=1,
+          p_0=p / 10,
+          get_probability_distribution=True
+      )
+      densities[c - 1][p - 1] = graph_generator.graph_density(
+          n,
+          len(edge_lengths_true),
+          directed
+      )
+  plt.figure(figsize=(10, 10))
+  x = y = np.arange(0.1, 1.1, 0.1)
+  X, Y = np.meshgrid(x, y)
+  cm = plt.cm.get_cmap('viridis')
+  levels = np.arange(0, 1.1, 0.1)
+
+  cp = plt.contour(X, Y, densities, levels=levels, colors="black", linewidths=0.5)
+  plt.clabel(cp, fmt="%1.1f", fontsize=20, rightside_up=False, manual=True)
+  plt.contourf(X, Y, densities, cmap=cm, levels=levels)
+
+  plt.xlabel("${p_0}$", fontsize=20)
+  plt.ylabel("center_portion", fontsize=20)
+  plt.tick_params(axis='both', which='major', labelsize=18)
+  plt.title(f"Graph density   n: {n}", fontsize=22)
+  plt.show()

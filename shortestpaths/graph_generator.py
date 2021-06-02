@@ -40,9 +40,9 @@ def _edge_weight_bias(edge, n) -> float:
 
 
 def _edge_probability(edge,
-                      gradient=1,
+                      gradient=0.5,
                       center=None,
-                      p_0=1) -> float:
+                      p_0=0.8) -> float:
   """Evaluates the probability an edge exists, by the "proximity" of its nodes.
 
   Utilizing the numeric naming of the nodes, the distance between two nodes is
@@ -136,9 +136,8 @@ def _edge_weight(edge,
     raise Exception(f"Unknown weight-mode: {weight_mode}")
 
 
-def graph_density(G, directed=False):
-  n = G.number_of_nodes()
-  m = G.number_of_edges()
+def graph_density(n, m, directed):
+  """Evaluates the graph density as m / m_max."""
   if directed:
     m_max = n * (n - 1)
   else:
@@ -150,7 +149,7 @@ def graph_density(G, directed=False):
 def random_graph(n,
                  weighted=True,
                  directed=True,
-                 weights_on="edges",
+                 weights_on="edges-and-nodes",
                  max_edge_weight=1000,
                  max_node_weight=1000,
                  random_seed=None,
