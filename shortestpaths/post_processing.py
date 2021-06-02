@@ -90,9 +90,13 @@ def plot_paths(paths_data,
   if save_graph:
     figsize = (10 * 1.8, 10)
     dpi = 200
+    title_font_size = 23
+    legend_font_size = 21
   else:
     figsize = (8 * 1.8, 8)
     dpi = 100
+    title_font_size = 18
+    legend_font_size = 16
 
   fig = plt.figure(figsize=figsize, dpi=dpi)
   # , k=10 / sqrt(G.number_of_nodes())  # the default spring coefficient
@@ -179,13 +183,26 @@ def plot_paths(paths_data,
     frame_title = ("Replacement-paths\n"
                    f"mode: {online_status} / failing {mode.get('failing')}")
   else:
-    frame_title = "k-shortest paths"
+    frame_title = "\nk-shortest paths"
 
   frame_title += (f"\n#nodes: {G.number_of_nodes()}   "
                   f"#edges: {G.number_of_edges()}   "
                   f"#paths: {len(paths_data)}")
-  plt.title(frame_title)
-  plt.legend()
+  plt.title(frame_title, fontsize=title_font_size)
+  # leg = plt.legend(fontsize=18, edgecolor=(0, 0, 0, 1.), facecolor=(1, 1, 1, 0.1))
+  leg = plt.legend(fontsize=legend_font_size)
+  leg.get_frame().set_alpha(None)
+  leg.get_frame().set_facecolor((1, 1, 1, 0.5))
+
+  plt.tight_layout()
+  x_values = [x for x, y in pos.values()]
+  y_values = [y for x, y in pos.values()]
+  xmin = 1.05 * min(x_values)
+  xmax = 1.05 * max(x_values)
+  ymin = 1.1 * min(y_values)
+  ymax = 1.1 * max(y_values)
+  plt.xlim(xmin, xmax)
+  plt.ylim(ymin, ymax)
 
   if save_graph:
     date_n_time = str(datetime.now())[:19]
