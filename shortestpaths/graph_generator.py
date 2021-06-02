@@ -154,6 +154,9 @@ def random_graph(n,
                  max_edge_weight=1000,
                  max_node_weight=1000,
                  random_seed=None,
+                 center_portion=0.3,
+                 gradient=0.2,
+                 p_0=0.7,
                  get_probability_distribution=False):
   """Generates a n-nodes random graph, using the Erdős-Rényi model.
 
@@ -209,11 +212,7 @@ def random_graph(n,
   # Generate random weights for all nodes and edges.
   if weight_mode in ["nodes", "edges-and-nodes"]:
     node_weights = random.choices(range(max_node_weight + 1), k=n + 1)
-  # Number of edges of the complete graph: n * (n - 1) // 2
-  center_factor = 0.4
-  gradient = 0.6
-  p_0 = 0.7
-  center = center_factor * n
+  center = center_portion * n
 
   if get_probability_distribution:
     probs = []
