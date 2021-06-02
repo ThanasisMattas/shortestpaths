@@ -136,6 +136,16 @@ def _edge_weight(edge,
     raise Exception(f"Unknown weight-mode: {weight_mode}")
 
 
+def graph_density(G, directed=False):
+  n = G.number_of_nodes()
+  m = G.number_of_edges()
+  if directed:
+    m_max = n * (n - 1)
+  else:
+    m_max = n * (n - 1) / 2
+  return m / m_max
+
+
 # @time_this
 def random_graph(n,
                  weighted=True,
