@@ -154,7 +154,7 @@ def random_graph(n,
                  max_edge_weight=1000,
                  max_node_weight=1000,
                  random_seed=None,
-                 **kwargs):
+                 get_probability_distribution=False):
   """Generates a n-nodes random graph, using the Erdős-Rényi model.
 
   The graph is represented by its adjacency list. NetworkX is used only for
@@ -210,13 +210,15 @@ def random_graph(n,
   if weight_mode in ["nodes", "edges-and-nodes"]:
     node_weights = random.choices(range(max_node_weight + 1), k=n + 1)
   # Number of edges of the complete graph: n * (n - 1) // 2
-  center_factor = 0.3
-  gradient = 0.5
+  center_factor = 0.4
+  gradient = 0.6
   p_0 = 0.7
   center = center_factor * n
 
-  # probs = [0.1 for _ in range(n * (n - 1) // 2)]
-  # edge_lengths = [0.1 for _ in range(n * (n - 1) // 2)]
+  if get_probability_distribution:
+    probs = []
+    edge_lengths = []
+    edge_lengths_true = []
 
   # Iterate through all possible edges, randomly weight them and randomly desi-
   # de which to keep.
@@ -230,15 +232,21 @@ def random_graph(n,
       # nodes, that go straight to the sink, are avoided.
       # Namely, distance (up) (down) edge_probability.
       edge_probability = _edge_probability(edge,
-                                           gradient=0.2,
+                                           gradient=gradient,
                                            center=center,
-                                           cap=0.7)
-      # probs[i] = edge_probability
-      # edge_lengths[i] = abs(edge[0] - edge[1])
+                                           p_0=p_0)
+      if get_probability_distribution:
+        probs.append(edge_probability)
+        edge_lengths.append(abs(edge[0] - edge[1]))
+
       edge_initial_weight = edge_weights[i]
 
       random_probability = random.random()
       if edge_probability > random_probability:
+
+        if get_probability_distribution:
+          edge_lengths_true.append(abs(edge[0] - edge[1]))
+
         edge_weight = _edge_weight(edge,
                                    n,
                                    weight_mode,
@@ -259,15 +267,21 @@ def random_graph(n,
       # nodes, that go straight to the sink, are avoided.
       # Namely, distance (up) (down) edge_probability.
       edge_probability = _edge_probability(edge,
-                                           gradient=0.2,
+                                           gradient=gradient,
                                            center=center,
-                                           cap=0.7)
-      # probs[i] = edge_probability
-      # edge_lengths[i] = abs(edge[0] - edge[1])
+                                           p_0=p_0)
+      if get_probability_distribution:
+        probs.append(edge_probability)
+        edge_lengths.append(abs(edge[0] - edge[1]))
+
       edge_initial_weight = edge_weights[i]
 
       random_probability = random.random()
       if edge_probability > random_probability:
+
+        if get_probability_distribution:
+          edge_lengths_true.append(abs(edge[0] - edge[1]))
+
         edge_weight = _edge_weight(edge,
                                    n,
                                    weight_mode,
@@ -286,9 +300,8 @@ def random_graph(n,
   G.add_nodes_from(nodes)
   G.add_weighted_edges_from(edges)
 
-  # import matplotlib.pyplot as plt
-  # plt.scatter(edge_lengths, probs)
-  # plt.show()
+  if get_probability_distribution:
+    return G, probs, edge_lengths, edge_lengths_true
   return adj_list, G
 
 
