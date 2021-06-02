@@ -45,39 +45,48 @@ def _edge_probability(edge,
                       p_0=1) -> float:
   """Evaluates the probability an edge exists, by the "proximity" of its nodes.
 
-  This probability will be used to build the Gilbert version of the Erdős-Rényi
-  model.
+  Utilizing the numeric naming of the nodes, the distance between two nodes is
+  taken as the absolute of the difference of their ids. For example, nodes 1
+  and 5 will have distance 4.
 
-  This function, working as a low-pass filter, regulates how dense the graph
-  will be, to be used in different kinds of analysis. For visualization purpo-
-  ses, by forcing a more sparse graph, we will get shortest-paths with more
-  hops. For that reason, distant edges are penalized, by quickly driving the
-  sigmoid curve to 1. Hence, the attributes gradient, center and offset regula-
-  te how dense the random graph will be:
+  This probability will be used to build a modified Gilbert version of the
+  Erdős-Rényi model, where instead of one coherent probability, each edge wiil
+  have its own probability of existence.
+
+  This function regulates the form and the density of the graph. By forcing a
+  more sparse graph, we will get shortest-paths with more hops. thus aiding the
+  visualization and the analysis. For that reason, distant edges are penalized,
+  by getting low probability and big weights.
+
+  The basis of the probability distribution is the sigmoid function, which out-
+  puts values in the desired range 0-1, and provides simple parametric control.
+  More specifically, working as a high-pass filter, cuts out the edge distances
+  after its center.
+
+  Control over the form and the density of the graph can be used in different
+  kinds of analyses.
+
+  The graph model parameters are:
 
     * center (c):
-        center  zero       n/2         n
-                ------------------------
-        graph   sparse   neutral   dense
-    * gradient (g):
-        > 1
-          dense  -> slightly denser, adding the most distant edges
-          sparse -> almost same density, but the balance will be swifted to-
-                    wards the close edges
-        < 1
-          dense  -> slightly less dense, removing the most distant edges
-          sparse -> almost same density, but the balance will be swifted to-
-                    wards the distant edges
-    * offset:
-        offest (up) (up) sparsity
+      controls the form and the density of the graph; values: (1, n-1)
+        close to 0: filters out distant edges; graph becomes more sparse
+        close to n: incorporates more distant edges; graph becomes more dense
+    * gradient (λ):
+      controls the form of the graph; values: (0, 1]
+        close to 1: steep cut of probabilities after the center
+        close to 0: smoother diffusion of the probability distribution near the
+                    center
+    * initial_probability (p_0):
+      controls the density of the graph; values: (0, 1]
+        p_0 (up) (up) density
 
   Note that the sigmoid distribution is inverted, by subtracting it from 1, to
   shift the lower probability to distant edges.
 
-
                              1
                       ----------------
-                           - g (x - c)
+                           - λ (x - c)
                       1 + e
 
   1.0 |                               _ _ _ _ _
@@ -95,6 +104,11 @@ def _edge_probability(edge,
   0.0 | _ _ _ _  .        :
       |___________________:_______________________
                         center   abs(head-tail) ->
+
+  Final probability equation:
+
+              p(x) = p_0 (1 - sigmoid(x; λ, c))
+
   """
   exponent = -gradient * (abs(edge[0] - edge[1]) - center)
   if exponent >= 5:
