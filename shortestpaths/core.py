@@ -32,7 +32,7 @@ from shortestpaths import dijkstra, yen
 from shortestpaths.utils import print_heap, time_this  # noqa: F401
 
 
-def _first_shortest_path(mode, init_config):
+def first_shortest_path(mode, init_config):
   """Generates the 1st shortest path, initializing the replacement-paths or the
   k-shortest paths search.
 
@@ -519,7 +519,7 @@ def replacement_paths(mode,
     repl_paths = []
     parent_spur_node_idx = path_data[3]
   else:
-    path_data, tapes = _first_shortest_path(mode, init_config)
+    path_data, tapes = first_shortest_path(mode, init_config)
     repl_paths = [path_data]
     parent_spur_node_idx = 0
   base_path = path_data[0]
@@ -581,7 +581,7 @@ def k_shortest_paths(K, mode, init_config):
     k_paths (list)     : [[path: list, path_cost],]
   """
   # Find the absolute shortest path.
-  path_data, _ = _first_shortest_path(mode, init_config)
+  path_data, _ = first_shortest_path(mode, init_config)
   path_data = path_data[:3] + (0, path_data[4])
   k_paths = [(path_data[0], path_data[1])]
   # Holding the potential shortest paths (Yen's B).
