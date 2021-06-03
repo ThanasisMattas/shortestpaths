@@ -103,26 +103,26 @@ def main(ctx,
     adj_list_reverse = None
 
   init_config = {
-    "adj_list": adj_list,
-    "adj_list_reverse": adj_list_reverse,
-    "source": 1,
-    "sink": n
+      "adj_list": adj_list,
+      "adj_list_reverse": adj_list_reverse,
+      "source": 1,
+      "sink": n
   }
   mode = {
-    "bidirectional": bidirectional,
-    "parallel": parallel,
-    "dynamic": dynamic,
-    "failing": "edges",
-    "online": True,
-    "verbose": verbose
+      "bidirectional": bidirectional,
+      "parallel": parallel,
+      "dynamic": dynamic,
+      "failing": "edges",
+      "online": True,
+      "verbose": verbose
   }
   ctx_config = {
-    "init_config": init_config,
-    "mode": mode,
-    "G": G,
-    "layout_seed": layout_seed,
-    "show_graph": show_graph,
-    "save_graph": save_graph,
+      "init_config": init_config,
+      "mode": mode,
+      "G": G,
+      "layout_seed": layout_seed,
+      "show_graph": show_graph,
+      "save_graph": save_graph,
   }
   if ctx.invoked_subcommand is not None:
     if ctx.invoked_subcommand == "dynamic_graph_demo":

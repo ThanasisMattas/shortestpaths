@@ -161,6 +161,6 @@ def update_prospects(k,
     # Restore the failed edges.
     reconnect_spur_edges(u, init_config["adj_list"], failed_edges)
 
-  if mode["verbose"] >= 2:
+  if mode.get("verbose", 0) >= 2:
     print(f"k: {k + 1:{len(str(K))}}   spur paths: {spur_counter}")
   return prospects

@@ -349,7 +349,7 @@ def record_states(mode, init_config, base_path, meeting_edge_head):
                                 ],
                               ]
   """
-  if mode["verbose"] >= 2:
+  if mode.get("verbose", 0) >= 2:
     log_to_stderr()
     logger = get_logger()
     logger.setLevel(logging.INFO)
@@ -400,7 +400,7 @@ def record_states_parallel(mode, init_config, base_path, meeting_edge_head):
                                 ],
                               ]
   """
-  if mode["verbose"] >= 2:
+  if mode.get("verbose", 0) >= 2:
     log_to_stderr()
     logger = get_logger()
     logger.setLevel(logging.INFO)
@@ -670,7 +670,7 @@ def bidirectional_dijkstra_parallel(forward_config,
   source = reverse_config["sink"]
   sink = forward_config["sink"]
 
-  if mode["verbose"] >= 2:
+  if mode.get("verbose", 0) >= 2:
     log_to_stderr()
     logger = get_logger()
     logger.setLevel(logging.INFO)
@@ -822,7 +822,7 @@ def bidirectional_dijkstra(forward_config,
   Returns:
     path, path_cost, cum_hop_weights, meeting_edge_head
   """
-  if mode["verbose"] >= 2:
+  if mode.get("verbose", 0) >= 2:
     log_to_stderr()
     logger = get_logger()
     logger.setLevel(logging.INFO)
