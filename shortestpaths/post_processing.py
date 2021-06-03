@@ -70,9 +70,9 @@ def _node_sizes(G):
   return node_size, path_node_size, failed_node_size
 
 
-def visited_nodes(visited):
+def visited_nodes(visited, source):
   """Returns a list of the visited nodes."""
-  nodes = []
+  nodes = [source]
   for u in range(1, len(visited)):
     if dijkstra.was_visited(visited, u):
       nodes.append(u)
@@ -387,7 +387,7 @@ def plot_search_sphere(G,
                        visited_reverse=None,
                        meeting_edge_head=None):
   """Plots the visited nodes of the uni/bi-directional search."""
-  visited_nodes_forward = visited_nodes(visited)
+  visited_nodes_forward = visited_nodes(visited, path[0])
   num_visited_forward = len(visited_nodes_forward)
   if visited_reverse is None:
     algorithm = "Dijkstra's algorithm"
@@ -396,7 +396,7 @@ def plot_search_sphere(G,
   else:
     algorithm = "Bidirectional Dijkstra's algorithm"
     file_name = "bidirectional"
-    visited_nodes_reverse = visited_nodes(visited_reverse)
+    visited_nodes_reverse = visited_nodes(visited_reverse, path[-1])
     num_visited_reverse = len(visited_nodes_reverse)
     meeting_edge_head_idx = path.index(meeting_edge_head)
     path_forward = path[:meeting_edge_head_idx]
