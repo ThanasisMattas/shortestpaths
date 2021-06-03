@@ -78,6 +78,17 @@ def visited_nodes(visited):
   return nodes
 
 
+def _xylimits(pos):
+  "Crops the inner margins of the frame."""
+  x_values = [x for x, y in pos.values()]
+  y_values = [y for x, y in pos.values()]
+  xmin = 1.05 * min(x_values)
+  xmax = 1.05 * max(x_values)
+  ymin = 1.1 * min(y_values)
+  ymax = 1.1 * max(y_values)
+  return xmin, xmax, ymin, ymax
+
+
 def plot_paths(paths_data,
                G,
                mode,
@@ -195,12 +206,7 @@ def plot_paths(paths_data,
   leg.get_frame().set_facecolor((1, 1, 1, 0.5))
 
   plt.tight_layout()
-  x_values = [x for x, y in pos.values()]
-  y_values = [y for x, y in pos.values()]
-  xmin = 1.05 * min(x_values)
-  xmax = 1.05 * max(x_values)
-  ymin = 1.1 * min(y_values)
-  ymax = 1.1 * max(y_values)
+  xmin, xmax, ymin, ymax = _xylimits(pos)
   plt.xlim(xmin, xmax)
   plt.ylim(ymin, ymax)
 

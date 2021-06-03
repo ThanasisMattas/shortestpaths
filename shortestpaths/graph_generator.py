@@ -157,7 +157,8 @@ def random_graph(n,
                  gradient=0.2,
                  p_0=0.7,
                  get_probability_distribution=False):
-  """Generates a n-nodes random graph, using the Erdős-Rényi model.
+  """Generates a n-nodes random graph, using a modified Erdős-Rényi model.
+  (see _edge_probability() docstring)
 
   The graph is represented by its adjacency list. NetworkX is used only for
   plotting.
@@ -185,20 +186,23 @@ def random_graph(n,
     3. In case of a digraph, the edge_weight is increased by the head weight.
 
   Args:
-    n (int)               : number of nodes
-    weighted (bool)       : defaults to True
-    weights_on (string)   : 'edges', 'nodes' or 'edges-and-nodes'
-    max_edge_weight (int) : each edge has a random weight from 0 to
-                            max_edge_weight (defaults to 100)
-    max_node_weight (int) : each node has a random weight from 0 to
-                            max_node_weight (defaults to 100)
-    random_seed (int)     : in case of fixed random graph (defaults to None)
+    n (int)                : number of nodes
+    weighted (bool)        : defaults to True
+    weights_on (string)    : 'edges', 'nodes' or 'edges-and-nodes'
+    max_edge_weight (int)  : each edge has a random weight from 0 to
+                             max_edge_weight (defaults to 1000)
+    max_node_weight (int)  : each node has a random weight from 0 to
+                             max_node_weight (defaults to 1000)
+    random_seed (int)      : in case of fixed random graph (defaults to None)
+    center_portion (float) : defines the sigmoid center
+    gradient (float)       : sigmoid exponent amplitude
+    p_0 (float)            : initial probability
+    get_probability_distribution (bool)
+                           : flag to return graph data for meta-analysis
 
   Returns:
-    adj_list (list)       : the adjacency list
-                            each element is a list of tuples (neighbor, weight)
-                            of the neighbors of each node
-    G (Graph)             : used to plot the graph
+    adj_list (list)        : the adjacency list: [{(neighbor, weight),},]
+    G (Graph)              : used to plot the graph
   """
   weight_mode = "unweighted" if not weighted else weights_on
   random.seed(random_seed)
