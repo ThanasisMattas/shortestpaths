@@ -31,6 +31,7 @@ COLORS = [
     "r",
     "darkorange",
     "#bf00ff",  # electric purple
+    "limegreen"
 ]
 
 
@@ -96,7 +97,7 @@ def plot_paths(paths_data,
                show_graph=True,
                layout_seed=None,
                draw_edge_weights=False):
-  """Plots the graph and all the generated paths in spring_layout."""
+  """Plots the graph and all the generated paths (up to 8) in spring_layout."""
   utils.verify_paths(paths_data)
   if save_graph:
     figsize = (10 * 1.8, 10)
@@ -144,6 +145,10 @@ def plot_paths(paths_data,
 
   # 3. Draw the paths
   colors = iter(COLORS)
+  width_step = 6.5
+  last_path_width = 4
+  first_path_width = max(last_path_width + (len(paths_data) - 1) * width_step,
+                         8)
   for i, path in enumerate(paths_data):
     # Generate the legend label
 
@@ -156,7 +161,8 @@ def plot_paths(paths_data,
     # connectionstyle=ConnectionStyle("Arc3", rad=0.2),
     nx.draw_networkx_edges(G, pos=pos, edgelist=path_edges_sequence,
                            edge_color=color, alpha=0.8, arrows=False,
-                           width=len(paths_data) + 25 - 6.5 * i, label=label)
+                           width=first_path_width - i * width_step,
+                           label=label)
 
     # Mark the disconnceted edge or node with an ×.
     if mode["failing"] == "nodes":
@@ -200,7 +206,6 @@ def plot_paths(paths_data,
                   f"#edges: {G.number_of_edges()}   "
                   f"#paths: {len(paths_data)}")
   plt.title(frame_title, fontsize=title_font_size)
-  # leg = plt.legend(fontsize=18, edgecolor=(0, 0, 0, 1.), facecolor=(1, 1, 1, 0.1))
   leg = plt.legend(fontsize=legend_font_size)
   leg.get_frame().set_alpha(None)
   leg.get_frame().set_facecolor((1, 1, 1, 0.5))

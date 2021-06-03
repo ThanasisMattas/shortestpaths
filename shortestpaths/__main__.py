@@ -64,8 +64,8 @@ from shortestpaths import (core,  # noqa F401
               help="If provided, a fixed random graph will be generated.")
 @click.option("--layout-seed", type=click.INT, default=1, show_default=True,
               help="Fixes the random initialization of the spirng_layout.")
-@click.option("--show-graph", is_flag=True)
-@click.option("--save-graph", is_flag=True)
+@click.option("--show-graph", is_flag=True, help="plots up to 8 paths")
+@click.option("--save-graph", is_flag=True, help="format: png")
 @click.option('-v', "--verbose", count=True)
 # @utils.time_this
 def main(ctx,
