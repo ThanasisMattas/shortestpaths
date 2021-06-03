@@ -466,6 +466,8 @@ def retrieve_state(direction,
     init_config (dict)    : kwargs for dijkstra_init()
     base_path (list)      : the parent-path
     failed_path_idx (int) : the base-path-idx of the failed node
+                            When failing edges, for the forward search pass the
+                            tail idx and for the reverse pass the head idx.
     failing (str)         : "nodes" or "edges"
 
   Returns:
