@@ -60,7 +60,7 @@ from shortestpaths import (core,  # noqa F401
 @click.option('-d', "--dynamic", is_flag=True,
               help="whether to use dynamic programming or not")
 @click.option('-s', "--seed", "random_seed", type=click.INT,
-              default=4, show_default=True,
+              default=None, show_default=True,
               help="If provided, a fixed random graph will be generated.")
 @click.option("--layout-seed", type=click.INT, default=1, show_default=True,
               help="Fixes the random initialization of the spirng_layout.")
