@@ -24,6 +24,7 @@ from shortestpaths import dijkstra, graph_generator, utils
 
 COLORS = [
     # "dimgray",
+    # "#990011FF"  # spacecherry
     "mediumblue",
     "#c71585",  # redviolet
     "aqua",
@@ -33,7 +34,6 @@ COLORS = [
     "#bf00ff",  # electric purple
     "limegreen"
 ]
-
 
 def path_label(path, path_number, failing):
   if (failing is None) or (len(path) == 2):
@@ -56,13 +56,13 @@ def path_label(path, path_number, failing):
 
 def _node_sizes(G):
   if G.number_of_nodes() < 400:
-    node_size = 800
-    path_node_size = 2200
-    failed_node_size = 2400
+    node_size = 550
+    path_node_size = 1200
+    failed_node_size = 1600
   elif G.number_of_nodes() < 2200:
-    node_size = 800 - G.number_of_nodes() // 5
-    path_node_size = 2200 - G.number_of_nodes() // 10
-    failed_node_size = 2400 - G.number_of_nodes() // 10
+    node_size = 550 - G.number_of_nodes() // 5
+    path_node_size = 1200 - G.number_of_nodes() // 10
+    failed_node_size = 1600 - G.number_of_nodes() // 10
   else:
     node_size = 10
     path_node_size = 350
@@ -102,19 +102,35 @@ def plot_paths(paths_data,
   if save_graph:
     figsize = (10 * 1.8, 10)
     dpi = 200
-    title_font_size = 23
-    legend_font_size = 21
+    title_fontsize = 22
+    legend_fontsize = 20
   else:
     figsize = (8 * 1.8, 8)
     dpi = 100
-    title_font_size = 18
-    legend_font_size = 16
+    title_fontsize = 18
+    legend_fontsize = 16
+
+  # path_nodes_pos = [
+  #     (1, -1),
+  #     (0.7, -0.1),
+  #     (0.35, -0.5),
+  #     (0.15, 0),
+  #     (-0.1, -0.1),
+  #     (-0.4, 0.3),
+  #     (-0.6, -0.1),
+  #     (-1, 1.1)
+  # ]
+  # path_nodes_pos = {paths_data[0][0][i]: path_nodes_pos[i] for i in range(8)}
 
   fig = plt.figure(figsize=figsize, dpi=dpi)
   # , k=10 / sqrt(G.number_of_nodes())  # the default spring coefficient
-  pos = nx.spring_layout(G,
-                         seed=layout_seed,
-                         k=10 / sqrt(G.number_of_nodes()))
+  pos = nx.spring_layout(
+      G,
+      seed=layout_seed,
+      # pos=path_nodes_pos,
+      k=10 / sqrt(G.number_of_nodes()),
+      # fixed=path_nodes_pos.keys()
+  )
 
   # Layouts
   # -------
@@ -138,7 +154,7 @@ def plot_paths(paths_data,
   # Change the font of the labels of the path nodes and restore alpha=None.
   for node, (x, y) in pos.items():
     if node in all_paths_nodes:
-      plt.text(x, y, node, fontsize=24, ha='center', va='center')
+      plt.text(x, y, node, fontsize=19, ha='center', va='center')
   nx.draw_networkx_nodes(G, pos=pos,
                          nodelist=all_paths_nodes, node_size=path_node_size,
                          edgecolors='k', node_color="deepskyblue", alpha=0.8)
@@ -150,8 +166,6 @@ def plot_paths(paths_data,
   first_path_width = max(last_path_width + (len(paths_data) - 1) * width_step,
                          8)
   for i, path in enumerate(paths_data):
-    # Generate the legend label
-
     color = next(colors)
     label = path_label(path, i + 1, mode["failing"])
     path_edges_sequence = list(zip(path[0], path[0][1:]))
@@ -186,15 +200,6 @@ def plot_paths(paths_data,
     else:
       raise ValueError("failing should be 'edges', 'nodes' or None")
 
-  # 4. Draw 'source' & 'Sink' labels.
-  # labels = {paths_data[0][0][0]: "source", paths_data[0][0][-1]: "Sink"}
-  # for node, (x, y) in pos.items():
-  #   if node in labels.keys():
-  #     plt.text(x + 50, y + 50, node, fontsize=14, ha='center', va='center')
-  # nx.draw_networkx_labels(G, pos=pos, labels=labels,
-  #                         font_color='k', font_size=20,
-  #                         bbox=dict(boxstyle="square", fc='w', ec='k'))
-
   if (len(path) > 2) and (path[3] is not None):
     online_status = "on-line" if mode.get('online') else "off-line"
     frame_title = ("Replacement-paths\n"
@@ -205,8 +210,8 @@ def plot_paths(paths_data,
   frame_title += (f"\n#nodes: {G.number_of_nodes()}   "
                   f"#edges: {G.number_of_edges()}   "
                   f"#paths: {len(paths_data)}")
-  plt.title(frame_title, fontsize=title_font_size)
-  leg = plt.legend(fontsize=legend_font_size)
+  plt.title(frame_title, fontsize=title_fontsize)
+  leg = plt.legend(fontsize=legend_fontsize)
   leg.get_frame().set_alpha(None)
   leg.get_frame().set_facecolor((1, 1, 1, 0.5))
 
@@ -241,89 +246,144 @@ def print_paths(paths, failing=None):
     click.echo(msg)
 
 
-def plot_adaptive_dijkstra(G,
-                           paths_data,
-                           failed_nodes,
-                           nodes_visited_sequence,
-                           checkpoint_node):
-  """Plots the adaptive Dijkstra's algorithms."""
-  pos = nx.spring_layout(G, seed=1)
+def state_retrieval_vis(G,
+                        paths_data,
+                        visited_nodes_forward,
+                        visited_nodes_reverse,
+                        retrieved_nodes_forward,
+                        retrieved_nodes_reverse,
+                        meeting_edge: tuple,
+                        mode,
+                        layout_seed,
+                        show_graph,
+                        save_graph):
+  if save_graph:
+    figsize = (10 * 1.8, 10)
+    dpi = 200
+    title_fontsize = 23
+    legend_fontsize = 21
+  else:
+    figsize = (8 * 1.8, 8)
+    dpi = 100
+    title_fontsize = 18
+    legend_fontsize = 16
+
+  fig = plt.figure(figsize=figsize, dpi=dpi)
+  pos = nx.spring_layout(G,
+                         seed=layout_seed,
+                         k=20 / sqrt(G.number_of_nodes()))
 
   # 1. Draw the graph
-  nx.draw_networkx(G, pos, node_size=450, width=0.25, alpha=0.4,
-                   with_labels=False)
+  # Exclude the visited nodes
+  nodelist = set(G.nodes()).difference(visited_nodes_forward).difference(visited_nodes_reverse)
+  node_size, path_node_size, failed_node_size = _node_sizes(G)
+  nx.draw_networkx(G, pos, node_size=node_size, width=0.3, alpha=0.3,
+                   nodelist=nodelist, with_labels=False, arrows=False)
 
-  nx.draw_networkx_nodes(G, pos=pos, nodelist=nodes_visited_sequence,
-                         node_color='goldenrod', node_size=1250,
-                         linewidths=3, label="nodes visited by the algorithm")
-  retrieved_state = nodes_visited_sequence[
-    :nodes_visited_sequence.index(checkpoint_node)
-  ]
-  nx.draw_networkx_nodes(G, pos=pos, nodelist=retrieved_state,
-                         node_color='g', node_size=800,
-                         linewidths=3, label="retrieved state")
+  # 2. Draw the forward state
+  nx.draw_networkx_nodes(G, pos=pos, nodelist=visited_nodes_forward,
+                         node_color='goldenrod', alpha=0.8, node_size=2800,
+                         linewidths=0, label="forward visited")
+  nx.draw_networkx_nodes(G, pos=pos, nodelist=retrieved_nodes_forward,
+                         node_color='g', alpha=0.7, node_size=2000,
+                         linewidths=0, label="forward retrieved")
 
-  # 2. Draw the disconnected nodes
-  nx.draw_networkx_nodes(G, pos=pos, nodelist=failed_nodes, node_color='r',
-                         node_shape='x', node_size=800, linewidths=3)
+  # 3. Draw the reverse state
+  # background        : foreground
+  # ------------------------------
+  # 603F83FF 343148FF : C7D3D4FF
+  # 192e5b            : 72a2c0
+  # 00539CFF          : 9CC3D5FF B1624EFF A2A2A1FF
+  nx.draw_networkx_nodes(G, pos=pos, nodelist=visited_nodes_reverse,
+                         node_color='#132226', alpha=0.7, node_size=2800,
+                         linewidths=0, label="reverse visited")
 
-  # colors = iter(['b', 'm', 'g', 'k', 'r', 'c', 'y', 'w'])
-  colors = iter(['mediumblue', 'r', 'g', 'k', 'r', 'c', 'y', 'w'])
-  # Accumulates all the nodes of all the paths for label drawing.
+  nx.draw_networkx_nodes(G, pos=pos, nodelist=retrieved_nodes_reverse,
+                         node_color='#f2eaed', alpha=0.7, node_size=2000,
+                         linewidths=0, label="reverse retrieved")
+
+  # 4. Draw the nodes of all the paths
   all_paths_nodes = set()
-
   for path in paths_data:
     all_paths_nodes.update(path[0])
-
   # Change the font of the labels of the path nodes and restore alpha=None.
   for node, (x, y) in pos.items():
     if node in all_paths_nodes:
-      plt.text(x, y, node, fontsize=14, ha='center', va='center')
-
-  # 3. Draw the nodes of all the paths
-  nx.draw_networkx_nodes(G, pos=pos, nodelist=all_paths_nodes, node_size=550,
+      plt.text(x, y, node, fontsize=19, ha='center', va='center')
+  nx.draw_networkx_nodes(G, pos=pos,
+                         nodelist=all_paths_nodes, node_size=path_node_size,
                          edgecolors='k', node_color="deepskyblue")
 
-  # 4. Draw the paths
+  # 5. Draw the paths
+  colors = iter(['k', 'r'])
+  edgewidth_max = 14
+  edgewidth_step = 8
   for i, path in enumerate(paths_data):
+
     color = next(colors)
+    label = path_label(path, i + 1, mode["failing"])
     path_edges_sequence = list(zip(path[0], path[0][1:]))
-
-    label = (f"path_{i + 1}: {str(path[0])}\ncost: {path[1]}    "
-             f"disconnected nodes: {str(list(path[3]))}")
-
-    # Draw the path
     nx.draw_networkx_edges(G, pos=pos, edgelist=path_edges_sequence,
-                           edge_color=color,
-                           width=len(paths_data) + 9 - 6 * i, label=label)
+                           edge_color=color, alpha=0.8, arrows=False,
+                           width=edgewidth_max - edgewidth_step * i,
+                           label=label)
 
-    # Mark the disconnceted node with an X.
-    nx.draw_networkx_nodes(G, pos=pos, nodelist=path[3], node_color=color,
-                           node_shape='x', node_size=800, linewidths=3)
+    # Mark the disconnceted edge or node with an ×.
+    if mode["failing"] == "nodes":
+      if (len(path) > 2) and (path[3] not in [None, [None]]):
+        if hasattr(path[3], "__len__"):
+          disconnected = path[3]
+        else:
+          disconnected = [path[3]]
+        nx.draw_networkx_nodes(G, pos=pos, nodelist=disconnected,
+                               node_color=color, node_shape='x',
+                               node_size=failed_node_size, linewidths=5)
+    elif mode["failing"] == "edges":
+      # Check for the case of the absolute shortest path, where there is no
+      # disconnected edge.
+      if (len(path) > 2) and (path[3] is not None):  # ✕×✗
+        nx.draw_networkx_edge_labels(G, pos, edge_labels={path[3]: '×'},
+                                     font_size=70, font_color=color,
+                                     bbox=dict(alpha=0), rotate=False)
+    elif mode["failing"] is None:
+      pass
+    else:
+      raise ValueError("failing should be 'edges', 'nodes' or None")
 
-  # Draw 'Source' & 'Sink' labels.
-  # labels = {paths_data[0][0][0]: "Source", paths_data[0][0][-1]: "Sink"}
-  # for node, (x, y) in pos.items():
-  #   if node in labels.keys():
-  #     plt.text(x + 50, y + 50, node, fontsize=14, ha='center', va='center')
-  # nx.draw_networkx_labels(G, pos=pos, labels=labels,
-  #                         font_color='k', font_size=20,
-  #                         bbox=dict(boxstyle="square", fc='w', ec='k'))
+  # 6. Draw the meeting edge
+  nx.draw_networkx_edges(G, pos=pos, edgelist=[meeting_edge],
+                         edge_color="coral", alpha=0.8, arrows=False,
+                         width=edgewidth_max - edgewidth_step,
+                         label=f"meeting edge: {meeting_edge}")
 
-  frame_title = (f"#nodes: {G.number_of_nodes()}    "
-                 f"#edges: {G.number_of_edges()}")
-  if failed_nodes:
-    frame_title += f"\ndisconnected nodes: {list(failed_nodes)}"
-  plt.title(frame_title)
-  plt.legend()
-  plt.show()
+  leg = plt.legend(fontsize=legend_fontsize)
+  leg.get_frame().set_alpha(None)
+  leg.get_frame().set_facecolor((1, 1, 1, 0.5))
+  plt.title("State retrieval", fontsize=title_fontsize)
+
+  plt.tight_layout()
+  xmin, xmax, ymin, ymax = _xylimits(pos)
+  plt.xlim(xmin, xmax)
+  plt.ylim(ymin, ymax)
+
+  if ((visited_nodes_forward == retrieved_nodes_forward)
+          and (visited_nodes_reverse == retrieved_nodes_reverse)):
+    failed_edge = "_me"
+  else:
+    failed_edge = ""
+
+  if save_graph:
+    file_name = f"state_retrieval_vis{failed_edge}.png"
+    plt.savefig(os.path.join(os.getcwd(), file_name), dpi=fig.dpi)
+  if show_graph:
+    plt.show()
 
 
 def state_vis(to_visit, visited, source, sink, layout_seed=1, G=None):
   """Generates a Dijkstra's algorithm state visualization."""
   to_visit_nodes = to_visit.keys()
-  # visited_nodes = G.nodes.difference(to_visit_nodes)
-  visited_nodes_list = visited_nodes(visited)
+  # visited_nodes_list = G.nodes.difference(to_visit_nodes)
+  visited_nodes_list = visited_nodes(visited, source)
   visited_height = [0 for _ in range(1, len(visited))]
   to_visit_height = [0 for _ in range(1, len(visited))]
   sink_height = []
