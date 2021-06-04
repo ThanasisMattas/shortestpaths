@@ -83,10 +83,10 @@ def _xylimits(pos):
   "Crops the inner margins of the frame."""
   x_values = [x for x, y in pos.values()]
   y_values = [y for x, y in pos.values()]
-  xmin = 1.05 * min(x_values)
-  xmax = 1.05 * max(x_values)
-  ymin = 1.1 * min(y_values)
-  ymax = 1.1 * max(y_values)
+  xmin = 1.1 * min(x_values)
+  xmax = 1.1 * max(x_values)
+  ymin = 1.14 * min(y_values)
+  ymax = 1.14 * max(y_values)
   return xmin, xmax, ymin, ymax
 
 
@@ -252,8 +252,10 @@ def state_retrieval_vis(G,
                         visited_nodes_reverse,
                         retrieved_nodes_forward,
                         retrieved_nodes_reverse,
+                        visited_after_retrieval,
                         meeting_edge: tuple,
                         mode,
+                        random_seed,
                         layout_seed,
                         show_graph,
                         save_graph):
@@ -268,56 +270,65 @@ def state_retrieval_vis(G,
     title_fontsize = 18
     legend_fontsize = 16
 
+  k_0 = 18
   fig = plt.figure(figsize=figsize, dpi=dpi)
   pos = nx.spring_layout(G,
                          seed=layout_seed,
-                         k=20 / sqrt(G.number_of_nodes()))
+                         k=k_0 / sqrt(G.number_of_nodes()))
 
   # 1. Draw the graph
   # Exclude the visited nodes
-  nodelist = set(G.nodes()).difference(visited_nodes_forward).difference(visited_nodes_reverse)
+  nodelist = set(G.nodes()).difference(visited_nodes_forward) \
+                           .difference(visited_nodes_reverse) \
+                           .difference(visited_after_retrieval)
   node_size, path_node_size, failed_node_size = _node_sizes(G)
   nx.draw_networkx(G, pos, node_size=node_size, width=0.3, alpha=0.3,
                    nodelist=nodelist, with_labels=False, arrows=False)
 
   # 2. Draw the forward state
-  nx.draw_networkx_nodes(G, pos=pos, nodelist=visited_nodes_forward,
-                         node_color='goldenrod', alpha=0.8, node_size=2800,
-                         linewidths=0, label="forward visited")
-  nx.draw_networkx_nodes(G, pos=pos, nodelist=retrieved_nodes_forward,
-                         node_color='g', alpha=0.7, node_size=2000,
-                         linewidths=0, label="forward retrieved")
+  if visited_nodes_forward:
+    nx.draw_networkx_nodes(G, pos=pos, nodelist=visited_nodes_forward,
+                           node_color='#2c051a', alpha=0.8, node_size=2900,
+                           linewidths=0, label="forward visited")
+    nx.draw_networkx_nodes(G, pos=pos, nodelist=retrieved_nodes_forward,
+                           node_color='limegreen', alpha=0.7, node_size=2000,  # #132226
+                           linewidths=0, label="forward retrieved")
 
   # 3. Draw the reverse state
   # background        : foreground
   # ------------------------------
   # 603F83FF 343148FF : C7D3D4FF
   # 192e5b            : 72a2c0
-  # 00539CFF          : 9CC3D5FF B1624EFF A2A2A1FF
+  # 00539CFF          : 9CC3D5FF B1624EFF A2A2A1FF f2eaed
   nx.draw_networkx_nodes(G, pos=pos, nodelist=visited_nodes_reverse,
-                         node_color='#132226', alpha=0.7, node_size=2800,
+                         node_color='navy', alpha=0.75, node_size=2900,
                          linewidths=0, label="reverse visited")
 
   nx.draw_networkx_nodes(G, pos=pos, nodelist=retrieved_nodes_reverse,
-                         node_color='#f2eaed', alpha=0.7, node_size=2000,
+                         node_color='#f2eaed', alpha=0.8, node_size=2000,
                          linewidths=0, label="reverse retrieved")
 
-  # 4. Draw the nodes of all the paths
+  # 4. Draw the visited after retrieval
+  nx.draw_networkx_nodes(G, pos=pos, nodelist=visited_after_retrieval,
+                         node_color='orangered', alpha=0.8, node_size=2000,
+                         linewidths=0, label="visited after retrieval")
+
+  # 5. Draw the nodes of all the paths
   all_paths_nodes = set()
   for path in paths_data:
     all_paths_nodes.update(path[0])
   # Change the font of the labels of the path nodes and restore alpha=None.
   for node, (x, y) in pos.items():
     if node in all_paths_nodes:
-      plt.text(x, y, node, fontsize=19, ha='center', va='center')
+      plt.text(x, y, node, fontsize=20, ha='center', va='center')
   nx.draw_networkx_nodes(G, pos=pos,
                          nodelist=all_paths_nodes, node_size=path_node_size,
                          edgecolors='k', node_color="deepskyblue")
 
-  # 5. Draw the paths
-  colors = iter(['k', 'r'])
-  edgewidth_max = 14
-  edgewidth_step = 8
+  # 6. Draw the paths
+  colors = iter(['mediumblue', 'r'])
+  edgewidth_max = 12
+  edgewidth_step = 7
   for i, path in enumerate(paths_data):
 
     color = next(colors)
@@ -341,25 +352,36 @@ def state_retrieval_vis(G,
     elif mode["failing"] == "edges":
       # Check for the case of the absolute shortest path, where there is no
       # disconnected edge.
+      # if path[3] == meeting_edge:
+      #   x_pos = 0.5
+      # else:
+      #   x_pos = 0.51
+      x_pos = 0.5
       if (len(path) > 2) and (path[3] is not None):  # ✕×✗
         nx.draw_networkx_edge_labels(G, pos, edge_labels={path[3]: '×'},
-                                     font_size=70, font_color=color,
-                                     bbox=dict(alpha=0), rotate=False)
+                                     font_size=80, font_color=color,
+                                     label_pos=x_pos, bbox=dict(alpha=0),
+                                     rotate=False)
     elif mode["failing"] is None:
       pass
     else:
       raise ValueError("failing should be 'edges', 'nodes' or None")
 
-  # 6. Draw the meeting edge
+  # 7. Draw the meeting edge
   nx.draw_networkx_edges(G, pos=pos, edgelist=[meeting_edge],
-                         edge_color="coral", alpha=0.8, arrows=False,
+                         edge_color="aqua", alpha=0.9, arrows=False,
                          width=edgewidth_max - edgewidth_step,
                          label=f"meeting edge: {meeting_edge}")
 
   leg = plt.legend(fontsize=legend_fontsize)
   leg.get_frame().set_alpha(None)
   leg.get_frame().set_facecolor((1, 1, 1, 0.5))
-  plt.title("State retrieval", fontsize=title_fontsize)
+  online_mode = "online" if mode["online"] else "offline"
+  plt.title(("State retrieval\n"
+             f"n: {G.number_of_nodes()}"
+             f"   m: {G.number_of_edges()}"
+             f"   mode: {online_mode}"),
+            fontsize=title_fontsize)
 
   plt.tight_layout()
   xmin, xmax, ymin, ymax = _xylimits(pos)
@@ -373,7 +395,9 @@ def state_retrieval_vis(G,
     failed_edge = ""
 
   if save_graph:
-    file_name = f"state_retrieval_vis{failed_edge}.png"
+    file_name = (f"state_retrieval_vis_k_0_{k_0}_s_{random_seed}"
+                 f"_l_{layout_seed}_e_{paths_data[1][3][0]}_dpi_{dpi}"
+                 "{failed_edge}.png")
     plt.savefig(os.path.join(os.getcwd(), file_name), dpi=fig.dpi)
   if show_graph:
     plt.show()
