@@ -392,12 +392,13 @@ def _dynamic_online_replacement_paths(mode,
   last_state_path_idx = base_path.index(meeting_edge_head) - 1
   # discovered_reverse = {init_config["sink"]}
 
-  # Initialize the first failed node/edge, which is the second to last node or
-  # node or the last edge.
+  # Initialize the first failed node or edge, which are the second to last node
+  # or the last edge.
   if mode["failing"] == "nodes":
     failed_path_idx = len(base_path) - 2
   else:
-    # Here, failed_path_idx is the head of each failed edge.
+    # Here, failed_path_idx is the head of each failed edge. Note that
+    # _replacement_path() takes the tail of the failed edge as failed_path_idx.
     failed_path_idx = len(base_path) - 1
 
   # Terminate the spurs search at the spur_node of the parent-path, as sugge-
@@ -514,7 +515,7 @@ def replacement_paths(mode,
                          ]
   """
   # 1. Find/retrieve the absolute shortest path.
-  if path_data:
+  if path_data:  # then, replacement_paths() was called from k_shortest_paths()
     tapes = None
     repl_paths = []
     parent_spur_node_idx = path_data[3]
