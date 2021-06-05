@@ -93,8 +93,8 @@ class TestShortestPaths():
      for d in DIRECTED]
   )
   def test_k_shortest_paths(self, s, k, n, d):
-    reference_cmd = f"python -m shortestpaths -v -l {d} -k {k} {n}"
-    solver_cmd = f"python -m shortestpaths -v {s} -k {k} {n}"
+    reference_cmd = f"python -m shortestpaths -v -s 4 -l {d} -k {k} {n}"
+    solver_cmd = f"python -m shortestpaths -v -s 4 {s} -k {k} {n}"
     reference = subprocess.run(reference_cmd.split(),
                                stdout=subprocess.PIPE)
     solver = subprocess.run(solver_cmd.split(),
@@ -113,10 +113,10 @@ class TestShortestPaths():
      for d in DIRECTED]
   )
   def test_replacement_paths(self, s, n, f, o, d):
-    reference_cmd = (f"python -m shortestpaths -v {d} {n} replacement-paths"
-                     f" --failing {f} {o}")
-    solver_cmd = (f"python -m shortestpaths -v {d} {s} {n} replacement-paths"
-                  f" --failing {f} {o}")
+    reference_cmd = (f"python -m shortestpaths -v -s 4 {d} {n}"
+                     f" replacement-paths --failing {f} {o}")
+    solver_cmd = (f"python -m shortestpaths -v -s 4 {d} {s} {n}"
+                  f" replacement-paths --failing {f} {o}")
     reference = subprocess.run(reference_cmd.split(), stdout=subprocess.PIPE)
     solver = subprocess.run(solver_cmd.split(), stdout=subprocess.PIPE)
     reference_out = self.path_costs(reference)
