@@ -1,4 +1,17 @@
 #!/usr/bin/env python3
+"""
+Visualization for comparing the search space of uni- and bi- directional
+variations of Dijkstra's algorithm.
+
+python plot_search_sphere.py -b -s 6 --layout-seed 3 --save-graph 500
+{
+  max_edge_weight=1000,
+  max_node_weight=20,
+  center_portion=0.15,
+  gradient=0.75,
+  p_0=0.23,
+}
+"""
 import os
 import sys
 
