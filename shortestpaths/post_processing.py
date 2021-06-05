@@ -14,6 +14,7 @@
 from datetime import datetime
 from math import sqrt
 import os
+from statistics import mean
 
 import click
 import matplotlib.pyplot as plt
@@ -56,7 +57,7 @@ def path_label(path, path_number, failing):
 
 def _node_sizes(G):
   if G.number_of_nodes() < 400:
-    node_size = 600
+    node_size = 550
     path_node_size = 1200
     failed_node_size = 1600
   elif G.number_of_nodes() < 2200:
@@ -568,40 +569,50 @@ def plot_search_sphere(G,
     plt.show()
 
 
-def graph_density_contour(n, directed=True, weights_on="edges-and-nodes"):
-  """Plots density(sigmoid_center, initial_probability)."""
+def graph_density_contour(n,
+                          graphs_per_measure=10,
+                          directed=True,
+                          weights_on="edges-and-nodes"):
+  """Plots density vs sigmoid_center & initial_probability: d(c, p_0)."""
   import numpy as np
   densities = [[0] * 10 for _ in range(10)]
+  # The density of each graph type is taken as the mean density of the
+  # <graphs_per_measure> graphs.
+  densities_per_graph_type = []
 
   for c in range(1, 11):
     for p in range(1, 11):
-      G, probs, edge_lengths, edge_lengths_true = graph_generator.random_graph(
-          n,
-          directed=directed,
-          weights_on=weights_on,
-          random_seed=1,
-          center_portion=c / 10,
-          gradient=1,
-          p_0=p / 10,
-          get_probability_distribution=True
-      )
-      densities[c - 1][p - 1] = graph_generator.graph_density(
-          n,
-          len(edge_lengths_true),
-          directed
-      )
-  plt.figure(figsize=(10, 10))
+      for g in range(graphs_per_measure):
+        G, probs, edge_lengths, edge_lengths_true = graph_generator.random_graph(
+            n,
+            directed=directed,
+            weights_on=weights_on,
+            random_seed=1,
+            center_portion=c / 10,
+            gradient=1,
+            p_0=p / 10,
+            get_probability_distribution=True
+        )
+        densities_per_graph_type.append(
+            graph_generator.graph_density(n, len(edge_lengths_true), directed)
+        )
+      densities[c - 1][p - 1] = mean(densities_per_graph_type)
+      densities_per_graph_type.clear()
+
+  fig = plt.figure(figsize=(10, 10), dpi=200)
   x = y = np.arange(0.1, 1.1, 0.1)
   X, Y = np.meshgrid(x, y)
   cm = plt.cm.get_cmap('viridis')
   levels = np.arange(0, 1.1, 0.1)
 
-  cp = plt.contour(X, Y, densities, levels=levels, colors="black", linewidths=0.5)
-  plt.clabel(cp, fmt="%1.1f", fontsize=20, rightside_up=False, manual=True)
+  cp = plt.contour(X, Y, densities, levels=levels, colors="gainsboro", linewidths=0.2)
+  plt.clabel(cp, fmt="%1.1f", fontsize=10, colors="gainsboro", rightside_up=False, manual=True)
   plt.contourf(X, Y, densities, cmap=cm, levels=levels)
 
-  plt.xlabel("${p_0}$", fontsize=20)
-  plt.ylabel("center_portion", fontsize=20)
-  plt.tick_params(axis='both', which='major', labelsize=18)
-  plt.title(f"Graph density   n: {n}", fontsize=22)
+  plt.xlabel("${p_0}$", fontsize=10)
+  plt.ylabel("sigmoid center portion", fontsize=10)
+  plt.tick_params(axis='both', which='major', labelsize=10)
+  plot_title = ("Graph density\n"
+                f"n: {n}   random-graphs/measure: {graphs_per_measure}")
+  plt.title(plot_title, fontsize=12)
   plt.show()
