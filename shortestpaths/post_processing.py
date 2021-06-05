@@ -56,7 +56,7 @@ def path_label(path, path_number, failing):
 
 def _node_sizes(G):
   if G.number_of_nodes() < 400:
-    node_size = 550
+    node_size = 600
     path_node_size = 1200
     failed_node_size = 1600
   elif G.number_of_nodes() < 2200:
@@ -83,8 +83,8 @@ def _xylimits(pos):
   "Crops the inner margins of the frame."""
   x_values = [x for x, y in pos.values()]
   y_values = [y for x, y in pos.values()]
-  xmin = 1.1 * min(x_values)
-  xmax = 1.1 * max(x_values)
+  xmin = 1.05 * min(x_values)
+  xmax = 1.05 * max(x_values)
   ymin = 1.14 * min(y_values)
   ymax = 1.14 * max(y_values)
   return xmin, xmax, ymin, ymax
@@ -471,6 +471,17 @@ def plot_search_sphere(G,
                        visited_reverse=None,
                        meeting_edge_head=None):
   """Plots the visited nodes of the uni/bi-directional search."""
+  if save_graph:
+    figsize = (10 * 1.8, 10)
+    dpi = 200
+    title_fontsize = 22
+    legend_fontsize = 20
+  else:
+    figsize = (8 * 1.8, 8)
+    dpi = 100
+    title_fontsize = 18
+    legend_fontsize = 16
+
   visited_nodes_forward = visited_nodes(visited, path[0])
   num_visited_forward = len(visited_nodes_forward)
   if visited_reverse is None:
@@ -486,10 +497,10 @@ def plot_search_sphere(G,
     path_forward = path[:meeting_edge_head_idx]
     path_reverse = path[meeting_edge_head_idx:]
 
-  fig = plt.figure(figsize=(10 * 1.8, 10))
+  fig = plt.figure(figsize=figsize, dpi=dpi)
   pos = nx.spring_layout(G,
                          seed=layout_seed,
-                         k=80 / sqrt(G.number_of_nodes()))
+                         k=72 / sqrt(G.number_of_nodes()))
 
   # 1. Draw the graph
   node_size, path_node_size, failed_node_size = _node_sizes(G)
@@ -498,45 +509,43 @@ def plot_search_sphere(G,
 
   # 2. Draw the visited nodes
   nx.draw_networkx_nodes(G, pos=pos, nodelist=visited_nodes_forward,
-                         node_color='goldenrod', node_size=650, linewidths=0,
-                         label="forward search", alpha=0.6)
+                         node_color='goldenrod', node_size=800, linewidths=0,
+                         label="forward search", alpha=0.85)
   if visited_reverse is not None:
     nx.draw_networkx_nodes(G, pos=pos, nodelist=visited_nodes_reverse,
-                           node_color='g', node_size=650, linewidths=0,
-                           label="reverse search", alpha=0.6)
+                           node_color='g', node_size=800, linewidths=0,
+                           label="reverse search", alpha=0.8)
 
   # 3. Draw the path-nodes
   for node, (x, y) in pos.items():
     if node in path:
-      plt.text(x, y, node, fontsize=14, ha='center', va='center')
+      plt.text(x, y, node, fontsize=20, ha='center', va='center')
 
   nx.draw_networkx_nodes(G, pos=pos, nodelist=path_forward, edgecolors='k',
-                         node_size=path_node_size, node_color="goldenrod")
+                         node_size=path_node_size, node_color="deepskyblue")
   if visited_reverse is not None:
     nx.draw_networkx_nodes(G, pos=pos, nodelist=path_reverse, edgecolors='k',
-                           node_size=path_node_size, node_color="g")
+                           node_size=path_node_size, node_color="deepskyblue")
 
   # 4. Draw the path
   if visited_reverse:
-    forward_edge_color = "darkgoldenrod"
     label = f"forward subpath: {path_forward}"
   else:
-    forward_edge_color = 'k'
     label = f"path: {path_forward}"
   path_edges_sequence = list(zip(path_forward[:-1], path_forward[1:]))
   nx.draw_networkx_edges(G, pos=pos, edgelist=path_edges_sequence,
-                         edge_color=forward_edge_color, arrows=False,
-                         width=6, label=label)
+                         edge_color='k', arrows=False,
+                         width=10, label=label)
   if visited_reverse is not None:
     # then, draw the reverse subpath
     path_edges_sequence = list(zip(path_reverse[:-1], path_reverse[1:]))
     nx.draw_networkx_edges(G, pos=pos, edgelist=path_edges_sequence,
-                           edge_color='darkgreen', arrows=False,
-                           width=6, label=f"reverse subpath: {path_reverse}")
+                           edge_color='mediumblue', arrows=False,
+                           width=10, label=f"reverse subpath: {path_reverse}")
     meeting_edge = [(path_forward[-1], path_reverse[0])]
     nx.draw_networkx_edges(G, pos=pos, edgelist=meeting_edge,
-                           edge_color='k', arrows=False,
-                           width=5, label=f"meeting edge: {meeting_edge[0]}")
+                           edge_color='r', arrows=False,
+                           width=10, label=f"meeting edge: {meeting_edge[0]}")
 
   if visited_reverse is None:
     num_visited_total = num_visited_forward
@@ -546,8 +555,9 @@ def plot_search_sphere(G,
                  f"n: {G.number_of_nodes()}"
                  f"   m: {G.number_of_edges()}"
                  f"   nodes visited: {num_visited_total}")
-  plt.title(frame_title)
-  plt.legend()
+  plt.title(frame_title, fontsize=title_fontsize)
+  plt.legend(fontsize=legend_fontsize)
+  plt.tight_layout()
 
   if save_graph:
     date_n_time = str(datetime.now())[:19]
