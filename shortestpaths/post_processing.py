@@ -583,6 +583,9 @@ def graph_density_contour(n,
   for c in range(1, 11):
     for p in range(1, 11):
       for g in range(graphs_per_measure):
+        print((f"Graph: {(c - 1) * 10 + p}/100"
+               f"   Instance: {g}/{graphs_per_measure}"),
+              end='\r')
         G, probs, edge_lengths, edge_lengths_true = graph_generator.random_graph(
             n,
             directed=directed,
