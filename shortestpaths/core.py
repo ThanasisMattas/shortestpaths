@@ -36,6 +36,9 @@ def first_shortest_path(mode, init_config):
   """Generates the 1st shortest path, initializing the replacement-paths or the
   k-shortest paths search.
 
+  When using dynamic programming on offline mode, tapes holding the algorithm's
+  states are recorded.
+
   Args:
     mode (dict)        : the configuration of the problem
     init_config (dict) : kwargs for dijkstra_init()
@@ -185,6 +188,10 @@ def _replacement_path(failed_path_idx: int,
     head = base_path[failed_path_idx + 1]
     failed = (tail, head)
 
+  if mode["bidirectional"]:
+    # These will be populated when dynamic & offline.
+    prospect = top_r = None
+
   if mode["dynamic"]:
     if mode["online"]:
       discovered_forward = set()
@@ -280,7 +287,9 @@ def _replacement_path(failed_path_idx: int,
       path_data = dijkstra.bidirectional_dijkstra(forward_config,
                                                   reverse_config,
                                                   mode,
-                                                  failed)
+                                                  failed,
+                                                  prospect,
+                                                  top_r)
     else:
       path_data = dijkstra.unidirectional_dijkstra(forward_config,
                                                    mode,

@@ -199,7 +199,7 @@ def dijkstra(adj_list,
     tapes_queue
         (mp.queues.Queue)    : If true, the step-wise state of the algorithm
                                will be recorded on a tape.
-    subpath (list)           : the subpath for which states are recorded
+    subpath (list)           : The subpath for which states are recorded.
 
   Returns:
     visited (list)           : Each entry is a 2-list for each node:
@@ -327,6 +327,7 @@ def verify_tapes(tapes, path, failing="nodes"):
 # @time_this
 def record_states(mode, init_config, base_path, meeting_edge_head):
   """Memoizes the states of the algorithm on a tape.
+
   Args:
     mode (dict)             : the configuration of the problem
     init_config (dict)      : kwargs for dijkstra_init()
@@ -357,7 +358,6 @@ def record_states(mode, init_config, base_path, meeting_edge_head):
   forward_config, reverse_config = dijkstra_init(**init_config)
 
   # When failing nodes, states for source and sink will not be recorded.
-  # tapes_queue = Queue()
   meeting_edge_head_idx = base_path.index(meeting_edge_head)
   if mode["failing"] == "nodes":
     forward_subpath = base_path[1: meeting_edge_head_idx]
@@ -804,7 +804,9 @@ def _dijkstra_step(adj_list,
 def bidirectional_dijkstra(forward_config,
                            reverse_config,
                            mode,
-                           failed=None):
+                           failed=None,
+                           prospect=None,
+                           top_reverse=None):
   """Implementation of the bidirectional Dijkstra's algorithm.
 
   Forward and reverse searches run alternately, building and updating a poten-
@@ -829,8 +831,9 @@ def bidirectional_dijkstra(forward_config,
     logger = get_logger()
     logger.setLevel(logging.INFO)
 
-  prospect = [0, 0, 0, 0]
-  top_reverse = 0
+  if prospect is None:
+    prospect = [0, 0, 0, 0]
+    top_reverse = 0
 
   while forward_config["to_visit"] and reverse_config["to_visit"]:
     # Forward step
