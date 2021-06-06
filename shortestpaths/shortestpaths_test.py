@@ -9,58 +9,17 @@
 #
 # (C) 2020 Athanasios Mattas
 # ==========================================================================
-"""Integrated tests
-
-- replacement_paths:
-    tests if all 5 optimization modes output the same results for all
-    4 different scenarios.
-- k_shortest_paths:
-    tests if Yen's algorithm outputs the same results with and without Lawler's
-    modification.
-
-The results are not tested against an expected output, because for the time be-
-ing the graph generation model is frequently being modified.
-"""
-
-"""
-python -m shortestpaths -v -k 5 -y 150
-python -m shortestpaths -v -k 5 -l 150
-
-python -m shortestpaths -v 150 replacement-paths
-python -m shortestpaths -v -p 150 replacement-paths
-python -m shortestpaths -v -b 150 replacement-paths
-python -m shortestpaths -v -b -p 150 replacement-paths
-python -m shortestpaths -v -d 150 replacement-paths
-python -m shortestpaths -v -d -p 150 replacement-paths
-
-python -m shortestpaths -v 150 replacement-paths --online
-python -m shortestpaths -v -p 150 replacement-paths --online
-python -m shortestpaths -v -b 150 replacement-paths --online
-python -m shortestpaths -v -b -p 150 replacement-paths --online
-python -m shortestpaths -v -d 150 replacement-paths --online
-python -m shortestpaths -v -d -p 150 replacement-paths --online
-
-python -m shortestpaths -v 150 replacement-paths -f "edges"
-python -m shortestpaths -v -p 150 replacement-paths -f "edges"
-python -m shortestpaths -v -b 150 replacement-paths -f "edges"
-python -m shortestpaths -v -b -p 150 replacement-paths -f "edges"
-python -m shortestpaths -v -d 150 replacement-paths -f "edges"
-python -m shortestpaths -v -d -p 150 replacement-paths -f "edges"
-
-python -m shortestpaths -v 150 replacement-paths -f "edges" --online
-python -m shortestpaths -v -p 150 replacement-paths -f "edges" --online
-python -m shortestpaths -v -b 150 replacement-paths -f "edges" --online
-python -m shortestpaths -v -b -p 150 replacement-paths -f "edges" --online
-python -m shortestpaths -v -d 150 replacement-paths -f "edges" --online
-python -m shortestpaths -v -d -p 150 replacement-paths -f "edges" --online
-"""
-
+import ast
+import csv
 import os
-import subprocess
 from pathlib import Path
+import subprocess
 import sys
 
 import pytest
+
+from shortestpaths import io
+
 
 cwd = Path(os.getcwd())
 home_dir = str(cwd.parent)
@@ -75,8 +34,12 @@ ONLINE = ["--online", ""]
 DIRECTED = ["--directed", ""]
 K = [10]
 
-class TestShortestPaths():
 
+class TestShortestPaths():
+  """Integration tests
+
+  Tests if all search modes return the same results against a reference search.
+  """
   def path_costs(self, completed_process):
     paths_str = completed_process.stdout.decode('utf-8').split("path 1", 1)[1]
     paths_list = paths_str.split("path")[1: -1]
@@ -122,3 +85,28 @@ class TestShortestPaths():
     reference_out = self.path_costs(reference)
     solver_out = self.path_costs(solver)
     assert reference_out == solver_out
+
+
+class TestIO():
+  """io.py tests"""
+  def setup(self):
+    self.adj_list = [set(), {(4, 5), (1, 2)}, {(34, 1), (3, 6)}]
+    self.csvfile = ".test_io_dataset.csv"
+    self.new_graph_token = "<new-graph>"
+
+  def teardown(self):
+    self.adj_list.clear()
+    if os.path.isfile(self.csvfile):
+      os.remove(self.csvfile)
+
+  def test_append_graph_to_csv(self):
+    io.append_graph_to_csv(self.csvfile, self.adj_list)
+    with open(self.csvfile, newline='') as f:
+      data_reader = csv.reader(f, delimiter=',')
+      for i, entry in enumerate(data_reader):
+        if i == 0:
+          assert entry[0] == self.new_graph_token
+        elif i == 1:
+          assert entry[0] == "set()"
+        else:
+          assert ast.literal_eval(", ".join(entry)) == self.adj_list[i - 1]
