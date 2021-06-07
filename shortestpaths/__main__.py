@@ -34,8 +34,7 @@ from shortestpaths import (core,  # noqa F401
 @click.group(invoke_without_command=True)
 @click.pass_context
 @click.argument("n", type=click.INT)
-@click.option("--unweighted", "weighted", is_flag=True,
-              default=True, show_default="weighted")
+@click.option("--weighted/--no-weighted", default=True, show_default=True)
 @click.option("--directed", is_flag=True)
 @click.option("--weights-on", default="edges-and-nodes", show_default=True,
               type=click.Choice(["edges", "nodes", "edges-and-nodes"],
