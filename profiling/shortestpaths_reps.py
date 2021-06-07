@@ -59,11 +59,11 @@ def measure(n,
     "sink": n
   }
 
-  for k, v in modes.items():
+  for solver, m in modes.items():
     mode = {
-      "bidirectional": v[0],
-      "parallel": v[1],
-      "dynamic": v[2],
+      "bidirectional": m[0],
+      "parallel": m[1],
+      "dynamic": m[2],
       "failing": failing,
       "online": online,
       "verbose": 0
@@ -71,7 +71,7 @@ def measure(n,
     start = timer()
     paths = core.replacement_paths(mode, init_config)
     end = timer()
-    times[k].append(end - start)
+    times[solver].append(end - start)
 
   return times
 
@@ -98,7 +98,7 @@ def measure(n,
 @click.option('-f', "--failing", default="nodes", show_default=True)
 @click.option("--online", is_flag=True)
 @click.option('-k', type=click.INT, default=1, show_default=True,
-              help="number of alternative paths to be generated")
+              help="number of shortest paths to be generated")
 def main(n,
          increase_step,
          graph_increases,
@@ -121,16 +121,17 @@ def main(n,
     # 'dynamic, bidirectional & parallel': [True, True, True]
   }
 
-  times = {k: [] for k, v in modes.items()}
+  times = {solver: [] for solver in modes.keys()}
 
-  times_mean = {k: [0. for _ in range(graph_increases)]
-                for k, v in modes.items()}
+  times_mean = {solver: [0] * graph_increases for solver in modes.keys()}
   n_values = [n + i * increase_step for i in range(graph_increases)]
 
   for j in range(graph_increases):
-    print(f"graph {j + 1}/{graph_increases}  nodes: {n}")
     for i in range(graphs_per_step):
-      print(f"  {i + 1}/{graphs_per_step}")
+      print((f"Graph: {j + 1}/{graph_increases}"
+             f"   Instance: {i + 1}/{graphs_per_step}"
+             f"   nodes: {n}"),
+            end='\r')
 
       times = measure(n,
                       i,
@@ -145,18 +146,20 @@ def main(n,
                       max_node_weight)
       gc.collect()
 
-    for k, v in modes.items():
-      times_mean[k][j] = sum(times[k]) / graphs_per_step
-      del times[k][:]
+    for solver in modes.keys():
+      times_mean[solver][j] = sum(times[solver]) / graphs_per_step
+      del times[solver][:]
 
     n += increase_step
 
+  print()
+
   colors = iter(['b', 'm', 'g', 'k', 'c', 'y'])
   fig, ax = plt.subplots(figsize=(10.03, 6.2), dpi=200)
-  for k, v in modes.items():
+  for solver in modes.keys():
     color = next(colors)
-    ax.plot(n_values, times_mean[k], color=color, label=k)
-  ax.set_xlabel("graph size (nodes)")
+    ax.plot(n_values, times_mean[solver], color=color, label=solver)
+  ax.set_xlabel("n (nodes)")
   ax.set_ylabel("wall clock time (s)")
   ax.grid('major')
   ax.grid('minor', axis='y')
