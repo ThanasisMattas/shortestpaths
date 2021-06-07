@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 """
 usage:
 $ python shortestpaths_reps.py [OPTIONS] n
@@ -32,26 +33,18 @@ def measure(n,
             times,
             failing,
             online,
-            weighted,
-            directed,
-            weights_on,
-            max_edge_weight,
-            max_node_weight):
+            **kwargs):
   """Replacement-paths search timer on the <i>th graph and for all the <modes>.
 
   It is important that upon function exit, the graphs are garbage collected.
   """
-  adj_list, G = graph_generator.random_graph(
+  adj_list, _ = graph_generator.random_graph(
     n=n,
-    weighted=weighted,
-    directed=directed,
-    weights_on=weights_on,
-    max_edge_weight=max_edge_weight,
-    max_node_weight=max_node_weight,
     random_seed=i,
     gradient=0.3,
     center_portion=0.15,
-    p_0=0.5
+    p_0=0.5,
+    **kwargs
   )
 
   init_config = {
@@ -90,14 +83,6 @@ def measure(n,
 @click.option('-g', "graphs_per_step", default=5, show_default=True,
               help=("number of different but equal sized graphs to run at each"
                     "step (the time measure will be the average)"))
-@click.option("--unweighted", "weighted", is_flag=True,
-              default=True, show_default="weighted")
-@click.option("--directed", is_flag=True)
-@click.option("--weights-on", default="edges-and-nodes", show_default=True,
-              type=click.Choice(["edges", "nodes", "edges-and-nodes"],
-                                case_sensitive=False))
-@click.option("--max-edge-weight", default=1000, show_default=True)
-@click.option("--max-node-weight", default=50, show_default=True)
 @click.option('-f', "--failing", default="nodes", show_default=True)
 @click.option("--online", is_flag=True)
 @click.option('-p', "--problem",
@@ -106,19 +91,22 @@ def measure(n,
                                 case_sensitive=False))
 @click.option('-k', type=click.INT, default=10, show_default=True,
               help="number of shortest paths to be generated")
+@click.option("--weighted/--no-weighted", default=True, show_default=True)
+@click.option("--directed", is_flag=True)
+@click.option("--weights-on", default="edges-and-nodes", show_default=True,
+              type=click.Choice(["edges", "nodes", "edges-and-nodes"],
+                                case_sensitive=False))
+@click.option("--max-edge-weight", default=1000, show_default=True)
+@click.option("--max-node-weight", default=50, show_default=True)
 def main(n,
          increase_step,
          graph_increases,
          graphs_per_step,
-         weighted,
-         directed,
-         weights_on,
-         max_edge_weight,
-         max_node_weight,
          failing,
          online,
          problem,
-         k):
+         k,
+         **kwargs):
 
   if problem == "k-shortest-paths":
     online = True
@@ -153,11 +141,7 @@ def main(n,
                       times,
                       failing,
                       online,
-                      weighted,
-                      directed,
-                      weights_on,
-                      max_edge_weight,
-                      max_node_weight)
+                      **kwargs)
       gc.collect()
 
     for solver in modes.keys():
