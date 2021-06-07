@@ -39,7 +39,6 @@ def measure(n,
 
   It is important that upon function exit, the graphs are garbage collected.
   """
-
   adj_list, G = graph_generator.random_graph(
     n=n,
     weighted=weighted,
@@ -47,7 +46,10 @@ def measure(n,
     weights_on=weights_on,
     max_edge_weight=max_edge_weight,
     max_node_weight=max_node_weight,
-    random_seed=i
+    random_seed=i,
+    gradient=0.3,
+    center_portion=0.1,
+    p_0=0.5
   )
 
   init_config = {
