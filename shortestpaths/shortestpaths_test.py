@@ -27,12 +27,12 @@ sys.path.insert(0, home_dir)
 os.environ["BIDIRECTIONAL_SYNC"] = '1'
 
 
-SOLVER = ["-p", "-b", "-b -p", "-d"]
-GRAPH_SIZES = [100, 150]
+SOLVER = ["-b", "-d"]
+GRAPH_SIZES = [100, 300]
 FAILING = ["nodes", "edges"]
 ONLINE = ["--online", ""]
 DIRECTED = ["--directed", ""]
-K = [10]
+K = [20]
 
 
 class TestShortestPaths():
@@ -57,7 +57,7 @@ class TestShortestPaths():
   )
   def test_k_shortest_paths(self, s, k, n, d):
     reference_cmd = f"python -m shortestpaths -v -s 4 -l {d} -k {k} {n}"
-    solver_cmd = f"python -m shortestpaths -v -s 4 {s} -k {k} {n}"
+    solver_cmd = f"python -m shortestpaths -v -s 4 {s} {d} -k {k} {n}"
     reference = subprocess.run(reference_cmd.split(),
                                stdout=subprocess.PIPE)
     solver = subprocess.run(solver_cmd.split(),
