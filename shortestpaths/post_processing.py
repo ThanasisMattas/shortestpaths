@@ -583,26 +583,25 @@ def graph_density_contour(n,
   for c in range(1, 11):
     for p in range(1, 11):
       for g in range(graphs_per_measure):
-        print((f"Graph: {(c - 1) * 10 + p}/100"
-               f"   Instance: {g}/{graphs_per_measure}"),
+        print((f"Graph batch: {(c - 1) * 10 + p}/100"
+               f"   Instance: {g + 1}/{graphs_per_measure}"),
               end='\r')
-        G, probs, edge_lengths, edge_lengths_true = graph_generator.random_graph(
-            n,
-            directed=directed,
-            weights_on=weights_on,
-            random_seed=1,
-            center_portion=c / 10,
-            gradient=1,
-            p_0=p / 10,
-            get_probability_distribution=True
-        )
+        G, probs, edge_lengths, edge_lengths_true = \
+            graph_generator.random_graph(n,
+                                         directed=directed,
+                                         weights_on=weights_on,
+                                         random_seed=1,
+                                         center_portion=c / 10,
+                                         gradient=1,
+                                         p_0=p / 10,
+                                         get_probability_distribution=True)
         densities_per_graph_type.append(
             graph_generator.graph_density(n, len(edge_lengths_true), directed)
         )
       densities[c - 1][p - 1] = mean(densities_per_graph_type)
       densities_per_graph_type.clear()
 
-  fig = plt.figure(figsize=(10, 10), dpi=200)
+  plt.figure(figsize=(10, 10), dpi=200)
   x = y = np.arange(0.1, 1.1, 0.1)
   X, Y = np.meshgrid(x, y)
   cm = plt.cm.get_cmap('viridis')
