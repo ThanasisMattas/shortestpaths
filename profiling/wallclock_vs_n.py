@@ -96,10 +96,8 @@ def measure(n,
 @click.option("--weights-on", default="edges-and-nodes", show_default=True,
               type=click.Choice(["edges", "nodes", "edges-and-nodes"],
                                 case_sensitive=False))
-@click.option("--max-edge-weight", default=1000, show_default=True,
-              help="the max edge weight of the graph (defaults to 1000)")
-@click.option("--max-node-weight", default=50, show_default=True,
-              help="the max nodal weight of the graph (defaults to 1000)")
+@click.option("--max-edge-weight", default=1000, show_default=True)
+@click.option("--max-node-weight", default=50, show_default=True)
 @click.option('-f', "--failing", default="nodes", show_default=True)
 @click.option("--online", is_flag=True)
 @click.option('-p', "--problem",
@@ -181,7 +179,7 @@ def main(n,
   ax.grid('minor', axis='y')
   fig.suptitle(f"{problem} profiling")
   fig.legend()
-  plt.savefig("replacement_paths_profiling.png")
+  plt.savefig(f"{problem}_profiling.png")
   plt.show()
 
 if __name__ == "__main__":
