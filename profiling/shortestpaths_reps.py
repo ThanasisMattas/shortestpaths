@@ -27,6 +27,8 @@ from shortestpaths import core, graph_generator
 def measure(n,
             i,
             modes,
+            problem,
+            k,
             times,
             failing,
             online,
@@ -48,7 +50,7 @@ def measure(n,
     max_node_weight=max_node_weight,
     random_seed=i,
     gradient=0.3,
-    center_portion=0.1,
+    center_portion=0.15,
     p_0=0.5
   )
 
@@ -69,7 +71,10 @@ def measure(n,
       "verbose": 0
     }
     start = timer()
-    paths = core.replacement_paths(mode, init_config)
+    if problem == "k-shortest-paths":
+      paths = core.k_shortest_paths(k, mode, init_config)
+    else:
+      paths = core.replacement_paths(mode, init_config)
     end = timer()
     times[solver].append(end - start)
 
@@ -97,7 +102,11 @@ def measure(n,
               help="the max nodal weight of the graph (defaults to 1000)")
 @click.option('-f', "--failing", default="nodes", show_default=True)
 @click.option("--online", is_flag=True)
-@click.option('-k', type=click.INT, default=1, show_default=True,
+@click.option('-p', "--problem",
+              default="k-shortest-paths", show_default=True,
+              type=click.Choice(["replacement-paths", "k-shortest-paths"],
+                                case_sensitive=False))
+@click.option('-k', type=click.INT, default=10, show_default=True,
               help="number of shortest paths to be generated")
 def main(n,
          increase_step,
@@ -110,7 +119,12 @@ def main(n,
          max_node_weight,
          failing,
          online,
+         problem,
          k):
+
+  if problem == "k-shortest-paths":
+    online = True
+    failing = "edges"
 
   modes = {
     # 'reference': [False, False, False],
@@ -136,6 +150,8 @@ def main(n,
       times = measure(n,
                       i,
                       modes,
+                      problem,
+                      k,
                       times,
                       failing,
                       online,
@@ -163,7 +179,7 @@ def main(n,
   ax.set_ylabel("wall clock time (s)")
   ax.grid('major')
   ax.grid('minor', axis='y')
-  fig.suptitle("replacement-paths profiling")
+  fig.suptitle(f"{problem} profiling")
   fig.legend()
   plt.savefig("replacement_paths_profiling.png")
   plt.show()
