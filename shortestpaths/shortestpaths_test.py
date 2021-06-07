@@ -27,11 +27,12 @@ sys.path.insert(0, home_dir)
 os.environ["BIDIRECTIONAL_SYNC"] = '1'
 
 
-SOLVER = ["-b", "-d"]
-GRAPH_SIZES = [100, 300]
+SOLVER = ["-p", "-b", "-p -b", "-d"]
+GRAPH_SIZE = [100, 300]
 FAILING = ["nodes", "edges"]
 ONLINE = ["--online", ""]
 DIRECTED = ["--directed", ""]
+SEED = [0, 1]
 K = [20]
 
 
@@ -39,6 +40,8 @@ class TestShortestPaths():
   """Integration tests
 
   Tests if all search modes return the same results against a reference search.
+  #TODO: 1. Build the graph on setup or make graphs dataset.
+         2. Make reference-search dataset.
   """
   def path_costs(self, completed_process):
     paths_str = completed_process.stdout.decode('utf-8').split("path 1", 1)[1]
@@ -48,16 +51,17 @@ class TestShortestPaths():
     return paths_list
 
   @pytest.mark.parametrize(
-    "s, k, n, d",
-    [[s, k, n, d]
-     for s in SOLVER + ["-y", "-l"]
+    "r, k, n, d, s",
+    [[r, k, n, d, s]
+     for r in SOLVER + ["-y", "-l"]
      for k in K
-     for n in GRAPH_SIZES
-     for d in DIRECTED]
+     for n in GRAPH_SIZE
+     for d in DIRECTED
+     for s in SEED]
   )
-  def test_k_shortest_paths(self, s, k, n, d):
-    reference_cmd = f"python -m shortestpaths -v -s 4 -l {d} -k {k} {n}"
-    solver_cmd = f"python -m shortestpaths -v -s 4 {s} {d} -k {k} {n}"
+  def test_k_shortest_paths(self, r, k, n, d, s):
+    reference_cmd = f"python -m shortestpaths -v -s {s} -l {d} -k {k} {n}"
+    solver_cmd = f"python -m shortestpaths -v -s {s} {r} {d} -k {k} {n}"
     reference = subprocess.run(reference_cmd.split(),
                                stdout=subprocess.PIPE)
     solver = subprocess.run(solver_cmd.split(),
@@ -67,18 +71,19 @@ class TestShortestPaths():
     assert reference_out == solver_out
 
   @pytest.mark.parametrize(
-    "s, n, f, o, d",
-    [[s, n, f, o, d]
-     for s in SOLVER
-     for n in GRAPH_SIZES
+    "r, n, f, o, d, s",
+    [[r, n, f, o, d, s]
+     for r in SOLVER
+     for n in GRAPH_SIZE
      for f in FAILING
      for o in ONLINE
-     for d in DIRECTED]
+     for d in DIRECTED
+     for s in SEED]
   )
-  def test_replacement_paths(self, s, n, f, o, d):
-    reference_cmd = (f"python -m shortestpaths -v -s 4 {d} {n}"
+  def test_replacement_paths(self, r, n, f, o, d, s):
+    reference_cmd = (f"python -m shortestpaths -v -s {s} {d} {n}"
                      f" replacement-paths --failing {f} {o}")
-    solver_cmd = (f"python -m shortestpaths -v -s 4 {d} {s} {n}"
+    solver_cmd = (f"python -m shortestpaths -v -s {s} {d} {r} {n}"
                   f" replacement-paths --failing {f} {o}")
     reference = subprocess.run(reference_cmd.split(), stdout=subprocess.PIPE)
     solver = subprocess.run(solver_cmd.split(), stdout=subprocess.PIPE)
