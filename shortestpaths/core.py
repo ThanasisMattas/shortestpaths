@@ -599,7 +599,7 @@ def k_shortest_paths(K, mode, init_config):
   heapq.heapify(prospects)
 
   for k in range(1, K):
-    if mode["yen_"] or mode["lawler"]:
+    if mode.get("yen_") or mode.get("lawler"):
       prospects = yen.update_prospects(k,
                                        K,
                                        k_paths,
