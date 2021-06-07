@@ -273,10 +273,7 @@ def _replacement_path(failed_path_idx: int,
                               reverse_config.get("to_visit"))
     # The spur node becomes the source.
     source = base_path[spur_node_idx]
-    # Although the prev node doesn't have to be accurate, it shouldn't be the
-    # source, because when checking for bidirectional Dijkstra's algorithm
-    # termination condition, it would not account as visited.
-    # Initialize the path cost with the root_cost.
+    # NOTE: prev_node of source is -1
     forward_config["to_visit"][source] = \
         [cum_hop_weights[spur_node_idx], -1, source]
     if mode["bidirectional"]:

@@ -109,7 +109,7 @@ def to_visit_init(n, source):
   Initialized with       : [inf, node, node]
   """
   to_visit = PriorityQueue([[math.inf, i, i] for i in range(1, n + 1)])
-  to_visit[source] = [0, source, source]
+  to_visit[source] = [0, -1, source]
   return to_visit
 
 
