@@ -319,7 +319,10 @@ def _replacement_path(failed_path_idx: int,
               reverse_config["adj_list"][head].remove(ne)
               path_data = dijkstra.bidirectional_dijkstra(forward_config,
                                                           reverse_config,
-                                                          mode)
+                                                          mode,
+                                                          None,
+                                                          prospect,
+                                                          top_r)
               # Reconnect the failed edge.
               reverse_config["adj_list"][head].add(ne)
               break
