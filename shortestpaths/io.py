@@ -12,6 +12,7 @@
 import ast
 import csv
 import os
+import pickle
 
 import numpy as np
 
@@ -24,10 +25,10 @@ def append_graph_to_csv(csvfile, adj, new_graph_token="<new-graph>"):
     np.savetxt(af, adj, fmt='%s')
 
 
-def read_graphs(csvfile,
-                num_graphs=None,
-                graph_offset=0,
-                new_graph_token="<new-graph>"):
+def read_graphs_from_csv(csvfile,
+                         num_graphs=None,
+                         graph_offset=0,
+                         new_graph_token="<new-graph>"):
   """Creates a graph generator, reading graphs from a csv.
 
   Args:
@@ -66,3 +67,16 @@ def read_graphs(csvfile,
 
     if (adj) and (graph_counter >= graph_offset):
       yield adj
+
+
+def load_graphs(filename):
+  """Creates a graph generator, reading graphs from a csv.
+
+  NOTE: The number of pickled graphs cannot be infered before loading them all.
+  """
+  with open(filename, "rb") as f:
+    while True:
+      try:
+        yield pickle.load(f)
+      except EOFError:
+        return
