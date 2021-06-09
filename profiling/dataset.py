@@ -34,7 +34,8 @@ def dump_graph(fileobj, n, p, g, **kwargs):
               help="Initial graph order")
 @click.option('-s', "--step", default=250, show_default=True,
               help="graph order increase step")
-@click.option('-i', "--increases", default=31, show_default=True)
+@click.option("--p-step", default=2, show_default=True)
+@click.option('-i', "--increases", default=30, show_default=True)
 @click.option('-g', "--graphs-per-step", default=10, show_default=True)
 @click.option('-c', "center_portion", default=0.15, show_default=True)
 @click.option("--gradient", default=0.3, show_default=True)
@@ -44,36 +45,41 @@ def dump_graph(fileobj, n, p, g, **kwargs):
                                 case_sensitive=False))
 @click.option("--max-edge-weight", default=1000, show_default=True)
 @click.option("--max-node-weight", default=50, show_default=True)
-def dataset(filename,
-            clear,
-            n_init,
-            step,
-            increases,
-            graphs_per_step,
-            **kwargs):
+def main(filename,
+         clear,
+         n_init,
+         step,
+         p_step,
+         increases,
+         graphs_per_step,
+         **kwargs):
 
   directed = "directed" if kwargs["directed"] else "undirected"
-  p_range = range(1, 11)
-  num_graphs = increases * graphs_per_step * len(p_range)
+  n_range = range(n_init, n_init + step * (increases + 1), step)
+  p_range = range(1, 11, p_step)
+
   if filename is None:
-    filename = f"dataset_{num_graphs}_npg_{directed}.dat"
+    filename = (f"dataset_{len(n_range)}x{len(p_range)}"
+                f"x{graphs_per_step}_npg_{directed}.dat")
 
   if clear:
     if os.path.isfile(filename):
       os.remove(filename)
 
   with open(filename, "wb") as f:
-    for i, n in enumerate(range(n_init, n_init + step * increases, step)):
-      for p in p_range:
+    for i, n in enumerate(n_range):
+      for j, p in enumerate(p_range):
         for g in range(1, graphs_per_step + 1):
-          print((f"Graph: {i * len(p_range) + p:>3}"
-                 f"/{num_graphs // graphs_per_step}"
-                 f"   nodes: {n:>4}   p\u2080: {p / 10:.1f}"
-                 f"   Instance: {g:>2}/{graphs_per_step}"),
-                end='\r')
+          print(
+            (f"Graph: {i * len(p_range) + j + 1:>3}"
+             f"/{len(p_range) * (increases + 1)}"
+             f"   nodes: {n:>4}   p\u2080: {p / 10:.1f}"
+             f"   Instance: {g:>2}/{graphs_per_step}"),
+            end='\r'
+          )
           dump_graph(f, n, p, g, **kwargs)
   print()
 
 
 if __name__ == '__main__':
-  dataset()
+  main()

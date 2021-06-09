@@ -129,7 +129,7 @@ def plot_paths(paths_data,
       G,
       seed=layout_seed,
       # pos=path_nodes_pos,
-      k=10 / sqrt(G.number_of_nodes()),
+      k=15 / sqrt(G.number_of_nodes()),
       # fixed=path_nodes_pos.keys()
   )
 
