@@ -1,14 +1,21 @@
 #!/usr/bin/env python3
+from packaging import version
+
 import click
 import numpy as np
+import matplotlib
 import matplotlib.pyplot as plt
 
 
 def set_edge_face_color(c):
+  """Handles the <'Poly3DCollection' object has no attribute '_facecolors2d'>
+  matplolib bug.
 
-  import matplotlib
-  from packaging import version
+  The bug arises when passing the <label> argument to plot_surface(), in order
+  to be displayed at the legend.
 
+  Issue: https://github.com/matplotlib/matplotlib/issues/4067
+  """
   if version.parse(matplotlib.__version__) >= version.parse("3.3.3"):
     return c._facecolor3d, c._edgecolor3d
   else:
