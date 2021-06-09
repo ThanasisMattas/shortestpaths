@@ -117,7 +117,7 @@ def update_prospects(k,
   # by Lawler's modification.
   spur_counter = 0
   last_path = k_paths[-1][0]
-  if not mode["lawler"]:
+  if not mode.get("lawler"):
     parent_spur_node_idx = 0
 
   # Construct the deviation paths of the last found shortest path.
