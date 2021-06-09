@@ -92,6 +92,7 @@ def measure(n,
         mode.update({"yen_": False, "lawler": True})
       elif m[0]:
         init_config["adj_list_reverse"] = adj_list_reverse
+        mode.update({"yen_": False, "lawler": False})
       timings[i][j] = time_a_run(mode,
                                  init_config,
                                  probl,
