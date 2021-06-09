@@ -34,7 +34,13 @@ def set_edge_face_color(c):
               help=("Defined by the graph model parameters, except from p_0.\n"
                     " max_p * p_0 = expected-graph-density\n"
                     " (See shortestpaths.graph_generator)"))
-def main(filename, problem, max_probability):
+@click.option("--show-plot/--no-show-plot", default=True, show_default=True)
+@click.option("--save-plot/--no-save-plot", default=False, show_default=True)
+def main(filename,
+         problem,
+         max_probability,
+         show_plot,
+         save_plot):
   results = np.loadtxt(filename)
 
   if problem == "k-shortest-paths":
@@ -53,13 +59,14 @@ def main(filename, problem, max_probability):
   for i in range(len(solvers)):
     Z.append(results[p * i + 1: (i + 1) * p + 1, 1:])
 
-  fig = plt.figure()
+  fig = plt.figure(figsize=(10, 10), dpi=200)
   sub = fig.add_subplot(111, projection="3d")
-  sub.set_xlabel("n (nodes")
+  sub.set_xlabel("n (nodes)")
   sub.set_ylabel("d")
   sub.set_zlabel("time (s)")
   sub.grid(False)
-  fig.suptitle(f"{problem} profiling")
+  title = (f"{problem} profiling")
+  fig.suptitle(title)
 
   for i in range(len(solvers)):
     c = sub.plot_surface(X, Y, Z[i],
@@ -69,7 +76,10 @@ def main(filename, problem, max_probability):
     c._facecolors2d, c._edgecolors2d = set_edge_face_color(c)
   plt.legend()
   plt.tight_layout()
-  plt.show()
+  if show_plot:
+    plt.show()
+  if save_plot:
+    plt.savefig(f"{problem}_profiling.png", dpi=fig.dpi)
 
 
 if __name__ == '__main__':
