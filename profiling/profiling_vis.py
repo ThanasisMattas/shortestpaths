@@ -30,7 +30,11 @@ def set_edge_face_color(c):
                                  "replacement-paths-offline",
                                  "k-shortest-paths"],
                                 case_sensitive=False))
-def main(filename, problem):
+@click.option("--max-probability", default=0.275, show_default=True,
+              help=("Defined by the graph model parameters, except from p_0.\n"
+                    " max_p * p_0 = expected-graph-density\n"
+                    " (See shortestpaths.graph_generator)"))
+def main(filename, problem, max_probability):
   results = np.loadtxt(filename)
 
   if problem == "k-shortest-paths":
@@ -43,7 +47,7 @@ def main(filename, problem):
   p = (len(results) - 1) // len(solvers)
 
   x = results[0, 1:].astype(int)
-  y = results[1: p + 1, 0] / 10
+  y = results[1: p + 1, 0] * max_probability
   X, Y = np.meshgrid(x, y)
   Z = []
   for i in range(len(solvers)):
@@ -52,7 +56,7 @@ def main(filename, problem):
   fig = plt.figure()
   sub = fig.add_subplot(111, projection="3d")
   sub.set_xlabel("n (nodes")
-  sub.set_ylabel("${p_0}$")
+  sub.set_ylabel("d")
   sub.set_zlabel("time (s)")
   sub.grid(False)
   fig.suptitle(f"{problem} profiling")
