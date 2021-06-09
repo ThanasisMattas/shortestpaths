@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import os
 from pathlib import Path
+import pickle
 import sys
 from timeit import default_timer as timer
 
@@ -34,6 +35,7 @@ def measure(n,
             k=None,
             failing=None,
             measurements_per_graph=3,
+            ds_fileobj=None,
             dataset=None,
             **kwargs):
   """A measurement corresponds to a single unique graph and incorporates
@@ -50,6 +52,8 @@ def measure(n,
                                                random_seed=g,
                                                p_0=p / 10,
                                                **kwargs)
+    if ds_fileobj:
+      pickle.dump(adj_list, ds_fileobj)
   else:
     adj_list = next(dataset)
 
@@ -104,10 +108,11 @@ def measure(n,
 @click.command()
 @click.option("--dataset-file", type=click.STRING,
               default=None, show_default=True)
-@click.option('-n', "--n-init", default=400, show_default=True)
-@click.option('-s', "--step", default=400, show_default=True,
+@click.option('-n', "--n-init", default=500, show_default=True)
+@click.option('-s', "--step", default=500, show_default=True,
               help="order increase step")
-@click.option('-i', "--increases", default=20, show_default=True)
+@click.option("--p-step", default=1, show_default=True)
+@click.option('-i', "--increases", default=15, show_default=True)
 @click.option('-g', "--graphs-per-step", default=10, show_default=True)
 @click.option('-m', "--measurements-per-graph", default=3, show_default=True)
 @click.option('-f', "--failing", default="edges", show_default=True,
@@ -131,6 +136,7 @@ def measure(n,
 def main(dataset_file,
          n_init,
          step,
+         p_step,
          increases,
          graphs_per_step,
          measurements_per_graph,
@@ -139,11 +145,20 @@ def main(dataset_file,
          k,
          **kwargs):
 
+  n_range = range(n_init, n_init + step * (increases + 1), step)
+  p_range = range(1, 11, p_step)
+  directed = "directed" if kwargs["directed"] else "undirected"
+  ds_fileobj = None
+
   if dataset_file:
     dataset = io.load_graphs(dataset_file)
-
-  n_range = range(n_init, n_init + step * increases, step)
-  p_range = range(1, 11)
+  else:
+    dataset = None
+    save_dataset = input("Do you want to dump the dataset into a pickle?[y/N]")
+    if save_dataset == 'y':
+      dataset_file = (f"dataset_{len(n_range)}x{len(p_range)}"
+                      f"x{graphs_per_step}_npg_{directed}.dat")
+      ds_fileobj = open(dataset_file, "wb")
 
   if problem == "all":
     problems = ["replacement-paths-online",
@@ -158,14 +173,17 @@ def main(dataset_file,
       s = 4
     else:
       s = 3
-    results[probl] = np.zeros((s, len(p_range), increases, graphs_per_step),
-                              dtype=np.float32)
+    results[probl] = np.zeros(
+      (s, len(p_range), increases + 1, graphs_per_step),
+      dtype=np.float32
+    )
 
   for i, n in enumerate(n_range):
     for j, p in enumerate(p_range):
       for g in range(1, graphs_per_step + 1):
         print(
-          (f"Graph: {i * len(p_range) + j:>3}/{len(p_range) * increases}"
+          (f"Graph: {i * len(p_range) + j + 1:>3}"
+           f"/{len(p_range) * (increases + 1)}"
            f"   n: {n:>4}   p\u2080: {p / 10:.1f}"
            f"   Instance: {g:>2}/{graphs_per_step}"),
           end='\r'
@@ -178,37 +196,38 @@ def main(dataset_file,
                               k,
                               failing,
                               measurements_per_graph,
+                              ds_fileobj,
                               dataset=dataset,
                               **kwargs)
         for r, result in enumerate(results.values()):
           result[:, j, i, g - 1] = measurement[r]
   print()
+  ds_fileobj.close()
 
   for probl in problems:
     if probl == "k-shortest-paths":
       solvers = ['yen_', 'lawler', 'bidirectional', 'dynamic']
       out_file = (f"{probl}_time_profiling_k_{k}_"
-                  f"{n_init}_{n_init + (increases - 1) * step}_{step}.csv")
+                  f"{n_init}_{n_init + (increases) * step}_{step}.csv")
     else:
       solvers = ['unidirectional', 'bidirectional', 'dynamic']
       out_file = (f"{probl}_time_profiling_"
-                  f"{n_init}_{n_init + (increases - 1) * step}_{step}.csv")
+                  f"{n_init}_{n_init + (increases) * step}_{step}.csv")
     # Take the mean of <graphs_per_measure> and concatenate the solvers because
     # savetxt cannot save a 3D array.
     results[probl] = np.mean(results[probl], axis=-1).reshape(
-      len(solvers) * len(p_range), increases
+      len(solvers) * len(p_range), increases + 1
     )
     res = np.zeros((results[probl].shape[0] + 1, results[probl].shape[1] + 1))
     res[1:, 1:] = results[probl]
-    res[1:, 0] = len(solvers) * list(p_range)
+    res[1:, 0] = len(solvers) * [p / 10 for p in p_range]
     res[0, 1:] = n_range
 
-    directed = "directed" if kwargs["directed"] else "undirected"
     np.savetxt(
       out_file,
-      res,
+      np.round(res, decimals=6),
       header=(
-        f"{(probl + ' profiling').center(50, '-')}\n"
+        f"{(probl + ' profiling').center(50, ' ')}\n"
         f"{'-' * 50}\n"
         f"failing : {failing}\n"
         f"Graph   : {directed}   c = {kwargs['center_portion']}"
@@ -216,8 +235,10 @@ def main(dataset_file,
         f"Solvers : {', '.join(solvers)}\n\n"
         # f"y {' '.join([str(p_value) for p_value in p_range])}\n"
         # f"x {' '.join([str(n_value) for n_value in n_range])}"
-      )
+      ),
+      fmt=' '.join(['%.1f'] + ['%.3f'] * (increases + 1))
     )
+
 
 if __name__ == "__main__":
   main()
