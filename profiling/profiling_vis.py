@@ -136,11 +136,105 @@ def solvers_matshows(x, y, Z_norm, Z_real,
   """Plots a matshow for each solver in a different axes."""
   title_fontsize, legend_fontsize, tick_fontsize = fontsizes(save_plot)
   fig, axlist = plt.subplots(len(solvers), 1,
-                             **figsize_dpi(save_plot, len(solvers)))
+                             **figsize_dpi(save_plot, len(solvers)),
+                             constrained_layout=True)
 
   for i, ax in enumerate(axlist):
-    img = ax.matshow(Z_norm[i], interpolation='nearest', label=solvers[i],
-                     vmin=0, vmax=100)
+    cmap = plt.get_cmap("viridis_r", 256)
+    # cmap.set_under('whitesmoke')
+    # cmap.set_over('k')
+    # plt.set_cmap("plasma_r")
+    ax.matshow(Z_norm[i], interpolation='nearest', label=solvers[i],
+               cmap=cmap, vmin=0, vmax=40)
+    ax.invert_yaxis()
+
+    numrows, numcols = Z_norm[i].shape
+
+    def format_coord(xx, yy):
+      col = int(xx + 0.5)
+      row = int(yy + 0.5)
+      if (col >= 0) and (col < numcols) and (row >= 0) and (row < numrows):
+        zz = Z_norm[i][row, col]
+        return f"x={xx:.4f}, y={yy:.4f}, z={zz:.4f}"
+      else:
+        return f"x={xx:.4f}, y={yy:.4f}"
+
+    ax.format_coord = format_coord
+
+    # axis labels
+    if i == len(solvers) - 1:
+      ax.set_xlabel("n (nodes)", fontsize=legend_fontsize, labelpad=9)
+    ax.set_ylabel("d", fontsize=legend_fontsize,
+                  labelpad=12, rotation="horizontal")
+
+    # ticks
+    ax.xaxis.set_major_locator(MaxNLocator(x.size + 1))
+    ax.yaxis.set_major_locator(MaxNLocator(y.size + 1))
+    # ax.xaxis.tick_top()
+    ax.tick_params(axis='both', which='major', labelsize=tick_fontsize)
+
+    # tick labels
+    # ax.xaxis.set_label_position('top')
+    if i == len(solvers) - 1:
+      ax.tick_params(axis="x",
+                     which='major', labelsize=tick_fontsize,
+                     bottom=True, top=False,
+                     labelbottom=True, labeltop=False)
+      ax.set_xticklabels(np.hstack([[0], x]))
+    else:
+      ax.tick_params(axis="x",
+                     which='major', labelsize=tick_fontsize,
+                     bottom=False, top=False,
+                     labelbottom=False, labeltop=False)
+      ax.set_xticklabels([])
+    ylabels = [f"{la:.2f}" for la in np.round(np.hstack([[0], y]), decimals=2)]
+    ax.set_yticklabels(ylabels)
+    # title
+    ax.set_title(solvers[i], fontsize=title_fontsize)
+
+    # title = (f"{problem} profiling")
+    # fig.suptitle(title, fontsize=title_fontsize)
+
+    for x_idx in range(x.size):
+      for y_idx in range(y.size):
+        t_norm = Z_norm[i][y_idx, x_idx]
+        t_real = Z_real[i][y_idx, x_idx]
+
+        if t_real >= 100:
+          t_real = np.round(t_real).astype(int)
+        elif t_real >= 10:
+          t_real = np.round(t_real, decimals=1)
+        else:
+          t_real = np.round(t_real, decimals=2)
+
+        if t_norm > 30:
+          c = 'w'
+        else:
+          c = 'k'
+        # if t < 0:
+        #   t = np.round(t, decimas=2).astype(str)
+        ax.text(x_idx, y_idx, t_real, color=c, va='center', ha='center',
+                fontsize=tick_fontsize)
+
+    # PCM = ax.get_children()[2]
+  # plt.tight_layout()
+
+  if save_plot:
+    plt.savefig(f"{problem}_profiling_matshows.png", dpi=fig.dpi)
+  return fig
+
+
+def diff_matshows(x, y, Z_norm, Z_real,
+                  problem, solvers, save_plot):
+  title_fontsize, legend_fontsize, tick_fontsize = fontsizes(save_plot)
+  fig, axlist = plt.subplots(int(problem == "k-shortest-paths") + 1, 1,
+                             **figsize_dpi(save_plot))
+
+  for i, ax in enumerate(axlist):
+    ax.matshow(np.subtract(Z_norm[2 * i + 1], Z_norm[2 * i]),
+               interpolation='nearest',
+               label=f"{solvers[2 * i - 1]} - {solvers[2 * i]}",
+               vmin=0, vmax=100)
 
     numrows, numcols = Z_norm[i].shape
 
