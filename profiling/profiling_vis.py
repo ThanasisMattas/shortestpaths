@@ -1,13 +1,26 @@
 #!/usr/bin/env python3
+import os
 from packaging import version
 
 import click
 import numpy as np
+
 import matplotlib
+from matplotlib.colors import ListedColormap
+from matplotlib import cm
 import matplotlib.pyplot as plt
 from matplotlib.ticker import MaxNLocator
+
 import pandas as pd
 from sklearn.linear_model import LinearRegression
+
+
+def matshow_cmap():
+  viridis_r = cm.get_cmap('viridis_r', 24)
+  vir_colors = viridis_r.colors
+  new_colors = np.vstack([[[1, 1, 1, 0]],
+                         vir_colors])
+  return ListedColormap(new_colors)
 
 
 def set_edge_face_color(c):
