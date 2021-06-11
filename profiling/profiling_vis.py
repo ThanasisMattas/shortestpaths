@@ -104,7 +104,12 @@ def solvers_surfaces(X, Y, Z_pred, Z_real,
   sub.w_yaxis.set_pane_color((1.0, 1.0, 1.0, 0.0))
   sub.w_zaxis.set_pane_color((1.0, 1.0, 1.0, 0.0))
 
-  sub.view_init(20, -50)
+  # hacking zaxis
+  # <stackoverflow.com/questions/48442713/move-spines-in-matplotlib-3d-plot/
+  #  49601745#49601745>
+  sub.zaxis._axinfo['juggled'] = (1, 2, 0)
+
+  sub.view_init(25, 130)
   sub.tick_params(axis='both', which='major', labelsize=tick_fontsize)
 
   sub.grid(False)
@@ -117,7 +122,7 @@ def solvers_surfaces(X, Y, Z_pred, Z_real,
                          color=colors[i], alpha=0.5 + i / 8,
                          shade=True, antialiased=False, label=solvers[i])
     c._facecolors2d, c._edgecolors2d = set_edge_face_color(c)
-    sub.scatter(X, Y, Z_real[i], s=7, c=colors[i], alpha=0.5 + i / 15)
+    sub.scatter(X, Y, Z_real[i], s=8, c=colors[i], alpha=0.6 + i / 10)
 
   sub.legend(fontsize=legend_fontsize)
   plt.tight_layout()
