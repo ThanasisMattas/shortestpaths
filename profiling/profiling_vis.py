@@ -128,7 +128,7 @@ def solvers_surfaces(X, Y, Z_pred, Z_real,
   plt.tight_layout()
   if save_plot:
     plt.savefig(f"{problem}_profiling.png", dpi=fig.dpi)
-  return fig, sub
+  return fig
 
 
 def solvers_matshows(x, y, Z_norm, Z_real,
@@ -161,36 +161,37 @@ def solvers_matshows(x, y, Z_norm, Z_real,
                   labelpad=15, rotation="horizontal")
     ax.tick_params(axis='both', which='major', labelsize=tick_fontsize)
     ax.xaxis.tick_top()
-    ax.xaxis.set_label_position('top')
+    ax.set_title(solvers[i], fontsize=title_fontsize)
+    # ax.xaxis.set_label_position('top')
 
-    title = (f"{problem} profiling\n{solvers[i]}")
+    title = (f"{problem} profiling")
     fig.suptitle(title, fontsize=title_fontsize)
 
     for x_idx in range(x.size):
       for y_idx in range(y.size):
-        t = Z_real[i][y_idx, x_idx]
-        if 1 < t <= 2:
+        t_norm = np.subtract(Z_norm[2 * i + 1], Z_norm[2 * i])[y_idx, x_idx]
+        t_real = np.subtract(Z_real[2 * i + 1], Z_real[2 * i])[y_idx, x_idx]
+        if t_norm > 180:
           c = 'gainsboro'
-        elif 0.5 < t <= 1:
+        elif t_norm > 120:
           c = 'whitesmoke'
-        elif t <= 0.5:
+        elif t_norm > 80:
           c = 'w'
         else:
           c = 'k'
         # if t < 0:
         #   t = np.round(t, decimas=2).astype(str)
-        ax.text(x_idx, y_idx, t, color=c, va='center', ha='center')
+        ax.text(x_idx, y_idx, t_real, color=c, va='center', ha='center')
 
     ax.set_xticklabels(np.hstack([[0], x]))
     ylabels = [f"{la:.2f}" for la in np.round(np.hstack([[0], y]), decimals=2)]
     ax.set_yticklabels(ylabels)
     # PCM = ax.get_children()[2]
-  fig.colorbar(img, ax=ax)
   plt.tight_layout()
 
   if save_plot:
-    plt.savefig(f"{problem}_profiling_matshows.png", dpi=fig.dpi)
-  return fig, axlist
+    plt.savefig(f"{problem}_profiling_diff_matshows.png", dpi=fig.dpi)
+  return fig
 
 
 def fit_pol(xx, yy, Z, order=4):
@@ -308,10 +309,13 @@ def main(filename,
         * 255
       ).astype(int)
     )
-  matshows, ax_m = solvers_matshows(x, y, Z_norm, Z_real,
-                                    problem, solvers, save_plot)
-  surfaces, ax_s = solvers_surfaces(X, Y, Z_pred, Z_real,
-                                    problem, solvers, colors, save_plot)
+  matshows = solvers_matshows(x, y, Z_norm, Z_real,
+                              problem, solvers, save_plot)
+  comparisons = diff_matshows(x, y, Z_norm, Z_real,
+                              problem, solvers, save_plot)
+  surfaces = solvers_surfaces(X, Y, Z_pred, Z_real,
+                              problem, solvers, colors, save_plot)
+
   if show_plot:
     plt.show()
 
