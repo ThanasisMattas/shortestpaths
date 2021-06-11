@@ -44,7 +44,7 @@ def problem_solvers_colors(filename, problem):
                         "k-shortest-paths"]
   if problem is None:
     for probl in supported_problems:
-      if filename.startswith(probl):
+      if os.path.basename(filename).startswith(probl):
         problem = probl
     if problem is None:
       problem = "k-shortest-paths"
@@ -67,17 +67,24 @@ def problem_solvers_colors(filename, problem):
 
 def fontsizes(save_plot):
   if save_plot:
-    title_fontsize, legend_fontsize, tick_fontsize = 18, 16, 16
+    title_fontsize, legend_fontsize, tick_fontsize = 16, 16, 16
   else:
     title_fontsize, legend_fontsize, tick_fontsize = 18, 16, 16
   return title_fontsize, legend_fontsize, tick_fontsize
 
 
-def figsize_dpi(save_plot, axlist_ydim=1):
-  if save_plot:
-    figsize, dpi = (12, 10 * axlist_ydim), 200
+def figsize_dpi(save_plot, axlist_ydim=None):
+  if axlist_ydim:
+    if save_plot:
+      figsize, dpi = (12.5, 4.1 * axlist_ydim), 200
+    else:
+      figsize, dpi = (10, 4.1 * axlist_ydim), 100
   else:
-    figsize, dpi = (10, 8 * axlist_ydim), 100
+    if save_plot:
+      figsize, dpi = (10, 7.8), 200
+    else:
+      figsize, dpi = (9, 8), 100
+
   return {"figsize": figsize, "dpi": dpi}
 
 
