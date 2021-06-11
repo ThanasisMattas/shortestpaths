@@ -350,6 +350,31 @@ def fit_pol(xx, yy, Z, order=4):
   return z_pred
 
 
+def z_real_pred_norm(x, y, results, solvers, num_p, order=4):
+  Z_real = []
+  Z_pred = []
+  Z_norm = []
+
+  for i in range(len(solvers)):
+    z_real = results[num_p * i + 1: (i + 1) * num_p + 1, 1:]
+    Z_real.append(z_real)
+    z_pred = fit_pol(x, y, z_real, order=order)
+    Z_pred.append(z_pred)
+
+  # Normalize to 0-255
+  #   - the min value should be in the timings of the last solver
+  #   - the max value should be in the timings of the first solver
+  for i in range(len(solvers)):
+    Z_norm.append(
+      (
+        (Z_pred[i] - Z_pred[-1].min())
+        / Z_pred[0].max()
+        * 255
+      ).astype(int)
+    )
+  return Z_real, Z_pred, Z_norm
+
+
 @click.command()
 @click.argument("filename", type=click.STRING)
 @click.option('-p', "--problem",
@@ -375,34 +400,15 @@ def main(filename,
 
   problem, solvers, colors = problem_solvers_colors(filename, problem)
   # number of p values
-  p = (len(results) - 1) // len(solvers)
+  num_p = (len(results) - 1) // len(solvers)
 
   x = results[0, 1:].astype(int)
   # y = results[1: p + 1, 0]
-  y = results[1: p + 1, 0] * max_probability
+  y = results[1: num_p + 1, 0] * max_probability
   # y = np.array([0.1, 0.28, 0.44, 0.58, 0.7]) * 0.3
   X, Y = np.meshgrid(x, y)
-  Z_real = []
-  Z_pred = []
-  Z_norm = []
+  Z_real, Z_pred, Z_norm = z_real_pred_norm(x, y, results, solvers, num_p)
 
-  for i in range(len(solvers)):
-    z_real = results[p * i + 1: (i + 1) * p + 1, 1:]
-    Z_real.append(z_real)
-    z_pred = fit_pol(x, y, z_real, order=4)
-    Z_pred.append(z_pred)
-
-  # Normalize to 0-255
-  #   - the min value should be in the timings of the last solver
-  #   - the max value should be in the timings of the first solver
-  for i in range(len(solvers)):
-    Z_norm.append(
-      (
-        (Z_pred[i] - Z_pred[-1].min())
-        / Z_pred[0].max()
-        * 255
-      ).astype(int)
-    )
   matshows = solvers_matshows(x, y, Z_norm, Z_real,
                               problem, solvers, save_plot)
   comparisons = diff_matshows(x, y, Z_norm, Z_real,
