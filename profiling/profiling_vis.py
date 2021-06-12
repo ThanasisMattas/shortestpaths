@@ -404,8 +404,8 @@ def z_real_pred_norm(x, y, results, solvers, num_p, order=4):
   for i in range(len(solvers)):
     Z_norm.append(
       (
-        (Z_pred[i] - Z_pred[-1].min())
-        / Z_pred[0].max()
+        (Z_real[i] - Z_real[-1].min())
+        / Z_real[0].max()
         * 255
       ).astype(int)
     )
@@ -440,11 +440,12 @@ def main(filename,
   num_p = (len(results) - 1) // len(solvers)
 
   x = results[0, 1:].astype(int)
-  # y = results[1: p + 1, 0]
+  # y = results[1: num_p + 1, 0]
   y = results[1: num_p + 1, 0] * max_probability
   # y = np.array([0.1, 0.28, 0.44, 0.58, 0.7]) * 0.3
   X, Y = np.meshgrid(x, y)
-  Z_real, Z_pred, Z_norm = z_real_pred_norm(x, y, results, solvers, num_p)
+  Z_real, Z_pred, Z_norm = z_real_pred_norm(x, y, results,
+                                            solvers, num_p, order=3)
 
   matshows = solvers_matshows(x, y, Z_norm, Z_real,
                               problem, solvers, save_plot)
