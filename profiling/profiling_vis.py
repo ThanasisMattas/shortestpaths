@@ -56,18 +56,16 @@ def problem_solvers_colors(filename, problem):
                "Lawler + Bid. Dijkstra + DP"]
     colors = ['aqua', '#c71585', 'g', 'mediumblue']
   else:
-    # solvers = ["Bidirectional Dijkstra",
     solvers = ["Unidirectional Dijkstra",
                "Bidirectional Dijkstra",
                "Bid. Dijkstra + DP"]
-    colors = ['r', 'g', 'mediumblue']
-    # colors = ['g', 'r']
+    colors = ['aqua', 'mediumblue', 'orange']
   return problem, solvers, colors
 
 
 def fontsizes(save_plot):
   if save_plot:
-    title_fontsize, legend_fontsize, tick_fontsize = 16, 16, 16
+    title_fontsize, legend_fontsize, tick_fontsize = 17, 17, 17
   else:
     title_fontsize, legend_fontsize, tick_fontsize = 18, 16, 16
   return title_fontsize, legend_fontsize, tick_fontsize
@@ -119,10 +117,10 @@ def solvers_surfaces(X, Y, Z_pred, Z_real,
   for i in range(len(solvers)):
     c = sub.plot_surface(X, Y, Z_pred[i],
                          rstride=1, cstride=1, linewidth=0,
-                         color=colors[i], alpha=0.5 + i / 8,
+                         color=colors[i], alpha=0.4 + i / 5,
                          shade=True, antialiased=False, label=solvers[i])
     c._facecolors2d, c._edgecolors2d = set_edge_face_color(c)
-    sub.scatter(X, Y, Z_real[i], s=8, c=colors[i], alpha=0.6 + i / 10)
+    sub.scatter(X, Y, Z_real[i], s=8, c=colors[i], alpha=0.6 + i / 5)
 
   sub.legend(fontsize=legend_fontsize)
   plt.tight_layout()
@@ -165,7 +163,7 @@ def solvers_matshows(x, y, Z_norm, Z_real,
     if i == len(solvers) - 1:
       ax.set_xlabel("n (nodes)", fontsize=legend_fontsize, labelpad=9)
     ax.set_ylabel("d", fontsize=legend_fontsize,
-                  labelpad=12, rotation="horizontal")
+                  labelpad=9, rotation="horizontal")
 
     # ticks
     ax.xaxis.set_major_locator(MaxNLocator(x.size + 1))
@@ -187,7 +185,7 @@ def solvers_matshows(x, y, Z_norm, Z_real,
                      bottom=False, top=False,
                      labelbottom=False, labeltop=False)
       ax.set_xticklabels([])
-    ylabels = [f"{la:.2f}" for la in np.round(np.hstack([[0], y]), decimals=2)]
+    ylabels = [f"{la:.3f}" for la in np.round(np.hstack([[0], y]), decimals=3)]
     ax.set_yticklabels(ylabels)
     # title
     ax.set_title(solvers[i], fontsize=title_fontsize)
@@ -216,75 +214,114 @@ def solvers_matshows(x, y, Z_norm, Z_real,
         ax.text(x_idx, y_idx, t_real, color=c, va='center', ha='center',
                 fontsize=tick_fontsize)
 
-    # PCM = ax.get_children()[2]
-  # plt.tight_layout()
-
   if save_plot:
     plt.savefig(f"{problem}_profiling_matshows.png", dpi=fig.dpi)
   return fig
 
 
-def diff_matshows(x, y, Z_norm, Z_real,
-                  problem, solvers, save_plot):
+def gains_matshows(x, y, Z_real,
+                   problem, solvers, save_plot):
+  """Plots the performance gains."""
   title_fontsize, legend_fontsize, tick_fontsize = fontsizes(save_plot)
-  fig, axlist = plt.subplots(int(problem == "k-shortest-paths") + 1, 1,
-                             **figsize_dpi(save_plot))
+  fig, axlist = plt.subplots(
+    int(problem == "k-shortest-paths") + 1, 1,
+    **figsize_dpi(save_plot, max(2, len(solvers) // 2)),
+    constrained_layout=True
+  )
+  cmap = plt.get_cmap("viridis", 4)
+  numrows, numcols = Z_real[0].shape
+
+  if not hasattr(axlist, "__iter__"):
+    axlist = [axlist]
+    offset = 1
+  else:
+    offset = 0
 
   for i, ax in enumerate(axlist):
-    ax.matshow(np.subtract(Z_norm[2 * i + 1], Z_norm[2 * i]),
-               interpolation='nearest',
-               label=f"{solvers[2 * i - 1]} - {solvers[2 * i]}",
-               vmin=0, vmax=100)
+    ax_tilte = f"{solvers[2 * i + offset]} - {solvers[2 * i + 1 + offset]}"
+    Z_real_gains = ((Z_real[2 * i + offset] - Z_real[2 * i + 1 + offset])
+                    / (Z_real[2 * i] + 1))
 
-    numrows, numcols = Z_norm[i].shape
+    ax.matshow(Z_real_gains,
+               interpolation='nearest',
+               label=ax_tilte,
+               cmap=cmap, vmin=0, vmax=0.20)
 
     def format_coord(xx, yy):
       col = int(xx + 0.5)
       row = int(yy + 0.5)
       if (col >= 0) and (col < numcols) and (row >= 0) and (row < numrows):
-        zz = Z_norm[i][row, col]
+        zz = Z_real_gains[row, col]
         return f"x={xx:.4f}, y={yy:.4f}, z={zz:.4f}"
       else:
         return f"x={xx:.4f}, y={yy:.4f}"
 
     ax.format_coord = format_coord
-    ax.xaxis.set_major_locator(MaxNLocator(x.size + 1))
-    ax.yaxis.set_major_locator(MaxNLocator(y.size + 1))
-    ax.set_xlabel("n (nodes)", fontsize=tick_fontsize, labelpad=10)
-    ax.set_ylabel("d", fontsize=tick_fontsize,
-                  labelpad=15, rotation="horizontal")
-    ax.tick_params(axis='both', which='major', labelsize=tick_fontsize)
-    ax.xaxis.tick_top()
-    ax.set_title(solvers[i], fontsize=title_fontsize)
-    # ax.xaxis.set_label_position('top')
+    ax.invert_yaxis()
 
-    title = (f"{problem} profiling")
-    fig.suptitle(title, fontsize=title_fontsize)
+    # axis labels
+    if i == len(solvers) // 2 - 1:
+      ax.set_xlabel("n (nodes)", fontsize=legend_fontsize, labelpad=9)
+    ax.set_ylabel("d", fontsize=legend_fontsize,
+                  labelpad=12, rotation="horizontal")
+
+    # ticks
+    ax.xaxis.set_major_locator(MaxNLocator(numcols + 1))
+    ax.yaxis.set_major_locator(MaxNLocator(numrows + 1))
+    # ax.xaxis.tick_top()
+    ax.tick_params(axis='both', which='major', labelsize=tick_fontsize)
+
+    # tick labels
+    # ax.xaxis.set_label_position('top')
+    if i == len(solvers) // 2 - 1:
+      ax.tick_params(axis="x",
+                     which='major', labelsize=tick_fontsize,
+                     bottom=True, top=False,
+                     labelbottom=True, labeltop=False)
+      ax.set_xticklabels(np.hstack([[0], x]))
+    else:
+      ax.tick_params(axis="x",
+                     which='major', labelsize=tick_fontsize,
+                     bottom=False, top=False,
+                     labelbottom=False, labeltop=False)
+      ax.set_xticklabels([])
+    ylabels = [f"{la:.3f}" for la in np.round(np.hstack([[0], y]), decimals=3)]
+    ax.set_yticklabels(ylabels)
+    # title
+    ax.set_title(ax_tilte, fontsize=title_fontsize)
+
+    # title = (f"{problem} profiling")
+    # fig.suptitle(title, fontsize=title_fontsize)
 
     for x_idx in range(x.size):
       for y_idx in range(y.size):
-        t_norm = np.subtract(Z_norm[2 * i + 1], Z_norm[2 * i])[y_idx, x_idx]
-        t_real = np.subtract(Z_real[2 * i + 1], Z_real[2 * i])[y_idx, x_idx]
-        if t_norm > 180:
-          c = 'gainsboro'
-        elif t_norm > 120:
-          c = 'whitesmoke'
-        elif t_norm > 80:
-          c = 'w'
+        t_real = (Z_real[2 * i + offset][y_idx, x_idx]
+                  - Z_real[2 * i + 1 + offset][y_idx, x_idx])
+        t_perc = Z_real_gains[y_idx, x_idx] * 100
+
+        if t_real >= 100:
+          t_real = np.round(t_real).astype(int)
+        elif t_real >= 10:
+          t_real = np.round(t_real, decimals=1)
         else:
+          t_real = np.round(t_real, decimals=2)
+
+        if t_perc >= 10:
+          t_perc = np.round(t_perc, decimals=0).astype(int)
+        else:
+          t_perc = np.round(t_perc, decimals=1)
+
+        if t_perc > 5:
           c = 'k'
+        else:
+          c = 'silver'
         # if t < 0:
         #   t = np.round(t, decimas=2).astype(str)
-        ax.text(x_idx, y_idx, t_real, color=c, va='center', ha='center')
-
-    ax.set_xticklabels(np.hstack([[0], x]))
-    ylabels = [f"{la:.2f}" for la in np.round(np.hstack([[0], y]), decimals=2)]
-    ax.set_yticklabels(ylabels)
-    # PCM = ax.get_children()[2]
-  plt.tight_layout()
+        ax.text(x_idx, y_idx, f"{t_real}\n{t_perc}%",
+                color=c, va='center', ha='center', fontsize=tick_fontsize)
 
   if save_plot:
-    plt.savefig(f"{problem}_profiling_diff_matshows.png", dpi=fig.dpi)
+    plt.savefig(f"{problem}_profiling_gains_matshows.png", dpi=fig.dpi)
   return fig
 
 
