@@ -46,8 +46,10 @@ def problem_solvers_colors(filename, problem):
     for probl in supported_problems:
       if os.path.basename(filename).startswith(probl):
         problem = probl
+        break
     if problem is None:
-      problem = "k-shortest-paths"
+      raise ValueError(f"filename <{filename}> should start with on of"
+                       f" {supported_problems}.")
 
   if problem == "k-shortest-paths":
     solvers = ["Yen + Dijkstra",
@@ -59,7 +61,10 @@ def problem_solvers_colors(filename, problem):
     solvers = ["Unidirectional Dijkstra",
                "Bidirectional Dijkstra",
                "Bid. Dijkstra + DP"]
-    colors = ['aqua', 'mediumblue', 'orange']
+    colors = ['aqua', 'orange', 'mediumblue']
+    # solvers = ["Bidirectional Dijkstra",
+    #            "Bid. Dijkstra + DP"]
+    # colors = ['orange', 'mediumblue']
   return problem, solvers, colors
 
 
@@ -74,7 +79,7 @@ def fontsizes(save_plot):
 def figsize_dpi(save_plot, axlist_ydim=None):
   if axlist_ydim:
     if save_plot:
-      figsize, dpi = (12.5, 4.1 * axlist_ydim), 200
+      figsize, dpi = (12.8, 4.1 * axlist_ydim), 200
     else:
       figsize, dpi = (10, 4.1 * axlist_ydim), 100
   else:
@@ -86,41 +91,111 @@ def figsize_dpi(save_plot, axlist_ydim=None):
   return {"figsize": figsize, "dpi": dpi}
 
 
-def solvers_surfaces(X, Y, Z_pred, Z_real,
+def yticklabels_c_study(y):
+  """Hard coded y ticks labels for sigmoid center study.
+
+  - It creates 3 lines of y tick labels, corresponding to center, p_max and p.
+  - p = p_max * p_0, with p_0 = 0.3
+  """
+  p_max = np.array([0.1, 0.28, 0.44, 0.58, 0.7])
+
+  labels = [f"{y[i] / 10:.2f}\n{p_max[i]:.2f}\n{p_max[i] * 0.3:.2f}"
+            for i in range(y.size)]
+  return labels
+
+
+def ylabel_c_study():
+  """Hard coded y label for sigmoid center study."""
+  return ("c\n"
+          "$\mathregular{p_m}$"   # noqa: W605
+          "$\mathregular{_a}$"    # noqa: W605
+          "$\mathregular{_x}$\n"  # noqa: W605
+          "p")
+
+
+def plot_surface_tilte(problem, param):
+  """Hard coded fig title for the surface plot.
+
+  Args:
+    problem (str) : see problem_solvers_colors()
+    study (str)   : the parateter of the study, other than graph order
+                      options: ['c', 'p_o', 'k']
+  """
+  if param == 'c':
+    title = (
+      f"{problem} profiling\n" + "center portion: 0.15   "
+      "$\mathregular{p_0}$: 0.3    "  # noqa: W605
+    )
+  elif param == 'p_0':
+    title = (
+      f"{problem} profiling\n" + "center portion: 0.15   "
+      "$\mathregular{p_m}$" + "$\mathregular{_a}$" + "$\mathregular{_x}$"  # noqa: W605
+      ": 0.28"
+    )
+  elif param == 'k':
+    title = (
+      f"{problem} profiling\n" + "center portion: 0.15   "
+      "$\mathregular{p_0}$: 0.3    "  # noqa: W605
+      "$\mathregular{p_m}$" + "$\mathregular{_a}$" + "$\mathregular{_x}$"  # noqa: W605
+      ": 0.28"
+    )
+  else:
+    accepted_param_values = ['c', 'p_o', 'k']
+    raise ValueError(f"<study> positional argument should be on of"
+                     f" {accepted_param_values}. Instead, got {param}.")
+  return title
+
+
+def solvers_surfaces(X, Y, Z_pred, Z_real, y,
                      problem, solvers, colors, save_plot):
   """Plots a surface for each solver in the same axes."""
   title_fontsize, legend_fontsize, tick_fontsize = fontsizes(save_plot)
   fig = plt.figure(**figsize_dpi(save_plot))
   sub = fig.add_subplot(111, projection="3d")
-  sub.set_xlabel("n (nodes)", fontsize=tick_fontsize, labelpad=15)
-  sub.set_ylabel("d", fontsize=tick_fontsize, labelpad=15)
-  sub.set_zlabel("t (s)", fontsize=tick_fontsize, labelpad=9)
-  sub.xaxis.set_major_locator(MaxNLocator(6))
-  sub.yaxis.set_major_locator(MaxNLocator(6))
-  # sub.set_zlim(0, 225)
+  # axes labels
+  sub.set_xlabel("n (nodes)", fontsize=tick_fontsize, labelpad=27)
+  sub.set_ylabel('d', fontsize=tick_fontsize, labelpad=15)
+  sub.set_zlabel("t (s)", fontsize=tick_fontsize, labelpad=13)
+  # ticks
+  sub.xaxis.set_major_locator(MaxNLocator(y.size + 1))
+  sub.yaxis.set_major_locator(MaxNLocator(y.size + 1))
+  # sub.set_xticks(np.arange(500, 3000, 500))
+  # tick labels
+  sub.tick_params(axis='both', which='major', labelsize=tick_fontsize)
+  sub.set_yticks(y)
+  # ylabels = [f"{la:.3f}" for la in np.round(np.hstack([[0], y]), decimals=3)]
+  # sub.set_xticklabels(y)
+  # sub.set_yticklabels(yticklabels_c_study(y))
+  sub.zaxis.set_rotate_label(False)
+  sub.yaxis.set_rotate_label(False)
+  sub.xaxis.set_rotate_label(False)
+  # sub.set_xticklabels()
+  # remove panes
   sub.w_xaxis.set_pane_color((1.0, 1.0, 1.0, 0.0))
   sub.w_yaxis.set_pane_color((1.0, 1.0, 1.0, 0.0))
   sub.w_zaxis.set_pane_color((1.0, 1.0, 1.0, 0.0))
-
   # hacking zaxis
   # <stackoverflow.com/questions/48442713/move-spines-in-matplotlib-3d-plot/
   #  49601745#49601745>
   sub.zaxis._axinfo['juggled'] = (1, 2, 0)
+  # sub.set_zlim(0, 110)
 
-  sub.view_init(25, 130)
-  sub.tick_params(axis='both', which='major', labelsize=tick_fontsize)
-
+  # repl-paths view init
+  sub.view_init(16, 150)
+  # ksp view init
+  # sub.view_init(15, -70)
   sub.grid(False)
-  title = (f"{problem} profiling")
-  fig.suptitle(title, fontsize=title_fontsize)
+  # sub.computed_zorder = True
 
+  title = (plot_surface_tilte(problem, param="p_0"))
+  fig.suptitle(title, fontsize=title_fontsize)
   for i in range(len(solvers)):
     c = sub.plot_surface(X, Y, Z_pred[i],
                          rstride=1, cstride=1, linewidth=0,
                          color=colors[i], alpha=0.4 + i / 5,
                          shade=True, antialiased=False, label=solvers[i])
     c._facecolors2d, c._edgecolors2d = set_edge_face_color(c)
-    sub.scatter(X, Y, Z_real[i], s=8, c=colors[i], alpha=0.6 + i / 5)
+    sub.scatter(X, Y, Z_real[i], s=8, c=colors[i], alpha=0.4 + i / 5)
 
   sub.legend(fontsize=legend_fontsize)
   plt.tight_layout()
@@ -143,7 +218,7 @@ def solvers_matshows(x, y, Z_norm, Z_real,
     # cmap.set_over('k')
     # plt.set_cmap("plasma_r")
     ax.matshow(Z_norm[i], interpolation='nearest', label=solvers[i],
-               cmap=cmap, vmin=0, vmax=40)
+               cmap=cmap, vmin=0, vmax=50)
     ax.invert_yaxis()
 
     numrows, numcols = Z_norm[i].shape
@@ -205,7 +280,7 @@ def solvers_matshows(x, y, Z_norm, Z_real,
         else:
           t_real = np.round(t_real, decimals=2)
 
-        if t_norm > 30:
+        if t_norm > 40:
           c = 'w'
         else:
           c = 'k'
@@ -228,7 +303,7 @@ def gains_matshows(x, y, Z_real,
     **figsize_dpi(save_plot, max(2, len(solvers) // 2)),
     constrained_layout=True
   )
-  cmap = plt.get_cmap("viridis", 4)
+  cmap = plt.get_cmap("viridis", 5)
   numrows, numcols = Z_real[0].shape
 
   if not hasattr(axlist, "__iter__"):
@@ -238,7 +313,7 @@ def gains_matshows(x, y, Z_real,
     offset = 0
 
   for i, ax in enumerate(axlist):
-    ax_tilte = f"{solvers[2 * i + offset]} - {solvers[2 * i + 1 + offset]}"
+    ax_tilte = f"({solvers[2 * i + offset]}) - ({solvers[2 * i + 1 + offset]})"
     Z_real_gains = ((Z_real[2 * i + offset] - Z_real[2 * i + 1 + offset])
                     / (Z_real[2 * i] + 1))
 
@@ -326,7 +401,6 @@ def gains_matshows(x, y, Z_real,
 
 
 def fit_pol(xx, yy, Z, order=4):
-  # Quadratic
   x = xx.reshape(1, -1)
   y = yy.reshape(-1, 1)
   features = {}
@@ -440,18 +514,19 @@ def main(filename,
   num_p = (len(results) - 1) // len(solvers)
 
   x = results[0, 1:].astype(int)
+  # - y values for c or k study
   # y = results[1: num_p + 1, 0]
+  # - y values for p_0 study
   y = results[1: num_p + 1, 0] * max_probability
-  # y = np.array([0.1, 0.28, 0.44, 0.58, 0.7]) * 0.3
   X, Y = np.meshgrid(x, y)
   Z_real, Z_pred, Z_norm = z_real_pred_norm(x, y, results,
                                             solvers, num_p, order=3)
 
   matshows = solvers_matshows(x, y, Z_norm, Z_real,
                               problem, solvers, save_plot)
-  comparisons = diff_matshows(x, y, Z_norm, Z_real,
-                              problem, solvers, save_plot)
-  surfaces = solvers_surfaces(X, Y, Z_pred, Z_real,
+  comparisons = gains_matshows(x, y, Z_real,
+                               problem, solvers, save_plot)
+  surfaces = solvers_surfaces(X, Y, Z_pred, Z_real, y,
                               problem, solvers, colors, save_plot)
 
   if show_plot:
