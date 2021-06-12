@@ -154,7 +154,7 @@ def main(dataset_file,
     dataset = io.load_graphs(dataset_file)
   else:
     dataset = None
-    save_dataset = input("Do you want to dump the dataset into a pickle?[y/N]")
+    save_dataset = input("Dump dataset into pickle?[y/N] ")
     if save_dataset == 'y':
       dataset_file = (f"dataset_{len(n_range)}x{len(p_range)}"
                       f"x{graphs_per_step}_npg_{directed}.dat")
@@ -201,8 +201,10 @@ def main(dataset_file,
                               **kwargs)
         for r, result in enumerate(results.values()):
           result[:, j, i, g - 1] = measurement[r]
+  # Move to the next line.
   print()
-  ds_fileobj.close()
+  if ds_fileobj:
+    ds_fileobj.close()
 
   for probl in problems:
     if probl == "k-shortest-paths":
