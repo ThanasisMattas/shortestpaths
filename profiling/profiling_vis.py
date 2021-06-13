@@ -9,7 +9,7 @@ import matplotlib
 from matplotlib.colors import ListedColormap
 from matplotlib import cm
 import matplotlib.pyplot as plt
-from matplotlib.ticker import MaxNLocator
+from matplotlib.ticker import MaxNLocator, MultipleLocator
 
 import pandas as pd
 from sklearn.linear_model import LinearRegression
@@ -140,10 +140,106 @@ def plot_surface_tilte(problem, param):
       ": 0.28"
     )
   else:
-    accepted_param_values = ['c', 'p_o', 'k']
+    accepted_param_values = ['c', 'p_0', 'k']
     raise ValueError(f"<study> positional argument should be on of"
                      f" {accepted_param_values}. Instead, got {param}.")
   return title
+
+
+def fit_linear(x, y):
+  x_vect = x.reshape(-1, 1)
+  ones = np.ones((x_vect.size, 1))
+  features = np.hstack([ones, x_vect])
+  reg = LinearRegression().fit(features, y.flatten())
+  y_pred = (
+    reg.intercept_
+    + np.matmul(features, reg.coef_.reshape(-1, 1)).flatten()
+  )
+  return y_pred
+
+
+def fit_pol(xx, yy, Z, order=4):
+  x = xx.reshape(1, -1)
+  y = yy.reshape(-1, 1)
+  features = {}
+  # 0th
+  features["ones"] = np.ones_like(Z).flatten()
+  # 1st
+  features["x"] = np.matmul(np.ones_like(y), x).flatten()
+  features["y"] = np.matmul(y, np.ones_like(x)).flatten()
+  if order >= 2:
+    features["x*y"] = np.matmul(y, x).flatten()
+    features["x^2"] = np.matmul(np.ones_like(y), x**2).flatten()
+    features["y^2"] = np.matmul(y**2, np.ones_like(x)).flatten()
+  if order >= 3:
+    features["x^3"] = np.matmul(np.ones_like(y), x**3).flatten()
+    features["y^3"] = np.matmul(y**3, np.ones_like(x)).flatten()
+    features["x*y^2"] = np.matmul(y**2, x).flatten()
+    features["x^2*y"] = np.matmul(y, x**2).flatten()
+  if order >= 4:
+    features["x^4"] = np.matmul(np.ones_like(y), x**4).flatten()
+    features["y^4"] = np.matmul(y**4, np.ones_like(x)).flatten()
+    features["x^3*y"] = np.matmul(y, x**3).flatten()
+    features["x*y^3"] = np.matmul(y**3, x).flatten()
+    features["x^2*y^2"] = np.matmul(y**2, x**2).flatten()
+  if order >= 5:
+    features["x^5"] = np.matmul(np.ones_like(y), x**5).flatten()
+    features["y^5"] = np.matmul(y**5, np.ones_like(x)).flatten()
+    features["x^4*y"] = np.matmul(y, x**4).flatten()
+    features["x*y^4"] = np.matmul(y**4, x).flatten()
+    features["x^3*y^2"] = np.matmul(y**2, x**3).flatten()
+    features["x^2*y^3"] = np.matmul(y**3, x**2).flatten()
+  if order >= 6:
+    features["x^6"] = np.matmul(np.ones_like(y), x**6).flatten()
+    features["y^6"] = np.matmul(y**6, np.ones_like(x)).flatten()
+    features["x^5*y"] = np.matmul(y, x**5).flatten()
+    features["x*y^5"] = np.matmul(y**5, x).flatten()
+    features["x^4*y^2"] = np.matmul(y**2, x**4).flatten()
+    features["x^2*y^4"] = np.matmul(y**4, x**2).flatten()
+    features["x^3*y^3"] = np.matmul(y**3, x**3).flatten()
+    features["x^3*y^3"] = np.matmul(y**3, x**3).flatten()
+  if order >= 7:
+    features["x^7"] = np.matmul(np.ones_like(y), x**7).flatten()
+    features["y^7"] = np.matmul(y**7, np.ones_like(x)).flatten()
+    features["x^6*y"] = np.matmul(y, x**6).flatten()
+    features["x*y^6"] = np.matmul(y**6, x).flatten()
+    features["x^5*y^2"] = np.matmul(y**2, x**5).flatten()
+    features["x^2*y^5"] = np.matmul(y**5, x**2).flatten()
+    features["x^3*y^4"] = np.matmul(y**4, x**3).flatten()
+    features["x^4*y^3"] = np.matmul(y**3, x**4).flatten()
+  ds = pd.DataFrame(features)
+
+  reg = LinearRegression().fit(ds.values, Z.flatten())
+  z_pred = (
+    reg.intercept_
+    + np.matmul(ds.values, reg.coef_.reshape(-1, 1)).reshape(Z.shape)
+  )
+  return z_pred
+
+
+def z_real_pred_norm(x, y, results, solvers, num_p, order=4):
+  Z_real = []
+  Z_pred = []
+  Z_norm = []
+
+  for i in range(len(solvers)):
+    z_real = results[num_p * i + 1: (i + 1) * num_p + 1, 1:]
+    Z_real.append(z_real)
+    z_pred = fit_pol(x, y, z_real, order=order)
+    Z_pred.append(z_pred)
+
+  # Normalize to 0-255
+  #   - the min value should be in the timings of the last solver
+  #   - the max value should be in the timings of the first solver
+  for i in range(len(solvers)):
+    Z_norm.append(
+      (
+        (Z_real[i] - Z_real[-1].min())
+        / Z_real[0].max()
+        * 255
+      ).astype(int)
+    )
+  return Z_real, Z_pred, Z_norm
 
 
 def solvers_surfaces(X, Y, Z_pred, Z_real, y,
@@ -400,71 +496,80 @@ def gains_matshows(x, y, Z_real,
   return fig
 
 
-def fit_pol(xx, yy, Z, order=4):
-  x = xx.reshape(1, -1)
-  y = yy.reshape(-1, 1)
-  features = {}
-  # 0th
-  features["ones"] = np.ones_like(Z).flatten()
-  # 1st
-  features["x"] = np.matmul(np.ones_like(y), x).flatten()
-  features["y"] = np.matmul(y, np.ones_like(x)).flatten()
-  if order >= 2:
-    features["x*y"] = np.matmul(y, x).flatten()
-    features["x^2"] = np.matmul(np.ones_like(y), x**2).flatten()
-    features["y^2"] = np.matmul(y**2, np.ones_like(x)).flatten()
-  if order >= 3:
-    features["x^3"] = np.matmul(np.ones_like(y), x**3).flatten()
-    features["y^3"] = np.matmul(y**3, np.ones_like(x)).flatten()
-    features["x*y^2"] = np.matmul(y**2, x).flatten()
-    features["x^2*y"] = np.matmul(y, x**2).flatten()
-  if order >= 4:
-    features["x^4"] = np.matmul(np.ones_like(y), x**4).flatten()
-    features["y^4"] = np.matmul(y**4, np.ones_like(x)).flatten()
-    features["x^3*y"] = np.matmul(y, x**3).flatten()
-    features["x*y^3"] = np.matmul(y**3, x).flatten()
-    features["x^2*y^2"] = np.matmul(y**2, x**2).flatten()
-  if order >= 5:
-    features["x^5"] = np.matmul(np.ones_like(y), x**5).flatten()
-    features["y^5"] = np.matmul(y**5, np.ones_like(x)).flatten()
-    features["x^4*y"] = np.matmul(y, x**4).flatten()
-    features["x*y^4"] = np.matmul(y**4, x).flatten()
-    features["x^3*y^2"] = np.matmul(y**2, x**3).flatten()
-    features["x^2*y^3"] = np.matmul(y**3, x**2).flatten()
-  if order >= 6:
-    features["x^6"] = np.matmul(np.ones_like(y), x**6).flatten()
-    features["y^6"] = np.matmul(y**6, np.ones_like(x)).flatten()
-    features["x^5*y"] = np.matmul(y, x**5).flatten()
-    features["x*y^5"] = np.matmul(y**5, x).flatten()
-    features["x^4*y^2"] = np.matmul(y**2, x**4).flatten()
-    features["x^2*y^4"] = np.matmul(y**4, x**2).flatten()
-    features["x^3*y^3"] = np.matmul(y**3, x**3).flatten()
-    features["x^3*y^3"] = np.matmul(y**3, x**3).flatten()
-  if order >= 7:
-    features["x^7"] = np.matmul(np.ones_like(y), x**7).flatten()
-    features["y^7"] = np.matmul(y**7, np.ones_like(x)).flatten()
-    features["x^6*y"] = np.matmul(y, x**6).flatten()
-    features["x*y^6"] = np.matmul(y**6, x).flatten()
-    features["x^5*y^2"] = np.matmul(y**2, x**5).flatten()
-    features["x^2*y^5"] = np.matmul(y**5, x**2).flatten()
-    features["x^3*y^4"] = np.matmul(y**4, x**3).flatten()
-    features["x^4*y^3"] = np.matmul(y**3, x**4).flatten()
-  ds = pd.DataFrame(features)
+def t_vs_k_plot(k, z, problem, solvers, save_plot):
+  title_fontsize, legend_fontsize, tick_fontsize = fontsizes(save_plot)
+  colors = ['r', 'y', 'g', 'b']
+  markers = ['o', '^', 's', 'D']
 
-  # __import__('ipdb').set_trace(context=9)
+  fig, ax = plt.subplots(**figsize_dpi(save_plot), constrained_layout=True)
 
-  reg = LinearRegression().fit(ds.values, Z.flatten())
-  z_pred = (
-    reg.intercept_
-    + np.matmul(ds.values, reg.coef_.reshape(-1, 1)).reshape(Z.shape)
-  )
-  return z_pred
+  ax.set_xlabel("k", fontsize=tick_fontsize)
+  ax.set_ylabel('t (s)', fontsize=tick_fontsize, rotation=0, labelpad=20)
+  ax.xaxis.set_major_locator(MaxNLocator(k.size + 1))
+  ax.set_ylim(0, 27)
+  ax.set_xlim(10, 97)
+  # ax.yaxis.set_major_locator(MaxNLocator(k.size + 1))
+  ax.tick_params(axis='both', which='major', labelsize=tick_fontsize)
+  # ax.set_xticks(k)
+  ax.yaxis.set_minor_locator(MultipleLocator(2.5))
+  ax.grid(True, which="both")
+  # ax.yaxis.set_minor_locator(AutoMinorLocator())
+  # ax.yaxis.grid(True, which="both")
 
+  n = np.arange(500, 2750, 250)
+  for n_idx in [0, 2, 6]:
+    for solver, results in enumerate(z):
+      if n_idx == 0:
+        label = solvers[solver]
+      else:
+        label = None
+      c = colors[solver]
+      t = results[:, n_idx]
+      ax.scatter(k, t,
+                 c=colors[solver],
+                 marker=markers[solver],
+                 label=label)
+      t_pred = fit_linear(k, t)
+      ax.plot(k, t_pred, c=c)
+      xtext, ytext = -37, 0
+      x = 1
+      t_idx = -1
+      if solver == 0:
+        if n_idx == 6:
+          t_idx = 1
+          x = 0.31
+          xtext, ytext = -37, -3
+        elif n_idx == 2:
+          t_idx = 4
+          x = 0.83
+          xtext, ytext = -8, 26
+      elif solver == 1:
+        if n_idx == 6:
+          t_idx = 2
+          x = 0.49
+          xtext, ytext = -25, 10
+      ax.annotate(f"{n[n_idx]:>4}",
+                  xy=(x, t[t_idx]), xytext=(xtext, ytext),
+                  c=c,
+                  xycoords=ax.get_yaxis_transform(),
+                  textcoords="offset points",
+                  size=14, va="center")
+      # if not (((solver == 0) and (n_idx in [2, 6]))
+      #         or ((solver == 1) and (n_idx in [6]))):
+      #   ax.annotate(f"{n[n_idx]:>4}",
+      #               xy=(1, t[-1]), xytext=(-37, 0),
+      #               c=c,
+      #               xycoords=ax.get_yaxis_transform(),
+      #               textcoords="offset points",
+      #               size=14, va="center")
 
-def z_real_pred_norm(x, y, results, solvers, num_p, order=4):
-  Z_real = []
-  Z_pred = []
-  Z_norm = []
+  ax.set_title(plot_surface_tilte(problem, 'k'), fontsize=title_fontsize)
+  ax.legend(fontsize=legend_fontsize,
+            loc="upper left",
+            bbox_to_anchor=(0, 0.96))
+  if save_plot:
+    plt.savefig(f"{problem}_k_linearity.png", dpi=fig.dpi)
+  return fig
 
   for i in range(len(solvers)):
     z_real = results[num_p * i + 1: (i + 1) * num_p + 1, 1:]
@@ -528,6 +633,7 @@ def main(filename,
                                problem, solvers, save_plot)
   surfaces = solvers_surfaces(X, Y, Z_pred, Z_real, y,
                               problem, solvers, colors, save_plot)
+  k_study_line_plots = t_vs_k_plot(y, Z_real, problem, solvers, save_plot)
 
   if show_plot:
     plt.show()
