@@ -311,6 +311,68 @@ def solvers_surfaces(X, Y, Z_pred, Z_real, y, colors, param,
   return fig
 
 
+def gen_matshow(ax, i, label, solvers_divisor,
+                x, y, Z,
+                cmap, vmax, solvers,
+                xpad, ypad,
+                save_plot, param):
+  title_fontsize, legend_fontsize, tick_fontsize = fontsizes(save_plot)
+  numcols, numrows = Z.shape
+
+  ax.matshow(Z,
+             interpolation='nearest',
+             label=label,
+             cmap=cmap, vmin=0, vmax=vmax)
+
+  def format_coord(xx, yy):
+    col = int(xx + 0.5)
+    row = int(yy + 0.5)
+    if (col >= 0) and (col < numcols) and (row >= 0) and (row < numrows):
+      zz = Z[row, col]
+      return f"x={xx:.4f}, y={yy:.4f}, z={zz:.4f}"
+    else:
+      return f"x={xx:.4f}, y={yy:.4f}"
+
+  ax.format_coord = format_coord
+  ax.invert_yaxis()
+
+  # axis labels
+  if i == len(solvers) // solvers_divisor - 1:
+    ax.set_xlabel("n (nodes)", fontsize=legend_fontsize, labelpad=xpad)
+  ax.set_ylabel(ylabel(param, mattshow=True), fontsize=legend_fontsize,
+                labelpad=ypad, rotation="horizontal")
+
+  # ticks
+  ax.xaxis.set_major_locator(MaxNLocator(x.size + 1))
+  ax.yaxis.set_major_locator(MaxNLocator(y.size + 1))
+  ax.tick_params(axis='both', which='major', labelsize=tick_fontsize)
+
+  # tick labels
+  if i == len(solvers) // solvers_divisor - 1:
+    ax.tick_params(axis="x",
+                   which='major', labelsize=tick_fontsize,
+                   bottom=True, top=False,
+                   labelbottom=True, labeltop=False)
+    ax.set_xticklabels(np.hstack([[0], x]))
+  else:
+    ax.tick_params(axis="x",
+                   which='major', labelsize=tick_fontsize,
+                   bottom=False, top=False,
+                   labelbottom=False, labeltop=False)
+    ax.set_xticklabels([])
+
+  if param == 'p_0':
+    ylabels = [f"{y_val:.3f}"
+               for y_val in np.round(np.hstack([[0], y]), decimals=3)]
+    ax.set_yticklabels(ylabels)
+  elif param == 'c':
+    ax.set_yticklabels(yticklabels_c_study(y))
+  elif param == 'k':
+    ax.set_yticklabels(np.hstack([[0], y]).astype(int))
+  # title
+  ax.set_title(solvers[i], fontsize=title_fontsize)
+
+
 def solvers_matshows(x, y, Z_norm, Z_real, param,
                      problem, solvers, save_plot):
   """Plots a matshow for each solver in a different axes."""
@@ -319,64 +381,14 @@ def solvers_matshows(x, y, Z_norm, Z_real, param,
                              constrained_layout=True)
 
   cmap = plt.get_cmap("viridis_r", 256)
-  numrows, numcols = Z_norm[0].shape
   title_fontsize, legend_fontsize, tick_fontsize = fontsizes(save_plot)
+
   for i, ax in enumerate(axlist):
-    ax.matshow(Z_norm[i],
-               interpolation='nearest',
-               label=solvers[i],
-               cmap=cmap, vmin=0, vmax=50)
-
-    def format_coord(xx, yy):
-      col = int(xx + 0.5)
-      row = int(yy + 0.5)
-      if (col >= 0) and (col < numcols) and (row >= 0) and (row < numrows):
-        zz = Z_norm[i][row, col]
-        return f"x={xx:.4f}, y={yy:.4f}, z={zz:.4f}"
-      else:
-        return f"x={xx:.4f}, y={yy:.4f}"
-
-    ax.format_coord = format_coord
-    ax.invert_yaxis()
-
-    # axis labels
-    if i == len(solvers) - 1:
-      ax.set_xlabel("n (nodes)", fontsize=legend_fontsize, labelpad=9)
-    ax.set_ylabel(ylabel(param, mattshow=True), fontsize=legend_fontsize,
-                  labelpad=9, rotation="horizontal")
-
-    # ticks
-    ax.xaxis.set_major_locator(MaxNLocator(x.size + 1))
-    ax.yaxis.set_major_locator(MaxNLocator(y.size + 1))
-    ax.tick_params(axis='both', which='major', labelsize=tick_fontsize)
-
-    # tick labels
-    if i == len(solvers) - 1:
-      ax.tick_params(axis="x",
-                     which='major', labelsize=tick_fontsize,
-                     bottom=True, top=False,
-                     labelbottom=True, labeltop=False)
-      ax.set_xticklabels(np.hstack([[0], x]))
-    else:
-      ax.tick_params(axis="x",
-                     which='major', labelsize=tick_fontsize,
-                     bottom=False, top=False,
-                     labelbottom=False, labeltop=False)
-      ax.set_xticklabels([])
-
-    if param == 'p_0':
-      ylabels = [f"{y_val:.3f}"
-                 for y_val in np.round(np.hstack([[0], y]), decimals=3)]
-      ax.set_yticklabels(ylabels)
-    elif param == 'c':
-      ax.set_yticklabels(yticklabels_c_study(y))
-    elif param == 'k':
-      ax.set_yticklabels(np.hstack([[0], y]).astype(int))
-    # title
-    ax.set_title(solvers[i], fontsize=title_fontsize)
-
-    # title = (f"{problem} profiling")
-    # fig.suptitle(title, fontsize=title_fontsize)
+    gen_matshow(ax=ax, i=i, label=solvers[i], solvers_divisor=1,
+                x=x, y=y, Z=Z_norm[i],
+                cmap=cmap, vmax=50, solvers=solvers,
+                xpad=9, ypad=9,
+                save_plot=save_plot, param=param)
 
     for x_idx in range(x.size):
       for y_idx in range(y.size):
@@ -420,68 +432,18 @@ def gains_matshows(x, y, Z_real, param,
     offset = 0
 
   cmap = plt.get_cmap("viridis", 5)
-  numrows, numcols = Z_real[0].shape
   title_fontsize, legend_fontsize, tick_fontsize = fontsizes(save_plot)
+
   for i, ax in enumerate(axlist):
     ax_tilte = f"({solvers[2 * i + offset]}) - ({solvers[2 * i + 1 + offset]})"
     Z_real_gains = ((Z_real[2 * i + offset] - Z_real[2 * i + 1 + offset])
                     / (Z_real[2 * i] + 1))
 
-    ax.matshow(Z_real_gains,
-               interpolation='nearest',
-               label=ax_tilte,
-               cmap=cmap, vmin=0, vmax=0.20)
-
-    def format_coord(xx, yy):
-      col = int(xx + 0.5)
-      row = int(yy + 0.5)
-      if (col >= 0) and (col < numcols) and (row >= 0) and (row < numrows):
-        zz = Z_real_gains[row, col]
-        return f"x={xx:.4f}, y={yy:.4f}, z={zz:.4f}"
-      else:
-        return f"x={xx:.4f}, y={yy:.4f}"
-
-    ax.format_coord = format_coord
-    ax.invert_yaxis()
-
-    # axis labels
-    if i == len(solvers) // 2 - 1:
-      ax.set_xlabel("n (nodes)", fontsize=legend_fontsize, labelpad=6)
-    ax.set_ylabel(ylabel(param, mattshow=True), fontsize=legend_fontsize,
-                  labelpad=12, rotation="horizontal")
-
-    # ticks
-    ax.xaxis.set_major_locator(MaxNLocator(numcols + 1))
-    ax.yaxis.set_major_locator(MaxNLocator(numrows + 1))
-    ax.tick_params(axis='both', which='major', labelsize=tick_fontsize)
-
-    # tick labels
-    if i == len(solvers) // 2 - 1:
-      ax.tick_params(axis="x",
-                     which='major', labelsize=tick_fontsize,
-                     bottom=True, top=False,
-                     labelbottom=True, labeltop=False)
-      ax.set_xticklabels(np.hstack([[0], x]))
-    else:
-      ax.tick_params(axis="x",
-                     which='major', labelsize=tick_fontsize,
-                     bottom=False, top=False,
-                     labelbottom=False, labeltop=False)
-      ax.set_xticklabels([])
-
-    if param == 'p_0':
-      ylabels = [f"{y_val:.3f}"
-                 for y_val in np.round(np.hstack([[0], y]), decimals=3)]
-      ax.set_yticklabels(ylabels)
-    elif param == 'c':
-      ax.set_yticklabels(yticklabels_c_study(y))
-    elif param == 'k':
-      ax.set_yticklabels(np.hstack([[0], y]).astype(int))
-    # title
-    ax.set_title(ax_tilte, fontsize=title_fontsize)
-
-    # title = (f"{problem} profiling")
-    # fig.suptitle(title, fontsize=title_fontsize)
+    gen_matshow(ax=ax, i=i, label=ax_tilte, solvers_divisor=2,
+                x=x, y=y, Z=Z_real_gains,
+                cmap=cmap, vmax=0.2, solvers=solvers,
+                xpad=6, ypad=12,
+                save_plot=save_plot, param=param)
 
     for x_idx in range(x.size):
       for y_idx in range(y.size):
@@ -641,9 +603,9 @@ def main(filename,
 
   matshows = solvers_matshows(x, y, Z_norm, Z_real, **kwargs)
   gains = gains_matshows(x, y, Z_real, **kwargs)
-  # surfaces = solvers_surfaces(X, Y, Z_pred, Z_real, y, colors, **kwargs)
+  surfaces = solvers_surfaces(X, Y, Z_pred, Z_real, y, colors, **kwargs)
   kwargs.pop("param")
-  # k_study_line_plots = t_vs_k_plot(y, Z_real, **kwargs)
+  k_study_line_plots = t_vs_k_plot(y, Z_real, **kwargs)
 
   if show_plot:
     plt.show()
