@@ -571,24 +571,17 @@ def t_vs_k_plot(k, z, problem, solvers, save_plot):
     plt.savefig(f"{problem}_k_linearity.png", dpi=fig.dpi)
   return fig
 
-  for i in range(len(solvers)):
-    z_real = results[num_p * i + 1: (i + 1) * num_p + 1, 1:]
-    Z_real.append(z_real)
-    z_pred = fit_pol(x, y, z_real, order=order)
-    Z_pred.append(z_pred)
 
-  # Normalize to 0-255
-  #   - the min value should be in the timings of the last solver
-  #   - the max value should be in the timings of the first solver
-  for i in range(len(solvers)):
-    Z_norm.append(
-      (
-        (Z_real[i] - Z_real[-1].min())
-        / Z_real[0].max()
-        * 255
-      ).astype(int)
-    )
-  return Z_real, Z_pred, Z_norm
+def _y(results, num_p, max_prob, param):
+  """Extracts y axils values for the corresponding parameter of study."""
+  if param in ['c', 'k']:
+    return results[1: num_p + 1, 0]
+  elif param == 'p_0':
+    return results[1: num_p + 1, 0] * max_prob
+  else:
+    accepted_param_values = ['c', 'p_0', 'k']
+    raise ValueError(f"<study> positional argument should be on of"
+                     f" {accepted_param_values}. Instead, got {param}.")
 
 
 @click.command()
@@ -619,10 +612,7 @@ def main(filename,
   num_p = (len(results) - 1) // len(solvers)
 
   x = results[0, 1:].astype(int)
-  # - y values for c or k study
-  # y = results[1: num_p + 1, 0]
-  # - y values for p_0 study
-  y = results[1: num_p + 1, 0] * max_probability
+  y = _y(results, num_p, max_probability, 'k')
   X, Y = np.meshgrid(x, y)
   Z_real, Z_pred, Z_norm = z_real_pred_norm(x, y, results,
                                             solvers, num_p, order=3)
