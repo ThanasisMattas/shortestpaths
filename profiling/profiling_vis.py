@@ -370,7 +370,15 @@ def gen_matshow(ax, i, label, solvers_divisor,
   elif param == 'k':
     ax.set_yticklabels(np.hstack([[0], y]).astype(int))
   # title
-  ax.set_title(solvers[i], fontsize=title_fontsize)
+  if param == 'k':
+    ax.annotate(solvers[i],
+                xy=(1, 2.5), xytext=(0, 0),
+                xycoords=ax.get_yaxis_transform(),
+                textcoords="offset points",
+                size=title_fontsize, va="center",
+                rotation=-90)
+  else:
+    ax.set_title(solvers[i], fontsize=title_fontsize)
 
 
 def solvers_matshows(x, y, Z_norm, Z_real, param,
@@ -534,7 +542,7 @@ def t_vs_k_plot(k, z, problem, solvers, save_plot):
                   c=c,
                   xycoords=ax.get_yaxis_transform(),
                   textcoords="offset points",
-                  size=14, va="center")
+                  size=tick_fontsize - 1, va="center")
       # if not (((solver == 0) and (n_idx in [2, 6]))
       #         or ((solver == 1) and (n_idx in [6]))):
       #   ax.annotate(f"{n[n_idx]:>4}",
@@ -604,8 +612,8 @@ def main(filename,
   matshows = solvers_matshows(x, y, Z_norm, Z_real, **kwargs)
   gains = gains_matshows(x, y, Z_real, **kwargs)
   surfaces = solvers_surfaces(X, Y, Z_pred, Z_real, y, colors, **kwargs)
-  kwargs.pop("param")
-  k_study_line_plots = t_vs_k_plot(y, Z_real, **kwargs)
+  if kwargs.pop("param") == 'k':
+    k_study_line_plots = t_vs_k_plot(y, Z_real, **kwargs)
 
   if show_plot:
     plt.show()
