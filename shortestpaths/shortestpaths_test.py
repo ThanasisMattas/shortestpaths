@@ -117,11 +117,11 @@ class TestIO():
           assert ast.literal_eval(", ".join(entry)) == self.adj_list[i - 1]
 
   @pytest.mark.parametrize("num_graphs", [1, 2, 4])
-  def test_read_graphs(self, num_graphs):
+  def test_read_graphs_from_csv(self, num_graphs):
     for _ in range(num_graphs):
       io.append_graph_to_csv(self.csvfile, self.adj_list)
     graph_counter = 0
-    for adj in io.read_graphs(self.csvfile):
+    for adj in io.read_graphs_from_csv(self.csvfile):
       graph_counter += 1
       assert adj == self.adj_list
     assert graph_counter == num_graphs

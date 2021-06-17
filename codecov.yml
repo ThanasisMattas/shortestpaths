@@ -1,5 +1,6 @@
 ignore:
     - "shortestpaths/post_processing.py"
+    - "shortestpaths/io.py"
 
 status:
     project: no
