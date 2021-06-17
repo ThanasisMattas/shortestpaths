@@ -826,11 +826,6 @@ def bidirectional_dijkstra(forward_config,
   Returns:
     path, path_cost, cum_hop_weights, meeting_edge_head
   """
-  if mode.get("verbose", 0) >= 2:
-    log_to_stderr()
-    logger = get_logger()
-    logger.setLevel(logging.INFO)
-
   if prospect is None:
     prospect = [0, 0, 0, 0]
     top_reverse = 0

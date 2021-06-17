@@ -536,7 +536,7 @@ def replacement_paths(mode,
   cum_hop_weights = path_data[2]
 
   # 2. Find the replacement paths.
-  if mode["dynamic"] and mode["online"]:
+  if mode.get("dynamic") and mode.get("online"):
     repl_paths += _dynamic_online_replacement_paths(
         mode,
         init_config,
