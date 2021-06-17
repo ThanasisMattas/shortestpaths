@@ -485,60 +485,98 @@ def gains_matshows(x, y, Z_real, param,
   return fig
 
 
-def t_vs_k_plot(k, z, problem, solvers, save_plot):
-  title_fontsize, legend_fontsize, tick_fontsize = fontsizes(save_plot)
-  colors = ['r', 'y', 'g', 'b']
+def t_vs_param_2d_scatter(x, z,
+                          n, n_idxes,
+                          param, problem, solvers,
+                          save_plot):
+  # title_fontsize, legend_fontsize, tick_fontsize = fontsizes(save_plot)
+  title_fontsize, legend_fontsize, tick_fontsize = 22, 22, 22
   markers = ['o', '^', 's', 'D']
 
   fig, ax = plt.subplots(**figsize_dpi(save_plot), constrained_layout=True)
 
-  ax.set_xlabel("k", fontsize=tick_fontsize)
+  xlabel = 'd' if param == "p_0" else param
+  ax.set_xlabel(xlabel, fontsize=tick_fontsize)
   ax.set_ylabel('t (s)', fontsize=tick_fontsize, rotation=0, labelpad=20)
-  ax.xaxis.set_major_locator(MaxNLocator(k.size + 1))
-  ax.set_ylim(0, 27)
-  ax.set_xlim(10, 97)
-  # ax.yaxis.set_major_locator(MaxNLocator(k.size + 1))
-  ax.tick_params(axis='both', which='major', labelsize=tick_fontsize)
-  # ax.set_xticks(k)
+  ax.xaxis.set_major_locator(MaxNLocator(x.size + 1))
   ax.yaxis.set_minor_locator(MultipleLocator(2.5))
+  if param == 'k':
+    colors = ['r', 'y', 'g', 'b']
+    ax.set_ylim(0, 27)
+    ax.set_xlim(10, 97)
+  else:
+    colors = ['r', 'g', 'b']
+    ax.set_ylim(0, 40)
+    ax.set_xlim(0.015, 0.272)
+  # ax.yaxis.set_major_locator(MaxNLocator(x.size + 1))
+  ax.tick_params(axis='both', which='major', labelsize=tick_fontsize)
+  ax.set_xticks(x)
   ax.grid(True, which="both")
   # ax.yaxis.set_minor_locator(AutoMinorLocator())
   # ax.yaxis.grid(True, which="both")
 
-  n = np.arange(500, 2750, 250)
-  for n_idx in [0, 2, 6]:
+  for n_idx in n_idxes:
     for solver, results in enumerate(z):
-      if n_idx == 0:
+      if n_idx == n_idxes[0]:
         label = solvers[solver]
       else:
         label = None
       c = colors[solver]
       t = results[:, n_idx]
-      ax.scatter(k, t,
+      ax.scatter(x, t,
                  c=colors[solver],
                  marker=markers[solver],
                  label=label)
-      t_pred = fit_linear(k, t)
-      ax.plot(k, t_pred, c=c)
+      t_pred = fit_linear(x, t)
+      ax.plot(x, t_pred, c=c)
       xtext, ytext = -37, 0
-      x = 1
+      xpos = 1
       t_idx = -1
-      if solver == 0:
-        if n_idx == 6:
-          t_idx = 1
-          x = 0.31
-          xtext, ytext = -37, -3
-        elif n_idx == 2:
-          t_idx = 4
-          x = 0.83
-          xtext, ytext = -8, 26
-      elif solver == 1:
-        if n_idx == 6:
-          t_idx = 2
-          x = 0.49
-          xtext, ytext = -25, 10
+      if param == 'k':
+        if solver == 0:
+          if n_idx == 6:
+            t_idx = 1
+            xpos = 0.31
+            xtext, ytext = -37, -6
+          elif n_idx == 2:
+            t_idx = 4
+            xpos = 0.83
+            xtext, ytext = -8, 23
+        elif solver == 1:
+          if n_idx == 6:
+            t_idx = 2
+            xpos = 0.49
+            xtext, ytext = -25, 7
+      else:
+        if problem.endswith("offline"):
+          if solver == 0:
+            if n_idx == -1:
+              t_idx = 1
+              xpos = 0.36
+              xtext, ytext = 0, 46
+          elif solver == 1:
+            if n_idx == -1:
+              t_idx = 2
+              xpos = 0.645
+              xtext, ytext = 0, 83
+          elif solver == 2:
+            if n_idx == -1:
+              xtext, ytext = -70, -39
+        else:
+          if solver == 0:
+            if n_idx == -1:
+              t_idx = 1
+              xpos = 0.37
+              xtext, ytext = 0, 61
+          elif solver == 1:
+            if n_idx == -1:
+              ytext = -5
+          # elif solver == 2:
+          #   if n_idx == -1:
+          #     xtext, ytext = -70, -39
+
       ax.annotate(f"{n[n_idx]:>4}",
-                  xy=(x, t[t_idx]), xytext=(xtext, ytext),
+                  xy=(xpos, t[t_idx]), xytext=(xtext, ytext),
                   c=c,
                   xycoords=ax.get_yaxis_transform(),
                   textcoords="offset points",
@@ -552,12 +590,13 @@ def t_vs_k_plot(k, z, problem, solvers, save_plot):
       #               textcoords="offset points",
       #               size=14, va="center")
 
-  ax.set_title(plot_surface_tilte(problem, 'k'), fontsize=title_fontsize)
+  ax.set_title(plot_surface_tilte(problem, param), fontsize=title_fontsize)
+  # ax.set_title(problem, fontsize=title_fontsize)
   ax.legend(fontsize=legend_fontsize,
             loc="upper left",
             bbox_to_anchor=(0, 0.96))
   if save_plot:
-    plt.savefig(f"{problem}_k_linearity.png", dpi=fig.dpi)
+    plt.savefig(f"{problem}_{xlabel}_linearity.png", dpi=fig.dpi)
   return fig
 
 
@@ -612,8 +651,11 @@ def main(filename,
   matshows = solvers_matshows(x, y, Z_norm, Z_real, **kwargs)
   gains = gains_matshows(x, y, Z_real, **kwargs)
   surfaces = solvers_surfaces(X, Y, Z_pred, Z_real, y, colors, **kwargs)
-  if kwargs.pop("param") == 'k':
-    k_study_line_plots = t_vs_k_plot(y, Z_real, **kwargs)
+  if kwargs["param"] == 'k':
+    n_idxes = [0, 2, 6]
+  else:
+    n_idxes = [5, 10, -1]
+  k_study_line_plots = t_vs_param_2d_scatter(y, Z_real, x, n_idxes, **kwargs)
 
   if show_plot:
     plt.show()
