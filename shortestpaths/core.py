@@ -349,6 +349,24 @@ def _replacement_path(failed_path_idx: int,
   return repl_path, repl_path_cost, repl_weights, failed, meeting_edge_head
 
 
+def _dijktra_step(to_visit, visited, sink, adj_list):
+  u_path_cost, u_prev, u = to_visit.pop_low()
+
+  if u_path_cost == math.inf:
+    visited[u][0] = -1
+    return False
+  visited[u][0] = u_path_cost
+  visited[u][1] = u_prev
+
+  if u == sink:
+    return True
+
+  for v, uv_weight in adj_list[u]:
+    if v in to_visit:
+      to_visit.relax_priority([u_path_cost + uv_weight, u, v])
+  return False
+
+
 # @profile
 def _dynamic_online_replacement_paths(mode,
                                       init_config,
@@ -399,7 +417,6 @@ def _dynamic_online_replacement_paths(mode,
   # The reverse search state stops being updated at meeting_edge_head. That
   # final state is used for all the subsequent searches.
   last_state_path_idx = base_path.index(meeting_edge_head) - 1
-  # discovered_reverse = {init_config["sink"]}
 
   # Initialize the first failed node or edge, which are the second to last node
   # or the last edge.
@@ -469,16 +486,11 @@ def _dynamic_online_replacement_paths(mode,
       # will be handled bidirectionally at each spur search.
       continue
 
-    u_path_cost, u_prev, u = reverse_config["to_visit"].pop_low()
-    # discovered_reverse.discard(u_next)
-
-    if u_path_cost == math.inf:
-      reverse_config["visited"][u][0] = -1
       continue
-    reverse_config["visited"][u][0] = u_path_cost
-    reverse_config["visited"][u][1] = u_prev
 
-    if u == reverse_config["sink"]:
+    sink_visited = _dijktra_step(**reverse_config)
+
+    if sink_visited:
       break
 
     for v, uv_weight in reverse_config["adj_list"][u]:

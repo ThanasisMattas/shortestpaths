@@ -43,7 +43,7 @@ def measure(n,
     random_seed=i,
     gradient=0.3,
     center_portion=0.15,
-    p_0=0.5,
+    p_0=0.3,
     **kwargs
   )
 
@@ -76,9 +76,9 @@ def measure(n,
 
 @click.command()
 @click.argument('n', type=click.INT)
-@click.option('-s', "--increase-step", default=25, show_default=True,
+@click.option('-s', "--step", default=25, show_default=True,
               help="number of nodes the graph size is increased by")
-@click.option('-i', "--graph-increases", default=50, show_default=True,
+@click.option('-i', "--increases", default=50, show_default=True,
               help="number of graph sizes formed by <increase-step>")
 @click.option('-g', "graphs_per_step", default=5, show_default=True,
               help=("number of different but equal sized graphs to run at each"
@@ -99,8 +99,8 @@ def measure(n,
 @click.option("--max-edge-weight", default=1000, show_default=True)
 @click.option("--max-node-weight", default=50, show_default=True)
 def main(n,
-         increase_step,
-         graph_increases,
+         step,
+         increases,
          graphs_per_step,
          failing,
          online,
@@ -123,12 +123,12 @@ def main(n,
 
   times = {solver: [] for solver in modes.keys()}
 
-  times_mean = {solver: [0] * graph_increases for solver in modes.keys()}
-  n_values = [n + i * increase_step for i in range(graph_increases)]
+  times_mean = {solver: [0] * increases for solver in modes.keys()}
+  n_values = [n + i * step for i in range(increases)]
 
-  for j in range(graph_increases):
+  for j in range(increases):
     for i in range(graphs_per_step):
-      print((f"Graph: {j + 1}/{graph_increases}"
+      print((f"Graph: {j + 1}/{increases}"
              f"   Instance: {i + 1}/{graphs_per_step}"
              f"   nodes: {n}"),
             end='\r')
@@ -148,7 +148,7 @@ def main(n,
       times_mean[solver][j] = sum(times[solver]) / graphs_per_step
       del times[solver][:]
 
-    n += increase_step
+    n += step
 
   print()
 
