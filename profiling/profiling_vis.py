@@ -492,9 +492,12 @@ def gains_matshows(x, y, Z_real, param,
   return fig
 
 
-def t_vs_param_2d_scatter(x, z,
-                          n, n_idxes,
-                          param, problem, solvers,
+def mse_lines(x,
+                          z,
+                          n,
+                          param,
+                          problem,
+                          solvers,
                           save_plot):
   # title_fontsize, legend_fontsize, tick_fontsize = fontsizes(save_plot)
   title_fontsize, legend_fontsize, tick_fontsize = 22, 22, 22
@@ -511,10 +514,12 @@ def t_vs_param_2d_scatter(x, z,
     colors = ['r', 'y', 'g', 'b']
     ax.set_ylim(0, 27)
     ax.set_xlim(10, 97)
+    n_idxes = [0, 2, 6]
   else:
     colors = ['r', 'g', 'b']
     ax.set_ylim(0, 40)
     ax.set_xlim(0.015, 0.272)
+    n_idxes = [5, 10, -1]
   # ax.yaxis.set_major_locator(MaxNLocator(x.size + 1))
   ax.tick_params(axis='both', which='major', labelsize=tick_fontsize)
   ax.set_xticks(x)
@@ -641,7 +646,6 @@ def main(filename,
          max_prob,
          show_plot,
          **kwargs):
-  # results = np.loadtxt(filename)[:, :5]
   results = np.loadtxt(filename)
   param = kwargs["param"]
   problem, solvers, colors = problem_solvers_colors(filename, problem, param)
@@ -656,13 +660,9 @@ def main(filename,
                                             solvers, num_p, order=4)
 
   matshows = solvers_matshows(x, y, Z_norm, Z_real, **kwargs)
-  gains = gains_matshows(x, y, Z_real, **kwargs)
+  matgains = gains_matshows(x, y, Z_real, **kwargs)
   surfaces = solvers_surfaces(X, Y, Z_pred, Z_real, y, colors, **kwargs)
-  if kwargs["param"] == 'k':
-    n_idxes = [0, 2, 6]
-  else:
-    n_idxes = [5, 10, -1]
-  k_study_line_plots = t_vs_param_2d_scatter(y, Z_real, x, n_idxes, **kwargs)
+  mselines = mse_lines(y, Z_real, x, **kwargs)
 
   if show_plot:
     plt.show()
