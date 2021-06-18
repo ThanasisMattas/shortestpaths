@@ -61,7 +61,7 @@ def problem_solvers_colors(filename, problem, param):
     if param == 'c':
       solvers = ["Bidirectional Dijkstra",
                  "Bid. Dijkstra + DP"]
-      colors = ['orange', 'mediumblue']
+      colors = ['aqua', 'coral']
     else:
       solvers = ["Unidirectional Dijkstra",
                  "Bidirectional Dijkstra",
@@ -115,7 +115,7 @@ def ylabel(param, mattshow=False):
               "$\mathregular{p_m}$"   # noqa: W605
               "$\mathregular{_a}$"    # noqa: W605
               "$\mathregular{_x}$\n"  # noqa: W605
-              "p")
+              "d")
   elif param == 'p_0':
     return 'd'
   else:
@@ -259,7 +259,11 @@ def solvers_surfaces(X, Y, Z_pred, Z_real, y, colors, param,
   sub = fig.add_subplot(111, projection="3d")
   # axes labels
   sub.set_xlabel("n (nodes)", fontsize=tick_fontsize, labelpad=27)
-  sub.set_ylabel(ylabel(param), fontsize=tick_fontsize, labelpad=15)
+  if param == 'c':
+    ylabelpad = 50
+  else:
+    ylabelpad = 15
+  sub.set_ylabel(ylabel(param), fontsize=tick_fontsize, labelpad=ylabelpad)
   sub.set_zlabel("t (s)", fontsize=tick_fontsize, labelpad=13)
   # ticks
   sub.xaxis.set_major_locator(MaxNLocator(y.size + 1))
@@ -285,12 +289,15 @@ def solvers_surfaces(X, Y, Z_pred, Z_real, y, colors, param,
   # <stackoverflow.com/questions/48442713/move-spines-in-matplotlib-3d-plot/
   #  49601745#49601745>
   sub.zaxis._axinfo['juggled'] = (1, 2, 0)
-  # sub.set_zlim(0, 110)
 
-  # repl-paths view init
-  sub.view_init(16, 150)
-  # ksp view init
-  # sub.view_init(15, -70)
+  if param == 'k':
+    sub.view_init(15, -70)
+  elif param == 'c':
+    sub.view_init(16, 210)
+    sub.set_zlim(0, 8.2)
+  else:
+    sub.view_init(16, 150)
+    # sub.set_zlim(0, 110)
   sub.grid(False)
   # sub.computed_zorder = True
 
@@ -646,7 +653,7 @@ def main(filename,
   y = _y(results, num_p, max_prob, param)
   X, Y = np.meshgrid(x, y)
   Z_real, Z_pred, Z_norm = z_real_pred_norm(x, y, results,
-                                            solvers, num_p, order=3)
+                                            solvers, num_p, order=4)
 
   matshows = solvers_matshows(x, y, Z_norm, Z_real, **kwargs)
   gains = gains_matshows(x, y, Z_real, **kwargs)
