@@ -486,19 +486,10 @@ def _dynamic_online_replacement_paths(mode,
       # will be handled bidirectionally at each spur search.
       continue
 
-      continue
-
     sink_visited = _dijktra_step(**reverse_config)
 
     if sink_visited:
       break
-
-    for v, uv_weight in reverse_config["adj_list"][u]:
-      if v in reverse_config["to_visit"]:
-        reverse_config["to_visit"].relax_priority(
-          [u_path_cost + uv_weight, u, v]
-        )
-        # discovered_reverse.add(v)
 
   if k_paths:
     for path_node in base_path[:-1]:
