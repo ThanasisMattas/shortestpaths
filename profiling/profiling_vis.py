@@ -78,10 +78,11 @@ def fontsizes(save_plot):
   return title_fontsize, legend_fontsize, tick_fontsize
 
 
-def figsize_dpi(save_plot, axlist_ydim=None):
+def figsize_dpi(save_plot, axlist_ydim=None, param=None):
   if axlist_ydim:
     if save_plot:
-      figsize, dpi = (12.8, 4.1 * axlist_ydim), 200
+      y_mult = 5 if param == 'k' else 4.5
+      figsize, dpi = (12.8, y_mult * axlist_ydim), 200
     else:
       figsize, dpi = (10, 4.1 * axlist_ydim), 100
   else:
@@ -377,7 +378,7 @@ def gen_matshow(ax, i, label, solvers_divisor,
   elif param == 'k':
     ax.set_yticklabels(np.hstack([[0], y]).astype(int))
   # title
-  if param == 'k':
+  if (param == 'k') and (label == solvers[i]):
     ax.annotate(solvers[i],
                 xy=(1, 2.5), xytext=(0, 0),
                 xycoords=ax.get_yaxis_transform(),
@@ -385,14 +386,14 @@ def gen_matshow(ax, i, label, solvers_divisor,
                 size=title_fontsize, va="center",
                 rotation=-90)
   else:
-    ax.set_title(solvers[i], fontsize=title_fontsize)
+    ax.set_title(label, fontsize=title_fontsize)
 
 
 def solvers_matshows(x, y, Z_norm, Z_real, param,
                      problem, solvers, save_plot):
   """Plots a matshow for each solver in a different axes."""
   fig, axlist = plt.subplots(len(solvers), 1,
-                             **figsize_dpi(save_plot, len(solvers)),
+                             **figsize_dpi(save_plot, len(solvers), param),
                              constrained_layout=True)
 
   cmap = plt.get_cmap("viridis_r", 256)
@@ -436,7 +437,7 @@ def gains_matshows(x, y, Z_real, param,
   """Plots the performance gains."""
   fig, axlist = plt.subplots(
     int(problem == "k-shortest-paths") + 1, 1,
-    **figsize_dpi(save_plot, max(2, len(solvers) // 2)),
+    **figsize_dpi(save_plot, max(2, len(solvers) // 2), param),
     constrained_layout=True
   )
 
@@ -493,12 +494,12 @@ def gains_matshows(x, y, Z_real, param,
 
 
 def mse_lines(x,
-                          z,
-                          n,
-                          param,
-                          problem,
-                          solvers,
-                          save_plot):
+              z,
+              n,
+              param,
+              problem,
+              solvers,
+              save_plot):
   # title_fontsize, legend_fontsize, tick_fontsize = fontsizes(save_plot)
   title_fontsize, legend_fontsize, tick_fontsize = 22, 22, 22
   markers = ['o', '^', 's', 'D']
