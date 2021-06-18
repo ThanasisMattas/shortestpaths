@@ -455,9 +455,18 @@ def gains_matshows(x, y, Z_real, param,
     Z_real_gains = ((Z_real[2 * i + offset] - Z_real[2 * i + 1 + offset])
                     / (Z_real[2 * i] + 1))
 
+    if problem.endswith("online"):
+      vmax = 0.12
+    elif problem.endswith("offline"):
+      vmax = 0.2
+    else:
+      if param == 'k':
+        vmax = 0.55
+      else:
+        vmax = 0.37
     gen_matshow(ax=ax, i=i, label=ax_tilte, solvers_divisor=2,
                 x=x, y=y, Z=Z_real_gains,
-                cmap=cmap, vmax=0.2, solvers=solvers,
+                cmap=cmap, vmax=vmax, solvers=solvers,
                 xpad=6, ypad=12,
                 save_plot=save_plot, param=param)
 
@@ -479,7 +488,7 @@ def gains_matshows(x, y, Z_real, param,
         else:
           t_perc = np.round(t_perc, decimals=1)
 
-        if t_perc > 5:
+        if (t_perc / 100) > (vmax / 5):
           c = 'k'
         else:
           c = 'silver'
