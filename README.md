@@ -1,6 +1,6 @@
 # ShortestPaths
 
-![Build_Status] ![codecov]
+![Conda] ![Build_Status] ![codecov]
 
 <br />
 
@@ -19,7 +19,7 @@ programming
 | numpy>=1.19.2      |
 | matplotlib>=3.3.2  |
 
-<br />
+<!-- <br /> -->
 
 ## Overview
 ShortestPaths constitutes thesis source code. It examines the optimization of
@@ -49,11 +49,8 @@ paths search are: <br />
 A [PriorityQueue] class is implemented as a wrapper around [heapq], using the
 <priority, entry_counter, entry> triple, as suggested [here].
 <br />
-<br />
 
 Thesis supervisor: [Prof. Kostas Siozios]
-
-<br />
 
 ## Install
 ```bash
@@ -119,10 +116,10 @@ $ pytest --cov=shortestpaths shortestpaths
 ```
 
 ## State retrieval | Replacement-paths offline
-<img src="bin/state_retrieval_offline_after_me.png" width="410"/> <img src="bin/state_retrieval_offline_before_me.png" width="410"/>
+<img src="bin/state_retrieval_offline_after_me.png" width="420"/> <img src="bin/state_retrieval_offline_before_me.png" width="420"/>
 
 ## State retrieval | Replacement-paths online
-<img src="bin/state_retrieval_online_after_me.png" width="410"/> <img src="bin/state_retrieval_online_before_me.png" width="410"/>
+<img src="bin/state_retrieval_online_after_me.png" width="420"/> <img src="bin/state_retrieval_online_before_me.png" width="420"/>
 
 ## License
 [GNU General Public License v3.0]
@@ -134,6 +131,7 @@ $ pytest --cov=shortestpaths shortestpaths
 
 [//]: # "links"
 
+[Conda]: <https://img.shields.io/conda/v/mattasa/shortestpaths?color=blue>
 [Build_Status]: <https://travis-ci.com/ThanasisMattas/shortestpaths.svg?branch=master>
 [codecov]: <https://codecov.io/gh/ThanasisMattas/shortestpaths/branch/master/graph/badge.svg>
 [Prof. Kostas Siozios]: <https://ksiop.webpages.auth.gr/>
