@@ -423,7 +423,9 @@ def _dynamic_online_replacement_paths(mode,
   if mode["failing"] == "nodes":
     failed_path_idx = len(base_path) - 2
   else:
-    # Here, failed_path_idx is the head of each failed edge. Note that
+    # Here, failed_path_idx is the head of each failed edge, because when we
+    # stumble upon a path-node, this will be the head of the failed edge. So,
+    # basically we loop through heads, when scanning backwards. Note that
     # _replacement_path() takes the tail of the failed edge as failed_path_idx.
     failed_path_idx = len(base_path) - 1
 
