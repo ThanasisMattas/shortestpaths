@@ -116,10 +116,10 @@ $ pytest --cov=shortestpaths shortestpaths
 ```
 
 ## State retrieval | Replacement-paths offline
-<img src="bin/state_retrieval_offline_after_me.png" width="420"/> <img src="bin/state_retrieval_offline_before_me.png" width="420"/>
+<img src="bin/state_retrieval_offline_after_me.png" width="415"/> <img src="bin/state_retrieval_offline_before_me.png" width="415"/>
 
 ## State retrieval | Replacement-paths online
-<img src="bin/state_retrieval_online_after_me.png" width="420"/> <img src="bin/state_retrieval_online_before_me.png" width="420"/>
+<img src="bin/state_retrieval_online_after_me.png" width="415"/> <img src="bin/state_retrieval_online_before_me.png" width="415"/>
 
 ## License
 [GNU General Public License v3.0]
