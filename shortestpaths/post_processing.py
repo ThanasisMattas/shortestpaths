@@ -607,8 +607,10 @@ def graph_density_contour(n,
   cm = plt.cm.get_cmap('viridis')
   levels = np.arange(0, 1.1, 0.1)
 
-  cp = plt.contour(X, Y, densities, levels=levels, colors="gainsboro", linewidths=0.2)
-  plt.clabel(cp, fmt="%1.1f", fontsize=10, colors="gainsboro", rightside_up=False, manual=True)
+  cp = plt.contour(X, Y, densities,
+                   levels=levels, colors="gainsboro", linewidths=0.2)
+  plt.clabel(cp, fmt="%1.1f", fontsize=10, colors="gainsboro",
+             rightside_up=False, manual=True)
   plt.contourf(X, Y, densities, cmap=cm, levels=levels)
 
   plt.xlabel("${p_0}$", fontsize=10)

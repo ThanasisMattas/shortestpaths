@@ -11,17 +11,7 @@
 #
 # (C) 2020 Athanasios Mattas
 # ==========================================================================
-"""Produces a ShortestPaths demo on a random Erdős-Rényi graph.
-
-Usage: shortestpaths [OPTIONS] N COMMAND [OPTIONS]
-
-Examples:
-shortestpaths -v 100
-shortestpaths --show-graph -k 5 100
-shortestpaths -v -d -k 20 1000
-shortestpaths -v --show-graph 200 replacement-paths --failing edges
-shortestpaths -v --show-graph 200 replacement-paths --failing edges --online
-"""
+"""Produces a ShortestPaths demo."""
 
 import click
 
