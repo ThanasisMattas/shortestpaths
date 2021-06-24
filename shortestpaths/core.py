@@ -488,9 +488,9 @@ def _dynamic_online_replacement_paths(mode,
       # will be handled bidirectionally at each spur search.
       continue
 
-    sink_visited = _dijktra_step(**reverse_config)
+    sink_was_visited = _dijktra_step(**reverse_config)
 
-    if sink_visited:
+    if sink_was_visited:
       break
 
   if k_paths:
