@@ -109,6 +109,7 @@ def main(ctx,
   if ctx.invoked_subcommand is not None:
     if ctx.invoked_subcommand == "dynamic_graph_demo":
       ctx_config["random_seed"] = random_seed
+    ctx.ensure_object(dict)
     ctx.obj.update(ctx_config)
     return
 

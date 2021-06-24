@@ -12,7 +12,7 @@
 """Special project variables"""
 
 __name__ = 'shortestpaths'
-__version__ = '0.3.0'
+__version__ = '0.3.1'
 __author__ = 'Athanasios Mattas'
 __author_email__ = 'thanasismatt@gmail.gr'
 __description__ = "Bidirectional replacement paths and k-shortest paths search with dynamic programming"
