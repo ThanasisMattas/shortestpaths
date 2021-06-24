@@ -481,17 +481,11 @@ def _dynamic_online_replacement_paths(mode,
 
       failed_path_idx -= 1
 
-    if failed_path_idx <= last_state_path_idx:
-      # Carry on using current node as source for the reverse search, because
-      # the search sphere of the underlying unidirecional search got very big
-      # and building more informed states became very heavy. The extra distance
-      # will be handled bidirectionally at each spur search.
-      continue
-
-    sink_was_visited = _dijktra_step(**reverse_config)
-
-    if sink_was_visited:
-      break
+    if failed_path_idx > last_state_path_idx:
+      # Update reverse search state.
+      sink_was_visited = _dijktra_step(**reverse_config)
+      if sink_was_visited:
+        break
 
   if k_paths:
     for path_node in base_path[:-1]:
