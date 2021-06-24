@@ -45,15 +45,8 @@ from shortestpaths import (core,  # noqa F401
               help="number of shortest paths to be generated")
 @click.option('-y', "--yen", is_flag=True)
 @click.option('-l', "--lawler", is_flag=True)
-# @click.option("--disconnected-nodes",
-#               cls=PythonLiteralOption, default="[]", show_default=True,
-#               help=("Usage:\n\n"
-#                     "--disconnected-nodes '[id_1, id_2, ...]'"
-#                     "\n\n"
-#                     "An alternative path will be constructed, disregarding"
-#                     " the disconnected nodes."))
 @click.option('-b', "--bidirectional", is_flag=True,
-              help="bidirectional shortest path search (uses 2 processes)")
+              help="bidirectional shortest path search")
 @click.option('-p', "--parallel", is_flag=True,
               help="whether to use multiprocessing or not")
 @click.option('-d', "--dynamic", is_flag=True,

@@ -4,6 +4,7 @@ import os
 
 
 REQUIRED = ['click>=7.1.2',
+            'numpy>=1.19.2',
             'matplotlib>=3.3.2',
             'scipy>=1.6.1',
             'networkx>=2.5']
@@ -49,7 +50,7 @@ setup(
   ],
   entry_points={
     "console_scripts": [
-      "shortestpaths=shortestpaths.__main__:main",
+      "ksp=shortestpaths.__main__:main",
     ]
   },
 )
