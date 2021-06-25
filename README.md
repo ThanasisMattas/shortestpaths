@@ -79,7 +79,7 @@ Options:
   -b, --bidirectional             use bidirectional shortest path search
   -p, --parallel                  use multiprocessing
   -d, --dynamic                   use dynamic programming
-  -s, --seed INTEGER              for random graph
+  -s, --seed INTEGER              fixes the random graph
   --layout-seed INTEGER           fixes the random initialization of the
                                   spirng_layout.  [default: 1]
   --show-graph                    plots up to 8 paths

@@ -15,6 +15,7 @@ from datetime import datetime
 from math import sqrt
 import os
 from statistics import mean
+from warnings import warn
 
 import click
 import matplotlib.pyplot as plt
@@ -124,12 +125,12 @@ def plot_paths(paths_data,
   # path_nodes_pos = {paths_data[0][0][i]: path_nodes_pos[i] for i in range(8)}
 
   fig = plt.figure(figsize=figsize, dpi=dpi)
-  # , k=10 / sqrt(G.number_of_nodes())  # the default spring coefficient
+  # , k=1 / sqrt(G.number_of_nodes())  # the default spring coefficient
   pos = nx.spring_layout(
       G,
       seed=layout_seed,
       # pos=path_nodes_pos,
-      k=15 / sqrt(G.number_of_nodes()),
+      k=5 / sqrt(G.number_of_nodes()),
       # fixed=path_nodes_pos.keys()
   )
 
@@ -158,7 +159,7 @@ def plot_paths(paths_data,
       plt.text(x, y, node, fontsize=19, ha='center', va='center')
   nx.draw_networkx_nodes(G, pos=pos,
                          nodelist=all_paths_nodes, node_size=path_node_size,
-                         edgecolors='k', node_color="deepskyblue", alpha=0.8)
+                         edgecolors='k', node_color="deepskyblue", alpha=0.9)
 
   # 3. Draw the paths
   colors = iter(COLORS)
@@ -167,7 +168,12 @@ def plot_paths(paths_data,
   first_path_width = max(last_path_width + (len(paths_data) - 1) * width_step,
                          8)
   for i, path in enumerate(paths_data):
-    color = next(colors)
+    try:
+      color = next(colors)
+    except StopIteration:
+      warn("Up to 8 paths can be plotted. Try the -v option, to print all the"
+           " generated paths.")
+      break
     label = path_label(path, i + 1, mode["failing"])
     path_edges_sequence = list(zip(path[0], path[0][1:]))
     # arrows=False, arrowsize=20, arrowstyle='fancy',

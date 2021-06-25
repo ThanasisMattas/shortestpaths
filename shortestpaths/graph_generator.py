@@ -153,9 +153,9 @@ def random_graph(n,
                  max_edge_weight=1000,
                  max_node_weight=50,
                  random_seed=None,
-                 center_portion=0.3,
-                 gradient=0.2,
-                 p_0=0.7,
+                 center_portion=0.25,
+                 gradient=0.5,
+                 p_0=0.6,
                  get_probability_distribution=False):
   """Generates a n-nodes random graph, using a modified Erdős-Rényi model.
   (see _edge_probability() docstring)
