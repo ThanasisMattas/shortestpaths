@@ -10,7 +10,8 @@ REQUIRED = ['click>=7.1.2',
             'networkx>=2.5']
 
 EXTRAS = {
-  'testing': ['pytest>=6.1.1']
+  'testing': ['pytest>=6.1.1'],
+  'profiling': ['scikit-learn>=0.24.2']
 }
 
 here = os.path.abspath(os.path.dirname(__file__))
