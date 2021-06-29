@@ -33,14 +33,15 @@ replacement paths problem is solved on both *edge-exclusive* and
 Regarding the k-shortest paths problem, *k* online replacement-paths searches
 are executed, following [*Yen*'s algorithm] with *Lawler*'s modification, while
 utilizing the developed bidirectional search with dynamic programming.
-[*Dijkstra*'s algorihtm] is used for the shortest path search and a modified
-*[Erdős-Rényi]* random graph model is introduced, controling the density and
+[*Dijkstra*'s algorithm] is used for the shortest path search and a modified
+*[Erdős-Rényi]* random graph model is introduced, controlling the density and
 the topology of the graph. More specifically, the *small world* property is
-captured by the topology of the graph, resulting to more realistic
+captured by the topology of the graph, resulting in more realistic
 representations.
 
 The four supported methods for the k-shortest
-paths search are: <br />
+paths search are:
+
 1. Yen + Dijkstra
 2. Lawler + Dijkstra
 3. Lawler + Bid. Dijkstra
@@ -137,7 +138,7 @@ $ pytest --cov=shortestpaths shortestpaths
 [Prof. Kostas Siozios]: <https://ksiop.webpages.auth.gr/>
 [*Yen*'s algorithm]: <https://en.wikipedia.org/wiki/Yen%27s_algorithm>
 [Erdős-Rényi]: <https://en.wikipedia.org/wiki/Erd%C5%91s%E2%80%93R%C3%A9nyi_model>
-[*Dijkstra*'s algorihtm]: <https://en.wikipedia.org/wiki/Dijkstra%27s_algorithm>
+[*Dijkstra*'s algorithm]: <https://en.wikipedia.org/wiki/Dijkstra%27s_algorithm>
 [PriorityQueue]: <https://github.com/ThanasisMattas/shortestpaths/blob/master/shortestpaths/priorityq.py#L20>
 [heapq]: <https://docs.python.org/3/library/heapq.html#module-heapq>
 [here]: <https://docs.python.org/3/library/heapq.html#priority-queue-implementation-notes>

@@ -103,7 +103,7 @@ def _delete_root_path_nodes(mode,
 
   Args:
     mode (dict)                      : the configuration of the problem
-    root_path (list)                 : up to the spur-node
+    root_path (list)                 : without the spur-node
     to_visit (PriorityQueue)         : the forward PriorityQueue
     to_visit_reverse (PriorityQueue) : the reverse PriorityQueue (dufalt: None)
   """
@@ -350,21 +350,23 @@ def _replacement_path(failed_path_idx: int,
 
 
 def _dijktra_step(to_visit, visited, sink, adj_list):
+  """Expands one node.
+
+  Note that there is no check for reaching the sink, because it shouldn't. The
+  execution should end at the parent_spur_node (according to Lawler's
+  modification) or at the meeting_edge.
+  """
   u_path_cost, u_prev, u = to_visit.pop_low()
 
   if u_path_cost == math.inf:
     visited[u][0] = -1
-    return False
+    return
   visited[u][0] = u_path_cost
   visited[u][1] = u_prev
-
-  if u == sink:
-    return True
 
   for v, uv_weight in adj_list[u]:
     if v in to_visit:
       to_visit.relax_priority([u_path_cost + uv_weight, u, v])
-  return False
 
 
 # @profile
@@ -431,8 +433,7 @@ def _dynamic_online_replacement_paths(mode,
 
   # Terminate the spurs search at the spur_node of the parent-path, as sugge-
   # sted by Lawler.
-  while ((reverse_config["to_visit"])
-          and (failed_path_idx > parent_spur_node_idx)):
+  while failed_path_idx > parent_spur_node_idx:
     # The reverse search state will keep updating until the meeting point of
     # the bidirectional search of the parent_path, because from that point on
     # the unidirectional search for updating the state becomes very expensive,
@@ -483,9 +484,7 @@ def _dynamic_online_replacement_paths(mode,
 
     if failed_path_idx > last_state_path_idx:
       # Update reverse search state.
-      sink_was_visited = _dijktra_step(**reverse_config)
-      if sink_was_visited:
-        break
+      _dijktra_step(**reverse_config)
 
   if k_paths:
     for path_node in base_path[:-1]:
