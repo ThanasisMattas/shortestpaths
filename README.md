@@ -22,6 +22,7 @@ programming
 <!-- <br /> -->
 
 ## Overview
+
 ShortestPaths constitutes thesis source code. It examines the optimization of
 the bidirectional *replacement-paths* and *k-shortest paths* search, using
 dynamic programming. The algorithm proposed memoizes the states of the search
@@ -54,18 +55,22 @@ A [PriorityQueue] class is implemented as a wrapper around [heapq], using the
 Thesis supervisor: [Prof. Kostas Siozios]
 
 ## Install
+
 ```bash
 $ conda install -c mattasa shortestpaths
 ```
+
 ```bash
 $ pip install shortestpaths
 ```
 
 ## Usage
+
 ```bash
 $ ksp [OPTIONS] N COMMAND [OPTIONS]
 ```
-```
+
+```text
 Options:
   -k INTEGER                      number of shortest paths to be generated
                                   [default: 1]
@@ -82,7 +87,7 @@ Options:
   -d, --dynamic                   use dynamic programming
   -s, --seed INTEGER              fixes the random graph
   --layout-seed INTEGER           fixes the random initialization of the
-                                  spirng_layout.  [default: 1]
+                                  spring_layout.  [default: 1]
   --show-graph                    plots up to 8 paths
   --save-graph                    format: png
   -v, --verbose                   prints the generated paths
@@ -103,6 +108,7 @@ replacement-paths Options:
 ```
 
 ## Examples
+
 ```bash
 $ ksp -v 100
 $ ksp --show-graph -k 5 100
@@ -112,17 +118,23 @@ $ ksp -v --show-graph 200 replacement-paths --failing edges --online
 ```
 
 ## Test
+
 ```bash
 $ pytest --cov=shortestpaths shortestpaths
 ```
 
-## State retrieval | Replacement-paths offline
+## State retrieval
+
+### Replacement-paths offline
+
 <img src="bin/state_retrieval_offline_after_me.png" width="415"/> <img src="bin/state_retrieval_offline_before_me.png" width="415"/>
 
-## State retrieval | Replacement-paths online
+### Replacement-paths online
+
 <img src="bin/state_retrieval_online_after_me.png" width="415"/> <img src="bin/state_retrieval_online_before_me.png" width="415"/>
 
 ## License
+
 [GNU General Public License v3.0]
 
 <br />
