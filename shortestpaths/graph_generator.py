@@ -153,7 +153,7 @@ def random_graph(n,
                  max_edge_weight=1000,
                  max_node_weight=50,
                  random_seed=None,
-                 center_portion=0.25,
+                 center_portion=0.3,
                  gradient=0.5,
                  p_0=0.6,
                  get_probability_distribution=False):
