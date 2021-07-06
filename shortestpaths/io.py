@@ -69,8 +69,8 @@ def read_graphs_from_csv(csvfile,
       yield adj
 
 
-def load_graphs(filename):
-  """Creates a graph generator, reading graphs from a csv.
+def load_graphs_from_pickle(filename):
+  """Creates a graph generator, reading graphs from a pickle.
 
   NOTE: The number of pickled graphs cannot be infered before loading them all.
   """
