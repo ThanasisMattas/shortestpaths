@@ -16,6 +16,8 @@ import pickle
 
 import numpy as np
 
+from shortestpaths import graph_generator
+
 
 def append_graph_to_csv(csvfile, adj, new_graph_token="<new-graph>"):
   """Appends a graph to a csv file, starting with a <new-graph> token."""
@@ -25,7 +27,7 @@ def append_graph_to_csv(csvfile, adj, new_graph_token="<new-graph>"):
     np.savetxt(af, adj, fmt='%s')
 
 
-def read_graphs_from_csv(csvfile,
+def load_graphs_from_csv(csvfile,
                          num_graphs=None,
                          graph_offset=0,
                          new_graph_token="<new-graph>"):
@@ -69,14 +71,28 @@ def read_graphs_from_csv(csvfile,
       yield adj
 
 
-def load_graphs_from_pickle(filename):
+def load_graphs_from_pickle(picklefile):
   """Creates a graph generator, reading graphs from a pickle.
 
   NOTE: The number of pickled graphs cannot be infered before loading them all.
   """
-  with open(filename, "rb") as f:
+  with open(picklefile, "rb") as f:
     while True:
       try:
         yield pickle.load(f)
       except EOFError:
         return
+
+
+def read_graph(path, weighted, directed):
+  """Reads a NetworkX graph from a file."""
+  supported_formats = ["edgelist", "adjlist", "gexf", "gml", "gpickle"]
+  filename, exte = os.path.splitext(path)
+
+  if exte not in supported_formats:
+    raise ValueError(f"Expected: {supported_formats}\nInstead, got: {exte}")
+
+  G = eval(f"read_{exte}")(path)
+  adj_list, decoder = graph_generator.nx_to_adj_list(G)
+
+  return adj_list, G, decoder
