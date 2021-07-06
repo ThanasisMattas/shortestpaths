@@ -16,6 +16,7 @@ Erdős-Rényi model.
 from itertools import combinations, permutations
 import math
 import random
+from typing import Union
 
 import networkx as nx
 
@@ -318,3 +319,55 @@ def adj_list_reversed(adj_list):
     for neighbor in neighbors:
       i_adj_list[neighbor[0]].add((node, neighbor[1]))
   return i_adj_list
+
+
+def nx_to_adj_list(G: Union[nx.Graph, nx.DiGraph]) -> tuple:
+  """Converts NetworkX graph to an adj_list.
+
+  - adj_list format:
+      [
+        {
+          (neighbor, weight),
+        },
+      ]
+  - G.nodes() are encoded to a numerical representation [1, n], in order to be
+    used as indexes of adj_list.
+
+  Args:
+    G (Graph or Digraph)
+
+  Returns:
+    adj_list (list)
+    decoder (dict) : maps the numerical representation [1, n] back to G.nodes()
+
+  Raises:
+    Exception       : if G is negatively weighted
+  """
+
+  if nx.is_negatively_weighted(G):
+    raise Exception("Only non-negative weighted graphs are currently"
+                    " supported.")
+
+  n = G.number_of_nodes()
+  encoder = dict(zip(G.nodes, range(1, n + 1)))
+  decoder = dict(zip(range(1, n + 1), G.nodes))
+  adj_list = [set() for _ in range(n + 1)]
+
+  if nx.is_directed(G):
+    if nx.is_weighted(G):
+      for u, v, w in G.edges.data("weight"):
+        adj_list[encoder[u]].add((encoder[v], w))
+    else:
+      for u, v in G.edges:
+        adj_list[encoder[u]].add((encoder[v], 1))
+  else:
+    if nx.is_weighted(G):
+      for u, v, w in G.edges.data("weight"):
+        adj_list[encoder[u]].add((encoder[v], w))
+        adj_list[encoder[v]].add((encoder[u], w))
+    else:
+      for u, v in G.edges:
+        adj_list[encoder[u]].add((encoder[v], 1))
+        adj_list[encoder[v]].add((encoder[u], 1))
+
+  return adj_list, decoder
