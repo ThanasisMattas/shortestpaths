@@ -376,5 +376,7 @@ def nx_to_adj_list(G: Union[nx.Graph, nx.DiGraph]) -> tuple:
 def decode_path_nodes(paths: list, decoder: dict) -> list:
   decoded_paths = []
   for p in paths:
-    decoded_paths.append((list(map(decoder.get, p[0])), p[1]))
+    decoded_paths.append(
+      (list(map(decoder.get, p[0])),) + p[1:]
+    )
   return decoded_paths
