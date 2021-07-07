@@ -67,7 +67,7 @@ $ pip install shortestpaths
 ## Usage
 
 ```bash
-$ ksp [OPTIONS] N COMMAND [OPTIONS]
+$ ksp [OPTIONS] COMMAND [OPTIONS]
 ```
 
 ```text
@@ -133,7 +133,7 @@ A [NetworkX formated graph] can be loaded, using the following options:
                                   defaults to node n.
 ```
 
-### .edgelist
+### Example format: ```.edgelist```
 
 ```python
 import networkx as nx
@@ -142,14 +142,14 @@ G.add_weighted_edges_from([[1, 2, 5], [1, 3, 6], [1, 4, 3], [2, 3, 1], [2, 4, 6]
 nx.write_weighted_edgelist(G, "testgraph.edgelist")
 ```
 
-format:
+```testgraph.edgelist``` content:<br />
+> 1 2 5<br />
+> 1 3 6<br />
+> 1 4 3<br />
+> 2 3 1<br />
+> 2 4 6<br />
 
-#&#8203; tail head weight <br />
-1 2 5<br />
-1 3 6<br />
-1 4 3<br />
-2 3 1<br />
-2 4 6<br />
+<br />
 
 ## Examples
 
