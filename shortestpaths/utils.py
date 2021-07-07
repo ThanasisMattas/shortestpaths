@@ -151,3 +151,15 @@ def verify_paths(paths_data):
       offset += 1
   if invalid_paths_idxs:
       warnings.warn(f"Invalid paths indexes: {invalid_paths_idxs}")
+
+
+def str_to_type(type_str):
+  types = {
+    "int": int,
+    "float": float,
+    "str": str
+  }
+  try:
+    return types[type_str]
+  except KeyError:
+    return None
