@@ -86,8 +86,8 @@ def main(ctx,
   # 1. Preprocessing
   if path is None:
     decoder = None
-    source = source if source else 1
-    target = target if target else n
+    source = int(source) if source else 1
+    target = int(target) if target else n
     adj_list, G = graph_generator.random_graph(
         n=n,
         weighted=weighted,
