@@ -60,8 +60,8 @@ class TestShortestPaths():
      for s in SEED]
   )
   def test_k_shortest_paths(self, r, k, n, d, s):
-    reference_cmd = f"python -m shortestpaths -v -s {s} -l {d} -k {k} {n}"
-    solver_cmd = f"python -m shortestpaths -v -s {s} {r} {d} -k {k} {n}"
+    reference_cmd = f"python -m shortestpaths -v --seed {s} -l {d} -k {k} -n {n}"
+    solver_cmd = f"python -m shortestpaths -v --seed {s} {r} {d} -k {k} -n {n}"
     reference = subprocess.run(reference_cmd.split(),
                                stdout=subprocess.PIPE)
     solver = subprocess.run(solver_cmd.split(),
@@ -81,9 +81,9 @@ class TestShortestPaths():
      for s in SEED]
   )
   def test_replacement_paths(self, r, n, f, o, d, s):
-    reference_cmd = (f"python -m shortestpaths -v -s {s} {d} {n}"
+    reference_cmd = (f"python -m shortestpaths -v --seed {s} {d} -n {n}"
                      f" replacement-paths --failing {f} {o}")
-    solver_cmd = (f"python -m shortestpaths -v -s {s} {d} {r} {n}"
+    solver_cmd = (f"python -m shortestpaths -v --seed {s} {d} {r} -n {n}"
                   f" replacement-paths --failing {f} {o}")
     reference = subprocess.run(reference_cmd.split(), stdout=subprocess.PIPE)
     solver = subprocess.run(solver_cmd.split(), stdout=subprocess.PIPE)
