@@ -14,6 +14,7 @@
 """Produces a ShortestPaths demo."""
 
 import click
+import networkx as nx
 
 from shortestpaths import (core,  # noqa F401
                            graph_generator,
@@ -28,7 +29,17 @@ from shortestpaths import (core,  # noqa F401
               help=("The NetworkX-file path to read the graph from. If not"
                     " provided, a random graph of n nodes will be generated.\n"
                     "Supported formats:\n"
-                    ".adjlist, .edgelist, .gexf, .gml, .gpickle"))
+                    ".adjlist, .edgelist, .gexf, .gml, .gpickle\n"
+                    "Recommended:\n"
+                    "nx.write_weighted_edgelist(G, path)"))
+@click.option("--nodetype", default="int", show_default=True,
+              help="convert nodes to this type")
+@click.option("--comments", type=click.STRING, default='#', show_default=True,
+              help="marker for comment lines")
+@click.option("--delimiter", type=click.STRING, default=' ', show_default=True,
+              help="Separator for node labels. The default is whitespace.")
+@click.option("--encoding", type=click.STRING,
+              default="utf-8", show_default=True)
 @click.option('-s', "--source", default=None, show_default=True,
               help="If a graph is not provided, the source defaults to node 1")
 @click.option('-t', "--target", default=None, show_default=True,
@@ -63,6 +74,10 @@ from shortestpaths import (core,  # noqa F401
 # @utils.time_this
 def main(ctx,
          path,
+         nodetype,
+         comments,
+         delimiter,
+         encoding,
          source,
          target,
          n,
@@ -101,9 +116,22 @@ def main(ctx,
     if (source is None) or (target is None):
       raise Exception("Both source and target sould be defined via the -s and"
                       " -t options.")
-    adj_list, G, encoder, decoder = io.read_graph(path, weighted, directed)
-    source = encoder[source]
-    target = encoder[target]
+    nodetype = utils.str_to_type(nodetype)
+    read_graph_config = {
+        "path": path,
+        "nodetype": nodetype,
+        "comments": comments,
+        "delimiter": delimiter,
+        "encoding": encoding
+    }
+    if directed:
+      read_graph_config["create_using"] = nx.DiGraph
+    else:
+      read_graph_config["create_using"] = nx.Graph
+
+    adj_list, G, encoder, decoder = io.read_graph(read_graph_config, weighted)
+    source = encoder[nodetype(source)]
+    target = encoder[nodetype(target)]
 
   if dynamic:
     bidirectional = True
