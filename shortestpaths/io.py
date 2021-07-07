@@ -93,6 +93,6 @@ def read_graph(path, weighted, directed):
     raise ValueError(f"Expected: {supported_formats}\nInstead, got: {exte}")
 
   G = eval(f"read_{exte}")(path)
-  adj_list, decoder = graph_generator.nx_to_adj_list(G)
+  adj_list, encoder, decoder = graph_generator.nx_to_adj_list(G)
 
-  return adj_list, G, decoder
+  return adj_list, G, encoder, decoder
