@@ -299,7 +299,10 @@ def random_graph(n,
           adj_list[edge[1]].add((edge[0], edge_weight))
         edges.add((*edge, edge_weight))
 
-  G = nx.Graph()
+  if directed:
+    G = nx.DiGraph()
+  else:
+    G = nx.Graph()
   G.add_nodes_from(nodes)
   G.add_weighted_edges_from(edges)
 
