@@ -133,7 +133,7 @@ A [NetworkX formated graph] can be loaded, using the following options:
                                   defaults to node n.
 ```
 
-### Example format: ```.edgelist```
+### Example format: .edgelist
 
 ```python
 import networkx as nx
@@ -149,8 +149,6 @@ nx.write_weighted_edgelist(G, "testgraph.edgelist")
 > 2 3 1<br />
 > 2 4 6<br />
 
-<br />
-
 ## Examples
 
 ```text
@@ -160,8 +158,8 @@ $ ksp -v -d -k 20 -n 1000
 $ ksp --seed 1 --show-graph -n 200 replacement-paths --failing edges
 $ ksp --seed 1 --show-graph -n 200 replacement-paths --failing edges --online
 
-$ ksp -v -s <source> -t <target> --path <path-to-graph> --directed -k 50
-$ ksp -v -s <source> -t <target> --path <path-to-graph> replacement-paths
+$ ksp -v -d -s <source> -t <target> --path <path-to-graph> --directed -k 50
+$ ksp -v -d -s <source> -t <target> --path <path-to-graph> replacement-paths
 ```
 
 ## Test
