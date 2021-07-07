@@ -17,13 +17,24 @@ import click
 
 from shortestpaths import (core,  # noqa F401
                            graph_generator,
+                           io,
                            post_processing,
                            utils)
 
 
 @click.group(invoke_without_command=True)
 @click.pass_context
-@click.argument("n", type=click.INT)
+@click.option("--path", type=click.STRING, default=None, show_default=True,
+              help=("The NetworkX-file path to read the graph from. If not"
+                    " provided, a random graph of n nodes will be generated.\n"
+                    "Supported formats:\n"
+                    ".adjlist, .edgelist, .gexf, .gml, .gpickle"))
+@click.option('-s', "--source", default=None, show_default=True,
+              help="If a graph is not provided, the source defaults to node 1")
+@click.option('-t', "--target", default=None, show_default=True,
+              help="If a graph is not provided, the target defaults to node n")
+@click.option('-n', type=click.INT, default=100, show_default=True,
+              help="number of nodes of the random graph")
 @click.option("--weighted/--no-weighted", default=True, show_default=True)
 @click.option("--directed", is_flag=True)
 @click.option("--weights-on", default="edges-and-nodes", show_default=True,
@@ -41,7 +52,7 @@ from shortestpaths import (core,  # noqa F401
               help="whether to use multiprocessing or not")
 @click.option('-d', "--dynamic", is_flag=True,
               help="whether to use dynamic programming or not")
-@click.option('-s', "--seed", "random_seed", type=click.INT,
+@click.option("--seed", "random_seed", type=click.INT,
               default=None, show_default=True,
               help="If provided, a fixed random graph will be generated.")
 @click.option("--layout-seed", type=click.INT, default=1, show_default=True,
@@ -51,6 +62,9 @@ from shortestpaths import (core,  # noqa F401
 @click.option('-v', "--verbose", count=True)
 # @utils.time_this
 def main(ctx,
+         path,
+         source,
+         target,
          n,
          weighted,
          directed,
@@ -70,13 +84,27 @@ def main(ctx,
          verbose):
 
   # 1. Preprocessing
-  adj_list, G = graph_generator.random_graph(n=n,
-                                             weighted=weighted,
-                                             directed=directed,
-                                             weights_on=weights_on,
-                                             max_edge_weight=max_edge_weight,
-                                             max_node_weight=max_node_weight,
-                                             random_seed=random_seed)
+  if path is None:
+    decoder = None
+    source = source if source else 1
+    target = target if target else n
+    adj_list, G = graph_generator.random_graph(
+        n=n,
+        weighted=weighted,
+        directed=directed,
+        weights_on=weights_on,
+        max_edge_weight=max_edge_weight,
+        max_node_weight=max_node_weight,
+        random_seed=random_seed
+    )
+  else:
+    if (source is None) or (target is None):
+      raise Exception("Both source and target sould be defined via the -s and"
+                      " -t options.")
+    adj_list, G, encoder, decoder = io.read_graph(path, weighted, directed)
+    source = encoder[source]
+    target = encoder[target]
+
   if dynamic:
     bidirectional = True
   if bidirectional:
@@ -87,8 +115,8 @@ def main(ctx,
   init_config = {
       "adj_list": adj_list,
       "adj_list_reverse": adj_list_reverse,
-      "source": 1,
-      "sink": n
+      "source": source,
+      "sink": target
   }
   mode = {
       "bidirectional": bidirectional,
@@ -105,6 +133,7 @@ def main(ctx,
       "layout_seed": layout_seed,
       "show_graph": show_graph,
       "save_graph": save_graph,
+      "decoder": decoder
   }
   if ctx.invoked_subcommand is not None:
     if ctx.invoked_subcommand == "dynamic_graph_demo":
@@ -118,11 +147,15 @@ def main(ctx,
   # 2. Paths generation
   k_paths = core.k_shortest_paths(K, mode, init_config)
 
+  if decoder:
+    k_paths = graph_generator.decode_path_nodes(k_paths, decoder)
+
   # 3. Post-processing
   if verbose:
     post_processing.print_paths(k_paths)
   if save_graph or show_graph:
     ctx_config.pop("init_config")
+    ctx_config.pop("decoder")
     post_processing.plot_paths(paths_data=k_paths, **ctx_config)
 
 
@@ -155,6 +188,10 @@ def replacement_paths(ctx, failing, online):
   """
   ctx.obj["mode"].update({"failing": failing, "online": online})
   r_paths = core.replacement_paths(ctx.obj["mode"], ctx.obj.pop("init_config"))
+
+  decoder = ctx.obj.pop("decoder", None)
+  if decoder:
+    r_paths = graph_generator.decode_path_nodes(r_paths, decoder)
 
   if ctx.obj["mode"]["verbose"]:
     post_processing.print_paths(r_paths, ctx.obj["mode"]["failing"])
