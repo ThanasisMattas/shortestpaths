@@ -72,6 +72,8 @@ $ ksp [OPTIONS] N COMMAND [OPTIONS]
 
 ```text
 Options:
+  -n INTEGER                      number of nodes (used when path is None)
+                                  [default: 100]
   -k INTEGER                      number of shortest paths to be generated
                                   [default: 1]
   --weighted / --no-weighted      [default: True]
@@ -107,14 +109,40 @@ replacement-paths Options:
 
 ```
 
+### Load your graph
+A [NetworkX formated graph] can be loaded, using the following options:
+
+```text
+  --path TEXT                     The NetworkX-file path to read the graph
+                                  from. If not provided, a random graph of n
+                                  nodes will be generated. Supported formats:
+                                  [.adjlist, .edgelist, .gexf, .gml, .gpickle]
+                                  Note that .adjlist does not include weights.
+
+  --nodetype TEXT                 convert nodes to this type  [default: int]
+  --comments TEXT                 marker for comment lines  [default: #]
+  --delimiter TEXT                Separator for node labels. The default is
+                                  whitespace.  [default:  ]
+
+  --encoding TEXT                 [default: utf-8]
+  -s, --source TEXT               If a graph is not provided, the source
+                                  defaults to node 1.
+
+  -t, --target TEXT               If a graph is not provided, the target
+                                  defaults to node n.
+```
+
 ## Examples
 
-```bash
-$ ksp -v 100
-$ ksp --show-graph -k 5 100
-$ ksp -v -d -k 20 1000
-$ ksp -v --show-graph 200 replacement-paths --failing edges
-$ ksp -v --show-graph 200 replacement-paths --failing edges --online
+```text
+$ ksp -v
+$ ksp --show-graph -k 5 -n 100
+$ ksp -v -d -k 20 -n 1000
+$ ksp --seed 1 --show-graph -n 200 replacement-paths --failing edges
+$ ksp --seed 1 --show-graph -n 200 replacement-paths --failing edges --online
+
+$ ksp -v -s <source> -t <target> --path <path-to-graph> -k 50
+$ ksp -v -s <source> -t <target> --path <path-to-graph> replacement-paths
 ```
 
 ## Test
@@ -154,4 +182,5 @@ $ pytest --cov=shortestpaths shortestpaths
 [PriorityQueue]: <https://github.com/ThanasisMattas/shortestpaths/blob/master/shortestpaths/priorityq.py#L20>
 [heapq]: <https://docs.python.org/3/library/heapq.html#module-heapq>
 [here]: <https://docs.python.org/3/library/heapq.html#priority-queue-implementation-notes>
+[NetworkX formated graph]: <https://networkx.org/documentation/stable/reference/readwrite/index.html>
 [GNU General Public License v3.0]: <https://github.com/ThanasisMattas/shortestpaths/blob/master/COPYING>

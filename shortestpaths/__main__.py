@@ -29,9 +29,8 @@ from shortestpaths import (core,  # noqa F401
               help=("The NetworkX-file path to read the graph from. If not"
                     " provided, a random graph of n nodes will be generated.\n"
                     "Supported formats:\n"
-                    ".adjlist, .edgelist, .gexf, .gml, .gpickle\n"
-                    "Recommended:\n"
-                    "nx.write_weighted_edgelist(G, path)"))
+                    "[.adjlist, .edgelist, .gexf, .gml, .gpickle]\n"
+                    "Note that .adjlist does not include weights."))
 @click.option("--nodetype", default="int", show_default=True,
               help="convert nodes to this type")
 @click.option("--comments", type=click.STRING, default='#', show_default=True,
@@ -45,7 +44,7 @@ from shortestpaths import (core,  # noqa F401
 @click.option('-t', "--target", default=None, show_default=True,
               help="If a graph is not provided, the target defaults to node n")
 @click.option('-n', type=click.INT, default=100, show_default=True,
-              help="number of nodes of the random graph")
+              help="number of nodes (used when path is None)")
 @click.option("--weighted/--no-weighted", default=True, show_default=True)
 @click.option("--directed", is_flag=True)
 @click.option("--weights-on", default="edges-and-nodes", show_default=True,
