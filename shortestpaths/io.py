@@ -84,15 +84,15 @@ def load_graphs_from_pickle(picklefile):
         return
 
 
-def read_graph(path, weighted, directed):
+def read_graph(path, directed):
   """Reads a NetworkX graph from a file."""
   supported_formats = ["edgelist", "adjlist", "gexf", "gml", "gpickle"]
-  filename, exte = os.path.splitext(path)
+  exte = os.path.splitext(path)[1][1:]
 
   if exte not in supported_formats:
     raise ValueError(f"Expected: {supported_formats}\nInstead, got: {exte}")
 
-  G = eval(f"read_{exte}")(path)
+  G = eval(f"__import__('networkx').read_{exte}")(path)
   adj_list, encoder, decoder = graph_generator.nx_to_adj_list(G)
 
   return adj_list, G, encoder, decoder
