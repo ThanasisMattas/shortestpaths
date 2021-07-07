@@ -119,18 +119,15 @@ A [NetworkX formated graph] can be loaded, using the following options:
                                   nodes will be generated. Supported formats:
                                   [.adjlist, .edgelist, .gexf, .gml, .gpickle]
                                   Note that .adjlist does not include weights.
-
+  -s, --source TEXT               If a graph is not provided, the source
+                                  defaults to node 1.
+  -t, --target TEXT               If a graph is not provided, the target
+                                  defaults to node n.
   --nodetype TEXT                 convert nodes to this type  [default: int]
   --comments TEXT                 marker for comment lines  [default: #]
   --delimiter TEXT                Separator for node labels. The default is
                                   whitespace.  [default:  ]
-
   --encoding TEXT                 [default: utf-8]
-  -s, --source TEXT               If a graph is not provided, the source
-                                  defaults to node 1.
-
-  -t, --target TEXT               If a graph is not provided, the target
-                                  defaults to node n.
 ```
 
 ### Example format: .edgelist
