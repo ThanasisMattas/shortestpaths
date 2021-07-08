@@ -148,6 +148,8 @@ nx.write_weighted_edgelist(G, "testgraph.edgelist")
 
 ## Examples
 
+### Terminal
+
 ```text
 $ ksp -v
 $ ksp --show-graph -k 5 -n 100
@@ -157,6 +159,21 @@ $ ksp --seed 1 --show-graph -n 200 replacement-paths --failing edges --online
 
 $ ksp -v -d -s <source> -t <target> --path <path-to-graph> --directed -k 50
 $ ksp -v -d -s <source> -t <target> --path <path-to-graph> replacement-paths
+```
+
+### Python
+
+```python
+import shortestpaths as sp
+
+k_paths = sp.k_shortest_paths(G, s, t, k)
+print("k_paths:")
+sp.print_paths(k_paths)
+print()
+
+r_paths = sp.replacement_paths(G, s, t, falining="nodes", online=True)
+print("r_paths:")
+sp.print_paths(r_paths)
 ```
 
 ## Test
