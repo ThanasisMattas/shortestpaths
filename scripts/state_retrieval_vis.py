@@ -6,8 +6,8 @@ import click
 
 from shortestpaths import (core,
                            dijkstra,
-                           graph_generator,
-                           post_processing)
+                           graph,
+                           post)
 from shortestpaths.utils import print_heap  # noqa: F401
 
 def nodes_retrieved(failed_idx,
@@ -31,8 +31,8 @@ def nodes_retrieved(failed_idx,
                           "reverse",
                           "edges")
   ]
-  visited_nodes_forward = post_processing.visited_nodes(visited, source)
-  visited_nodes_reverse = post_processing.visited_nodes(visited_reverse, sink)
+  visited_nodes_forward = post.visited_nodes(visited, source)
+  visited_nodes_reverse = post.visited_nodes(visited_reverse, sink)
   return visited_nodes_forward, visited_nodes_reverse
 
 
@@ -126,14 +126,14 @@ def main(n,
   source = 1
   sink = n
 
-  adj_list, G = graph_generator.random_graph(n=n,
-                                             directed=directed,
-                                             weights_on=weights_on,
-                                             random_seed=random_seed,
-                                             center_portion=center_portion,
-                                             gradient=gradient,
-                                             p_0=p_0)
-  adj_list_reverse = graph_generator.adj_list_reversed(adj_list)
+  adj_list, G = graph.random_graph(n=n,
+                                   directed=directed,
+                                   weights_on=weights_on,
+                                   random_seed=random_seed,
+                                   center_portion=center_portion,
+                                   gradient=gradient,
+                                   p_0=p_0)
+  adj_list_reverse = graph.adj_list_reversed(adj_list)
   init_config = {
       "adj_list": adj_list,
       "adj_list_reverse": adj_list_reverse,
@@ -173,13 +173,13 @@ def main(n,
 
   if online:
     # Get the state that corresponds to the meeting edge.
-    visited_nodes_reverse_me = post_processing.visited_nodes(
+    visited_nodes_reverse_me = post.visited_nodes(
         visited_reverse_me,
         sink
     )
     # Get the state that corresponds to the query edge.
     if tail_idx > meeting_edge_head_idx:
-      visited_nodes_reverse = post_processing.visited_nodes(
+      visited_nodes_reverse = post.visited_nodes(
           visited_reverse_query,
           sink
       )
@@ -212,7 +212,7 @@ def main(n,
   # 1. State retrieval vis for the meeting edge
   #    (all the visited nodes are retrieved)
   if not online:
-    post_processing.state_retrieval_vis(
+    post.state_retrieval_vis(
         G,
         paths_data_me,
         visited_nodes_forward_me,
@@ -230,7 +230,7 @@ def main(n,
 
   # 2. State retrieval vis for the in query edge
   #    (all the visited nodes are retrieved)
-  post_processing.state_retrieval_vis(
+  post.state_retrieval_vis(
       G,
       paths_data,
       visited_nodes_forward_me,

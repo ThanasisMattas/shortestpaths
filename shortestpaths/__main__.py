@@ -17,9 +17,9 @@ import click
 import networkx as nx
 
 from shortestpaths import (core,  # noqa F401
-                           graph_generator,
+                           graph,
                            io,
-                           post_processing,
+                           post,
                            utils)
 
 
@@ -102,7 +102,7 @@ def main(ctx,
     decoder = None
     source = int(source) if source else 1
     target = int(target) if target else n
-    adj_list, G = graph_generator.random_graph(
+    adj_list, G = graph.random_graph(
         n=n,
         weighted=weighted,
         directed=directed,
@@ -135,7 +135,7 @@ def main(ctx,
   if dynamic:
     bidirectional = True
   if bidirectional:
-    adj_list_reverse = graph_generator.adj_list_reversed(adj_list)
+    adj_list_reverse = graph.adj_list_reversed(adj_list)
   else:
     adj_list_reverse = None
 
@@ -175,15 +175,15 @@ def main(ctx,
   k_paths = core.k_shortest_paths(K, mode, init_config)
 
   if decoder:
-    k_paths = graph_generator.decode_path_nodes(k_paths, decoder)
+    k_paths = graph.decode_path_nodes(k_paths, decoder)
 
   # 3. Post-processing
   if verbose:
-    post_processing.print_paths(k_paths)
+    post.print_paths(k_paths)
   if save_graph or show_graph:
     ctx_config.pop("init_config")
     ctx_config.pop("decoder")
-    post_processing.plot_paths(paths_data=k_paths, **ctx_config)
+    post.plot_paths(paths_data=k_paths, **ctx_config)
 
 
 @main.command()
@@ -218,12 +218,12 @@ def replacement_paths(ctx, failing, online):
 
   decoder = ctx.obj.pop("decoder", None)
   if decoder:
-    r_paths = graph_generator.decode_path_nodes(r_paths, decoder)
+    r_paths = graph.decode_path_nodes(r_paths, decoder)
 
   if ctx.obj["mode"]["verbose"]:
-    post_processing.print_paths(r_paths, ctx.obj["mode"]["failing"])
+    post.print_paths(r_paths, ctx.obj["mode"]["failing"])
   if ctx.obj["save_graph"] or ctx.obj["show_graph"]:
-    post_processing.plot_paths(paths_data=r_paths, **ctx.obj)
+    post.plot_paths(paths_data=r_paths, **ctx.obj)
 
 
 @main.command()

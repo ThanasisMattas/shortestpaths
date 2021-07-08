@@ -10,7 +10,7 @@ cwd = Path(os.getcwd())
 home_dir = str(cwd.parent)
 sys.path.insert(0, home_dir)
 
-from shortestpaths import graph_generator
+from shortestpaths import graph
 
 
 def dump_graph(fileobj, n, p, g, **kwargs):
@@ -19,10 +19,10 @@ def dump_graph(fileobj, n, p, g, **kwargs):
   NOTE: It is important to create the graph here, in order to be garbage
         collected upon exit.
   """
-  adj_list, _ = graph_generator.random_graph(n=n,
-                                             p_0=p / 10,
-                                             random_seed=g,
-                                             **kwargs)
+  adj_list, _ = graph.random_graph(n=n,
+                                   p_0=p / 10,
+                                   random_seed=g,
+                                   **kwargs)
   pickle.dump(adj_list, fileobj)
   # io.append_graph_to_csv(filename, adj_list)
 

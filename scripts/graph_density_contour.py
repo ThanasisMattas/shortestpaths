@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Plots a 2d contour of graph density vs sigmoid center & initial probability.
-(see shortestpaths/graph_generator.py)
+(see shortestpaths/graph.py)
 """
 import os
 import sys
@@ -9,7 +9,7 @@ sys.path.insert(1, os.path.join(sys.path[0], '..'))
 
 import click
 
-from shortestpaths import post_processing
+from shortestpaths import post
 
 
 @click.command()
@@ -23,7 +23,7 @@ from shortestpaths import post_processing
               type=click.Choice(["edges", "nodes", "edges-and-nodes"],
                                 case_sensitive=False))
 def main(**kwargs):
-  post_processing.graph_density_contour(**kwargs)
+  post.graph_density_contour(**kwargs)
 
 if __name__ == '__main__':
   main()

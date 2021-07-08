@@ -19,7 +19,7 @@ sys.path.insert(1, os.path.join(sys.path[0], '..'))
 
 import click
 
-from shortestpaths import dijkstra, graph_generator, post_processing
+from shortestpaths import dijkstra, graph, post
 
 
 @click.command()
@@ -35,7 +35,7 @@ def main(n, bidirectional, random_seed, layout_seed, save_graph):
   # source, sink = 100, n - 100
   source, sink = 1, n
 
-  adj_list, G = graph_generator.random_graph(
+  adj_list, G = graph.random_graph(
       n,
       weighted=True,
       directed=False,
@@ -46,7 +46,7 @@ def main(n, bidirectional, random_seed, layout_seed, save_graph):
   )
 
   if bidirectional:
-    adj_list_reverse = graph_generator.adj_list_reversed(adj_list)
+    adj_list_reverse = graph.adj_list_reversed(adj_list)
   else:
     adj_list_reverse = None
 
@@ -97,20 +97,20 @@ def main(n, bidirectional, random_seed, layout_seed, save_graph):
     visited_reverse = None
     meeting_edge_head = None
 
-  # post_processing.state_vis(forward_config["to_visit"],
+  # post.state_vis(forward_config["to_visit"],
   #                           visited,
   #                           source,
   #                           sink,
   #                           G=G)
 
-  post_processing.plot_search_sphere(G,
-                                     visited,
-                                     path,
-                                     show_graph=True,
-                                     save_graph=save_graph,
-                                     layout_seed=layout_seed,
-                                     visited_reverse=visited_reverse,
-                                     meeting_edge_head=meeting_edge_head)
+  post.plot_search_sphere(G,
+                          visited,
+                          path,
+                          show_graph=True,
+                          save_graph=save_graph,
+                          layout_seed=layout_seed,
+                          visited_reverse=visited_reverse,
+                          meeting_edge_head=meeting_edge_head)
 
 
 if __name__ == '__main__':

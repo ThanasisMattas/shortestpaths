@@ -12,7 +12,7 @@ sys.path.insert(0, home_dir)
 import click
 import numpy as np
 
-from shortestpaths import core, graph_generator, io
+from shortestpaths import core, graph, io
 
 
 def time_a_run(mode, init_config, problem, k=None, times=3):
@@ -48,16 +48,16 @@ def measure(n,
                       with the timings for each solver.
   """
   if dataset is None:
-    adj_list, _ = graph_generator.random_graph(n=n,
-                                               random_seed=g,
-                                               p_0=p / 10,
-                                               **kwargs)
+    adj_list, _ = graph.random_graph(n=n,
+                                     random_seed=g,
+                                     p_0=p / 10,
+                                     **kwargs)
     if ds_fileobj:
       pickle.dump(adj_list, ds_fileobj)
   else:
     adj_list = next(dataset)
 
-  adj_list_reverse = graph_generator.adj_list_reversed(adj_list)
+  adj_list_reverse = graph.adj_list_reversed(adj_list)
   init_config = {
     "adj_list": adj_list,
     "adj_list_reverse": None,

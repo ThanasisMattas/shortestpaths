@@ -16,7 +16,7 @@ import pickle
 
 import numpy as np
 
-from shortestpaths import graph_generator
+from shortestpaths import graph
 
 
 def append_graph_to_csv(csvfile, adj, new_graph_token="<new-graph>"):
@@ -111,6 +111,6 @@ def read_graph(read_graph_config, weighted):
     read_graph_config = {"path": read_graph_config["path"]}
 
   G = eval(func)(**read_graph_config)
-  adj_list, encoder, decoder = graph_generator.nx_to_adj_list(G)
+  adj_list, encoder, decoder = graph.nx_to_adj_list(G)
 
   return adj_list, G, encoder, decoder

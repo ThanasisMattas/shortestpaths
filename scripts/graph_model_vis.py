@@ -7,7 +7,7 @@ sys.path.insert(1, os.path.join(sys.path[0], '..'))
 
 import matplotlib.pyplot as plt
 
-from shortestpaths.graph_generator import random_graph
+from shortestpaths.graph import random_graph
 
 
 def main():

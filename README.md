@@ -111,7 +111,7 @@ replacement-paths Options:
 
 ### Load your graph
 
-A [NetworkX formated graph] can be loaded, using the following options:
+A [NetworkX formatted graph] can be loaded, using the following options:
 
 ```text
   --path TEXT                     The NetworkX-file path to read the graph
@@ -196,5 +196,5 @@ $ pytest --cov=shortestpaths shortestpaths
 [PriorityQueue]: <https://github.com/ThanasisMattas/shortestpaths/blob/master/shortestpaths/priorityq.py#L20>
 [heapq]: <https://docs.python.org/3/library/heapq.html#module-heapq>
 [here]: <https://docs.python.org/3/library/heapq.html#priority-queue-implementation-notes>
-[NetworkX formated graph]: <https://networkx.org/documentation/stable/reference/readwrite/index.html>
+[NetworkX formatted graph]: <https://networkx.org/documentation/stable/reference/readwrite/index.html>
 [GNU General Public License v3.0]: <https://github.com/ThanasisMattas/shortestpaths/blob/master/COPYING>

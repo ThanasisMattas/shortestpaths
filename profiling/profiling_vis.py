@@ -646,7 +646,7 @@ def _y(results, num_p, max_prob, param):
 @click.option("--max-prob", default=0.28, show_default=True,
               help=("Defined by the graph model parameters, except from p_0.\n"
                     " max_p * p_0 = expected-graph-density\n"
-                    " (See shortestpaths.graph_generator)"))
+                    " (See shortestpaths.graph)"))
 @click.option("--show-plot/--no-show-plot", default=True, show_default=True)
 @click.option("--param", default='p_0', show_default=True,
               type=click.Choice(['p_0', 'k', 'c']))

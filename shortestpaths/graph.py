@@ -1,4 +1,4 @@
-# graph_generator.py is part of ShortestPaths
+# graph.py is part of ShortestPaths
 #
 # ShortestPaths is free software; you may redistribute it and/or modify it
 # under the terms of the GNU General Public License as published by the Free

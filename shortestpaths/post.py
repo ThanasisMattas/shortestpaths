@@ -1,4 +1,4 @@
-# post_processing.py is part of ShortestPaths
+# post.py is part of ShortestPaths
 #
 # ShortestPaths is free software; you may redistribute it and/or modify it
 # under the terms of the GNU General Public License as published by the Free
@@ -21,7 +21,7 @@ import click
 import matplotlib.pyplot as plt
 import networkx as nx
 
-from shortestpaths import dijkstra, graph_generator, utils
+from shortestpaths import dijkstra, graph, utils
 
 
 COLORS = [
@@ -593,16 +593,16 @@ def graph_density_contour(n,
                f"   Instance: {g + 1}/{graphs_per_measure}"),
               end='\r')
         G, probs, edge_lengths, edge_lengths_true = \
-            graph_generator.random_graph(n,
-                                         directed=directed,
-                                         weights_on=weights_on,
-                                         random_seed=1,
-                                         center_portion=c / 10,
-                                         gradient=1,
-                                         p_0=p / 10,
-                                         get_probability_distribution=True)
+            graph.random_graph(n,
+                               directed=directed,
+                               weights_on=weights_on,
+                               random_seed=1,
+                               center_portion=c / 10,
+                               gradient=1,
+                               p_0=p / 10,
+                               get_probability_distribution=True)
         densities_per_graph_type.append(
-            graph_generator.graph_density(n, len(edge_lengths_true), directed)
+            graph.graph_density(n, len(edge_lengths_true), directed)
         )
       densities[c - 1][p - 1] = mean(densities_per_graph_type)
       densities_per_graph_type.clear()

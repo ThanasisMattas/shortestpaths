@@ -1,5 +1,5 @@
 ignore:
-    - "shortestpaths/post_processing.py"
+    - "shortestpaths/post.py"
     - "shortestpaths/io.py"
 
 status:

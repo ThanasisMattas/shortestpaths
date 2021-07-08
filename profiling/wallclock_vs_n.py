@@ -22,7 +22,7 @@ sys.path.insert(0, home_dir)
 import click
 import matplotlib.pyplot as plt
 
-from shortestpaths import core, graph_generator
+from shortestpaths import core, graph
 
 
 def measure(n,
@@ -38,18 +38,16 @@ def measure(n,
 
   It is important that upon function exit, the graphs are garbage collected.
   """
-  adj_list, _ = graph_generator.random_graph(
-    n=n,
-    random_seed=i,
-    gradient=0.3,
-    center_portion=0.15,
-    p_0=0.3,
-    **kwargs
-  )
+  adj_list, _ = graph.random_graph(n=n,
+                                   random_seed=i,
+                                   gradient=0.3,
+                                   center_portion=0.15,
+                                   p_0=0.3,
+                                   **kwargs)
 
   init_config = {
     "adj_list": adj_list,
-    "adj_list_reverse": graph_generator.adj_list_reversed(adj_list),
+    "adj_list_reverse": graph.adj_list_reversed(adj_list),
     "source": 1,
     "sink": n
   }
