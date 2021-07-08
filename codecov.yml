@@ -1,8 +1,0 @@
-ignore:
-    - "shortestpaths/post.py"
-    - "shortestpaths/io.py"
-
-status:
-    project: no
-    patch: yes
-    changes: no

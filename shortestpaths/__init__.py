@@ -9,7 +9,6 @@
 #
 # (C) 2020 Athanasios Mattas
 # ==========================================================================
-# flake8: noqa
 """Special project variables & API"""
 
 from shortestpaths.api import k_shortest_paths, replacement_paths
