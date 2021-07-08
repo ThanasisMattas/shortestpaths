@@ -17,7 +17,7 @@ from shortestpaths.post import print_paths
 
 
 __name__ = 'shortestpaths'
-__version__ = '1.0.0'
+__version__ = '1.1.0'
 __author__ = 'Athanasios Mattas'
 __author_email__ = 'thanasismatt@gmail.gr'
 __description__ = "Bidirectional replacement paths and k-shortest paths search with dynamic programming"
