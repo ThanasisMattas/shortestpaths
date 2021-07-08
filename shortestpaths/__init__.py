@@ -9,7 +9,10 @@
 #
 # (C) 2020 Athanasios Mattas
 # ==========================================================================
-"""Special project variables"""
+"""Special project variables & API"""
+
+from shortestpaths.api import k_shortest_paths, replacement_paths  # noqa: F401
+
 
 __name__ = 'shortestpaths'
 __version__ = '1.0.0'
