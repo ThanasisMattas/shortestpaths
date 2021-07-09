@@ -19,7 +19,8 @@ here = os.path.abspath(os.path.dirname(__file__))
 # Pull info from __init__.py.
 about = {}
 with open(os.path.join(here, 'shortestpaths', '__init__.py'), 'r') as fr:
-  exec(fr.read(), about)
+  info = "__name__" + fr.read().split("__name__")[1]
+  exec(info, about)
 
 # Assign long_description with the README.md content.
 try:
