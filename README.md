@@ -186,15 +186,40 @@ sp.plot_paths(r_paths, G, mode)
 $ pytest --cov=shortestpaths shortestpaths
 ```
 
-## State retrieval
+## Applying Dynamic Programming
 
-### Replacement-paths offline
+Regarding the **offline** replacement-paths, the algorithm conducts 2 searches of
+the base path. The first is a simple path search. The second is the
+*memoization* process, where, having knowledge of the path and, thus, knowing
+which nodes/edges will fail, the algorithm memoizes only the states that
+correspond to each path-node. More specifically, each direction of the
+bidirectional search memoizes the described states, up until the *meeting edge*
+of the search. For replacement paths that correspond to a failed edge/ node
+that the forward search of the base path visited, the forward search retrieves
+its state just before the failed item and the reverse search retrieves the last
+recorded state, which is the state before the meeting edge. Likewise, the
+opposite goes for items failing after the meeting edge.
 
-<img src="bin/state_retrieval_offline_after_me.png" width="415"/> <img src="bin/state_retrieval_offline_before_me.png" width="415"/>
+At the **online** counterpart, the state of forward search cannot be memoized,
+because the starting node is changing with each replacement-path. Therefore,
+dynamic programming is used only at the reverse sub-search. Also, this time
+there is no need for saving the states. As for the second of the 2 searches, a
+unidirectional search starts from the target node, going backwards, and anytime
+it is about to visit a path-node, the corresponding bidirectional
+replacement-path search begins, using the current state as the reverse state.
 
-### Replacement-paths online
+Finally, the **k-shortest paths** search consists in executing *k* online
+replacement-paths searches, following *Yen's* method with *Lawler's*
+modification, where, obviously, the aforementioned first search is not
+executed, because the (k-1)th path is already known.
 
-<img src="bin/state_retrieval_online_after_me.png" width="415"/> <img src="bin/state_retrieval_online_before_me.png" width="415"/>
+### State retrieval | Replacement-paths offline
+
+<img src="bin/dp/state_retrieval_offline_after_me.png" width="415"/> <img src="bin/dp/state_retrieval_offline_before_me.png" width="415"/>
+
+### State retrieval | Replacement-paths online
+
+<img src="bin/dp/state_retrieval_online_after_me.png" width="415"/> <img src="bin/dp/state_retrieval_online_before_me.png" width="415"/>
 
 ## License
 
