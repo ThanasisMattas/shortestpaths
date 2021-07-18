@@ -169,11 +169,15 @@ import shortestpaths as sp
 k_paths = sp.k_shortest_paths(G, s, t, k)
 print("k_paths:")
 sp.print_paths(k_paths)
+sp.plot_paths(k_paths, G)
+
 print()
 
-r_paths = sp.replacement_paths(G, s, t, falining="nodes", online=True)
+mode = {"failing": "edges", "online": True}
+r_paths = sp.replacement_paths(G, s, t, **mode)
 print("r_paths:")
 sp.print_paths(r_paths)
+sp.plot_paths(r_paths, G, mode)
 ```
 
 ## Test

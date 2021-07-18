@@ -12,7 +12,7 @@
 """Special project variables & API"""
 
 from shortestpaths.api import k_shortest_paths, replacement_paths
-from shortestpaths.post import print_paths
+from shortestpaths.post import print_paths, plot_paths
 
 
 __name__ = 'shortestpaths'

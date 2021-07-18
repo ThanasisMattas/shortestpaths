@@ -94,13 +94,15 @@ def _xylimits(pos):
 
 def plot_paths(paths_data,
                G,
-               mode,
+               mode=None,
                save_graph=False,
                show_graph=True,
                layout_seed=None,
                draw_edge_weights=False):
   """Plots the graph and all the generated paths (up to 8) in spring_layout."""
   utils.verify_paths(paths_data)
+  if mode is None:
+    mode = {}
   if save_graph:
     figsize = (10 * 1.8, 10)
     dpi = 200
@@ -174,7 +176,7 @@ def plot_paths(paths_data,
       warn("Up to 8 paths can be plotted. Try the -v option, to print all the"
            " generated paths.")
       break
-    label = path_label(path, i + 1, mode["failing"])
+    label = path_label(path, i + 1, mode.get("failing", "edges"))
     path_edges_sequence = list(zip(path[0], path[0][1:]))
     # arrows=False, arrowsize=20, arrowstyle='fancy',
     # min_source_margin=1, min_target_margin=1,
@@ -186,7 +188,7 @@ def plot_paths(paths_data,
                            label=label)
 
     # Mark the disconnceted edge or node with an ×.
-    if mode["failing"] == "nodes":
+    if mode.get("failing") == "nodes":
       if (len(path) > 2) and (path[3] not in [None, [None]]):
         if hasattr(path[3], "__len__"):
           nodelist = path[3]
@@ -195,14 +197,14 @@ def plot_paths(paths_data,
         nx.draw_networkx_nodes(G, pos=pos, nodelist=nodelist,
                                node_color=color, node_shape='x',
                                node_size=failed_node_size, linewidths=5)
-    elif mode["failing"] == "edges":
+    elif mode.get("failing") == "edges":
       # Check for the case of the absolute shortest path, where there is no
       # disconnected edge.
       if (len(path) > 2) and (path[3] is not None):  # ✕×✗
         nx.draw_networkx_edge_labels(G, pos, edge_labels={path[3]: '×'},
                                      font_size=60, font_color=color,
                                      bbox=dict(alpha=0), rotate=False)
-    elif mode["failing"] is None:
+    elif mode.get("failing") is None:
       pass
     else:
       raise ValueError("failing should be 'edges', 'nodes' or None")
