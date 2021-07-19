@@ -186,6 +186,123 @@ sp.plot_paths(r_paths, G, mode)
 $ pytest --cov=shortestpaths shortestpaths
 ```
 
+## Graph Model
+
+### Goals
+
+1. Control graph density
+2. Control graph topology
+
+### Nodal distance
+
+Utilizing the incremental naming of the nodes, *distance* between two nodes is
+represented by the difference of the node-IDs. For example, nodes 1 and 5 have
+distance 4. Note that distance here has nothing to do with the corresponding
+edge weight and does not affect the algorithm execution, rather it is only used
+upon graph creation.
+
+The frequency of pairs of nodes with distance *x*, in a simple, undirected,
+complete graph (α), is given by the line:
+
+<img src="https://latex.codecogs.com/png.latex?\dpi{300}&space;\bg_white&space;\large&space;f'(x)=n-x" height=18>
+
+<br />
+
+Whereas, for the directed graph (β) the line is:
+
+<img src="https://latex.codecogs.com/png.latex?\dpi{300}&space;\bg_white&space;\large&space;f'(x)=2(n-x)" height=18>
+
+<br />
+
+<img src="bin/graph_model/graph_model.png" width="350"/>
+
+### Small world property
+
+The model constitutes a variation of the Gilbert version of the *[Erdős-Rényi]*
+model, where edge-probability is not uniform. More specifically, edges that
+connect *distant* nodes are penalized, avoiding unrealistic paths that go to
+the target with very few hops. This way, the *small world* property is
+captured by the topology of the graph, meaning that nodes tend to form small
+communities.
+
+### Edge weights
+
+The edge weigths are randomly selected from the range [0, MAX_EDGE_WEIGHT],
+biased with respect to the distance of the adjacent nodes. Namely, edges that
+connect distant nodes tend to get penalized.
+
+### Probability distribution
+
+In order to regulate the cutoff point of the edge-distances distribution, the
+sigmoid equation is used, like a low-pass filter. To form the final probability
+distribution equation, the sigmoid equation is subtracted from one, for the
+smaller distances to have the greater probability. Fillaly, the result is
+multiplied with an initial probability *p<sub>0</sub>*, controling further the
+graph density.
+
+<img src="https://latex.codecogs.com/png.latex?\dpi{300}&space;\bg_white&space;\large&space;p(x)=p_0\left&space;(1-\frac{1}{1&plus;e^{-\lambda\left&space;[x-c(n-1)\right&space;]}})\right&space;)" height=36>
+
+### Expected nodal-distance distribution
+
+<img src="https://latex.codecogs.com/png.latex?\dpi{300}&space;\bg_white&space;\large&space;f(x)=f'(x)p(x)=p_0\left&space;(1-\frac{1}{1&plus;e^{-\lambda\left&space;[x-c(n-1)\right&space;]}})\right&space;)(n-x)" height=36>
+
+### Expected graph density
+
+<img src="https://latex.codecogs.com/png.latex?\dpi{300}&space;\bg_white&space;m=\int_{1}^{n-1}f(x)dx=\int_{1}^{n-1}p_0\left&space;(1-\frac{1}{1&plus;e^{-\lambda\left&space;[x-c(n-1)\right&space;]}})\right&space;)(n-x)dx" height=36>
+
+<br />
+
+<img src="https://latex.codecogs.com/png.latex?\dpi{300}&space;\bg_white&space;d=\frac{m}{m_{max}}=p_0p_{max}" height=30>
+
+### Model Summary
+
+The proposed graph model uses 3 parameters:
+
+* **c** : sigmoid center. Regulates the graph density, as well as defines the
+cutoff point of the edge-distance distribution.
+* **λ** : sigmoid gradient. Controls the area around the cutoff point.
+* **p<sub>0</sub>** : initial probability. Regulates the graph density. It is
+essentially the application of the Gilbert model over the graph formed by the
+other two parameters.
+
+<br />
+
+<img src="bin/graph_model/prob_distribution_1.png" width="650"/>
+
+<br />
+
+<img src="bin/graph_model/prob_distribution_2.png" width="650"/>
+
+a. Nodal-distance probability distribution<br />
+b. Nodal-distance distribution at the complete graph with n = 100<br />
+c. Real nodal-distance distribution after applying the probability distribution
+   of a. on the complete graph of b.<br />
+d. Nodal-distance probability distribution with p<sub>0</sub> = 0.7 .<br />
+e. Expected nodal-distance distribution after applying d. to b.<br />
+f. Instantiation of e. A controlled randomness around the wanted topology is
+   evident.<br />
+
+### Usage
+
+```python
+import shortestpaths as sp
+
+# adj_list format: [{(neighbor, hop_weight),},]
+# G: nx.Graph or nx.DiGraph
+adj_list, G = sp.random_graph(n,
+                              weighted=True,
+                              directed=True,
+                              weights_on="edges",
+                              max_edge_weight=100,
+                              random_seed=None,
+                              center_portion=0.2,
+                              gradient=0.5,
+                              p_0=0.7)
+
+# inverted graph for reverse search
+adj_list_reverse = sp.adj_list_reversed(adj_list)
+```
+
 ## Applying Dynamic Programming
 
 Regarding the **offline** replacement-paths, the algorithm conducts 2 searches of
@@ -211,7 +328,7 @@ replacement-path search begins, using the current state as the reverse state.
 Finally, the **k-shortest paths** search consists in executing *k* online
 replacement-paths searches, following *Yen's* method with *Lawler's*
 modification, where, obviously, the aforementioned first search is not
-executed, because the (k-1)th path is already known.
+executed, because the parent path is already known.
 
 ### State retrieval | Replacement-paths offline
 
