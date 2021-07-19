@@ -604,7 +604,7 @@ def graph_density_contour(n,
                                p_0=p / 10,
                                get_probability_distribution=True)
         densities_per_graph_type.append(
-            graph.graph_density(n, len(edge_lengths_true), directed)
+            graph.density(n, len(edge_lengths_true), directed)
         )
       densities[c - 1][p - 1] = mean(densities_per_graph_type)
       densities_per_graph_type.clear()

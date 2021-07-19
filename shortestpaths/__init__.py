@@ -13,6 +13,7 @@
 
 from shortestpaths.api import k_shortest_paths, replacement_paths
 from shortestpaths.post import print_paths, plot_paths
+from shortestpaths.graph import random_graph, adj_list_reversed
 
 
 __name__ = 'shortestpaths'

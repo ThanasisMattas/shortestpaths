@@ -206,13 +206,9 @@ complete graph (α), is given by the line:
 
 <img src="https://latex.codecogs.com/png.latex?\dpi{300}&space;\bg_white&space;\large&space;f'(x)=n-x" height=18>
 
-<br />
-
 Whereas, for the directed graph (β) the line is:
 
 <img src="https://latex.codecogs.com/png.latex?\dpi{300}&space;\bg_white&space;\large&space;f'(x)=2(n-x)" height=18>
-
-<br />
 
 <img src="bin/graph_model/graph_model.png" width="350"/>
 
@@ -248,10 +244,7 @@ graph density.
 
 ### Expected graph density
 
-<img src="https://latex.codecogs.com/png.latex?\dpi{300}&space;\bg_white&space;m=\int_{1}^{n-1}f(x)dx=\int_{1}^{n-1}p_0\left&space;(1-\frac{1}{1&plus;e^{-\lambda\left&space;[x-c(n-1)\right&space;]}})\right&space;)(n-x)dx" height=36>
-
-<br />
-
+<img src="https://latex.codecogs.com/png.latex?\dpi{300}&space;\bg_white&space;m=\int_{1}^{n-1}f(x)dx=\int_{1}^{n-1}p_0\left&space;(1-\frac{1}{1&plus;e^{-\lambda\left&space;[x-c(n-1)\right&space;]}})\right&space;)(n-x)dx" height=36><br />
 <img src="https://latex.codecogs.com/png.latex?\dpi{300}&space;\bg_white&space;d=\frac{m}{m_{max}}=p_0p_{max}" height=30>
 
 ### Model Summary
@@ -265,12 +258,8 @@ cutoff point of the edge-distance distribution.
 essentially the application of the Gilbert model over the graph formed by the
 other two parameters.
 
-<br />
 
-<img src="bin/graph_model/prob_distribution_1.png" width="650"/>
-
-<br />
-
+<img src="bin/graph_model/prob_distribution_1.png" width="650"/><br />
 <img src="bin/graph_model/prob_distribution_2.png" width="650"/>
 
 a. Nodal-distance probability distribution<br />

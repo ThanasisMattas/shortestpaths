@@ -137,7 +137,7 @@ def _edge_weight(edge,
     raise Exception(f"Unknown weight-mode: {weight_mode}")
 
 
-def graph_density(n, m, directed):
+def density(n, m, directed):
   """Evaluates the graph density as m / m_max."""
   if directed:
     m_max = n * (n - 1)
@@ -311,7 +311,7 @@ def random_graph(n,
   return adj_list, G
 
 
-def adj_list_reversed(adj_list):
+def adj_list_reversed(adj_list: list) -> list:
   """Creates the adj_list of the inverted graph in O(n^2).
 
   The inverted graph is the same with the direct, but with inverted edges
