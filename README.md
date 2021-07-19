@@ -327,6 +327,26 @@ executed, because the parent path is already known.
 
 <img src="bin/dp/state_retrieval_online_after_me.png" width="415"/> <img src="bin/dp/state_retrieval_online_before_me.png" width="415"/>
 
+## Profiling
+
+### CPU time vs n vs density
+
+k: 10 &ensp;c: 0.15 &ensp;p<sub>max</sub>: 0.28
+
+<img src="bin/profiling/k-shortest-paths_profiling.png" width="500"/>
+
+<img src="bin/profiling/k-shortest-paths_profiling_matshows.png" width="500"/>
+
+### CPU time vs n vs k
+
+c: 0.15 &ensp;p<sub>0</sub>: 0.3 &ensp;p<sub>max</sub>: 0.28
+
+<img src="bin/profiling/k-shortest-paths_profiling_k_study.png" width="415"/>
+
+<img src="bin/profiling/k-shortest-paths_profiling_matshows_k_study.png" width="300"/>
+
+<img src="bin/profiling/\k-shortest-paths_profiling_gains_matshows_k_study.png" width="500"/>
+
 ## License
 
 [GNU General Public License v3.0]
