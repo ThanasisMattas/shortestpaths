@@ -347,6 +347,15 @@ c: 0.15 &ensp;p<sub>0</sub>: 0.3 &ensp;p<sub>max</sub>: 0.28
 
 <img src="bin/profiling/\k-shortest-paths_profiling_gains_matshows_k_study.png" width="500"/>
 
+## Conclusion
+
+* **DP** induces an optimization of the order **1-46%** over the bidirectional
+  k-shortest paths search with *Yen*'s method and *Lawler*'s modification, at
+  the scenarios tested.
+* Graph **density** and graph **topology** play a significant role over the
+  performance of algorithms and can effectively complement graph order for a
+  more comprehensive study.
+
 ## License
 
 [GNU General Public License v3.0]
