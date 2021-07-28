@@ -244,20 +244,20 @@ graph density.
 
 ### Expected graph density
 
-<img src="https://latex.codecogs.com/png.latex?\dpi{300}&space;\bg_white&space;m=\int_{1}^{n-1}f(x)dx=\int_{1}^{n-1}p_0\left&space;(1-\frac{1}{1&plus;e^{-\lambda\left&space;[x-c(n-1)\right&space;]}})\right&space;)(n-x)dx" height=36><br />
+<img src="https://latex.codecogs.com/png.latex?\dpi{300}&space;\bg_white&space;m=\int_{1}^{n-1}f(x)dx=\int_{1}^{n-1}p_0\left&space;(1-\frac{1}{1&plus;e^{-\lambda\left&space;[x-c(n-1)\right&space;]}})\right&space;)(n-x)dx" height=36>
+
 <img src="https://latex.codecogs.com/png.latex?\dpi{300}&space;\bg_white&space;d=\frac{m}{m_{max}}=p_0p_{max}" height=30>
 
 ### Model Summary
 
 The proposed graph model uses 3 parameters:
 
-* **c** : sigmoid center. Regulates the graph density, as well as defines the
-cutoff point of the edge-distance distribution.
+* **c** : sigmoid center. Regulates the graph density and sets the cutoff point
+of the nodal-distance distribution.
 * **λ** : sigmoid gradient. Controls the area around the cutoff point.
 * **p<sub>0</sub>** : initial probability. Regulates the graph density. It is
-essentially the application of the Gilbert model over the graph formed by the
+essentially the application of the *Gilbert* model over the graph formed by the
 other two parameters.
-
 
 <img src="bin/graph_model/prob_distribution_1.png" width="650"/><br />
 <img src="bin/graph_model/prob_distribution_2.png" width="650"/>
@@ -266,7 +266,7 @@ a. Nodal-distance probability distribution<br />
 b. Nodal-distance distribution at the complete graph with n = 100<br />
 c. Real nodal-distance distribution after applying the probability distribution
    of a. on the complete graph of b.<br />
-d. Nodal-distance probability distribution with p<sub>0</sub> = 0.7 .<br />
+d. Nodal-distance probability distribution with p<sub>0</sub> = 0.7<br />
 e. Expected nodal-distance distribution after applying d. to b.<br />
 f. Instantiation of e. A controlled randomness around the wanted topology is
    evident.<br />
@@ -294,13 +294,13 @@ adj_list_reverse = sp.adj_list_reversed(adj_list)
 
 ## Applying Dynamic Programming
 
-Regarding the **offline** replacement-paths, the algorithm conducts 2 searches of
-the base path. The first is a simple path search. The second is the
+Regarding the **offline** replacement-paths, the algorithm conducts 2 searches
+of the base path. The first is a simple path search. The second is the
 *memoization* process, where, having knowledge of the path and, thus, knowing
 which nodes/edges will fail, the algorithm memoizes only the states that
 correspond to each path-node. More specifically, each direction of the
 bidirectional search memoizes the described states, up until the *meeting edge*
-of the search. For replacement paths that correspond to a failed edge/ node
+of the search. For replacement paths that correspond to a failed edge/node
 that the forward search of the base path visited, the forward search retrieves
 its state just before the failed item and the reverse search retrieves the last
 recorded state, which is the state before the meeting edge. Likewise, the
@@ -319,11 +319,13 @@ replacement-paths searches, following *Yen's* method with *Lawler's*
 modification, where, obviously, the aforementioned first search is not
 executed, because the parent path is already known.
 
-### State retrieval | Replacement-paths offline
+## State retrieval
+
+### offline
 
 <img src="bin/dp/state_retrieval_offline_after_me.png" width="415"/> <img src="bin/dp/state_retrieval_offline_before_me.png" width="415"/>
 
-### State retrieval | Replacement-paths online
+### online
 
 <img src="bin/dp/state_retrieval_online_after_me.png" width="415"/> <img src="bin/dp/state_retrieval_online_before_me.png" width="415"/>
 

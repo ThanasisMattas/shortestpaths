@@ -327,14 +327,9 @@ def adj_list_reversed(adj_list: list) -> list:
 def nx_to_adj_list(G: Union[nx.Graph, nx.DiGraph]) -> tuple:
   """Converts NetworkX graph to an adj_list.
 
-  - adj_list format:
-      [
-        {
-          (neighbor, weight),
-        },
-      ]
+  - adj_list format: [{(neighbor, weight),},]
   - G.nodes() are encoded to a numerical representation [1, n], in order to be
-    used as indexes of adj_list.
+    used as indexes of the adj_list.
 
   Args:
     G (Graph or Digraph)
@@ -344,16 +339,17 @@ def nx_to_adj_list(G: Union[nx.Graph, nx.DiGraph]) -> tuple:
     decoder (dict) : maps the numerical representation [1, n] back to G.nodes()
 
   Raises:
-    Exception       : if G is negatively weighted
+    ValueError     : if G is negatively weighted
   """
 
   if nx.is_negatively_weighted(G):
-    raise Exception("Only non-negative weighted graphs are currently"
-                    " supported.")
+    raise ValueError("Only non-negative weighted graphs are currently"
+                     " supported.")
 
   n = G.number_of_nodes()
-  encoder = dict(zip(G.nodes, range(1, n + 1)))
-  decoder = dict(zip(range(1, n + 1), G.nodes))
+  # Map node labels to contiguous integers.
+  encoder = {u: i + 1 for i, u in enumerate(G.nodes)}
+  decoder = {v: k for k, v in encoder.items()}
   adj_list = [set() for _ in range(n + 1)]
 
   if nx.is_directed(G):
