@@ -28,7 +28,7 @@ programming
 5. [Test](#test)
 6. [Graph Model](#graph-model)
 7. [Applying Dynamic Programming](#applying-dynamic-programming)
-8. [State retrival](#state-retrieval)
+8. [State retrieval](#state-retrieval)
 9. [Profiling](#profiling)
 10. [Conclusion](#conclusion)
 11. [License](#license)
