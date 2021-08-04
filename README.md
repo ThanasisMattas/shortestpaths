@@ -19,26 +19,39 @@ programming
 | numpy>=1.19.2      |
 | matplotlib>=3.3.2  |
 
-<!-- <br /> -->
+## Contents
+
+1. [Overview](#overview)
+2. [Install](#install)
+3. [Usage](#usage)
+4. [Examples](#examples)
+5. [Test](#test)
+6. [Graph Model](#graph-model)
+7. [Applying Dynamic Programming](#applying-dynamic-programming)
+8. [State retrival](#state-retrieval)
+9. [Profiling](#profiling)
+10. [Conclusion](#conclusion)
+11. [License](#license)
 
 ## Overview
 
 ShortestPaths constitutes thesis source code. It examines the optimization of
 the bidirectional *replacement-paths* and *k-shortest paths* search, using
-dynamic programming. The algorithm proposed memoizes the states of the search
-of the parent path and retrieves them upon searching the consequent paths. The
-optimization was validated experimentally in a parametric analysis of tree
+[dynamic programming](#applying-dynamic-programming). The algorithm proposed
+memoizes the states of the search of the parent path and retrieves them upon
+searching the consequent paths. An optimization of **1-46%** is achieved and
+[validated experimentally](#profiling) in a parametric analysis of tree
 parameters, the order, the density and the topology of the graph. The
 replacement paths problem is solved on both *edge-exclusive* and
 *node-exlusive* variations, as well as both *online* and *offline* versions.
 Regarding the k-shortest paths problem, *k* online replacement-paths searches
 are executed, following [*Yen*'s algorithm] with *Lawler*'s modification, while
 utilizing the developed bidirectional search with dynamic programming.
-[*Dijkstra*'s algorithm] is used for the shortest path search and a modified
-*[Erdős-Rényi]* random graph model is introduced, controlling the density and
-the topology of the graph. More specifically, the *small world* property is
-captured by the topology of the graph, resulting in more realistic
-representations.
+[*Dijkstra*'s algorithm] is used for the shortest path search and a
+[modified *Erdős-Rényi* random graph model](#graph-model) is introduced,
+controlling the density and the topology of the graph. More specifically, the
+*small world* property is captured by the topology of the graph, resulting in
+more realistic representations.
 
 The four supported methods for the k-shortest
 paths search are:
@@ -50,7 +63,6 @@ paths search are:
 
 A [PriorityQueue] class is implemented as a wrapper around [heapq], using the
 <priority, entry_counter, entry> triple, as suggested [here].
-<br />
 
 Thesis supervisor: [Prof. Kostas Siozios]
 
