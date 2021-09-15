@@ -126,7 +126,7 @@ class PriorityQueue:
     entry is pushed into the heap and the entry_finder dictionary.
 
     Example-doctest:
-    >>> pr_queue = PriorityQueue([[4, "node_1"], [5, "node_2"], [2, "node_3]])
+    >>> pr_queue = PriorityQueue([[4, "node_1"], [5, "node_2"], [2, "node_3"]])
     >>> pr_queue["node_1"]
     4
     >>> pr_queue["node_3"] = 120
