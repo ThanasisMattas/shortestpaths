@@ -123,7 +123,7 @@ class PriorityQueue:
     """Adds a new entry or updates an existing one.
 
     In case the entry already exists, it is marked as REMOVED and the updated
-    entry is pushded to the queue and the entry_finder dictionary.
+    entry is pushed into the heap and the entry_finder dictionary.
 
     Example-doctest:
     >>> pr_queue = PriorityQueue([[4, "node_1"], [5, "node_2"], [2, "node_3]])
