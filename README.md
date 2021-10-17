@@ -1,11 +1,8 @@
 # ShortestPaths
 
-![Conda] ![Build_Status] ![codecov]
-
-[GetThesis](http://ikee.lib.auth.gr/record/334009/)
+![Conda] ![Build_Status] ![codecov] [<img src="bin/thesis_badge_purple.png" width=56>](http://ikee.lib.auth.gr/record/334009/)
 
 <br />
-
 
 Bidirectional replacement-paths and k-shortest paths search with dynamic
 programming
