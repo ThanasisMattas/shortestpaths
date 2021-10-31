@@ -1,6 +1,6 @@
 # ShortestPaths
 
-![Conda] ![Build_Status] ![codecov] [<img src="bin/thesis_badge_purple.png" width=56>](http://ikee.lib.auth.gr/record/334009/)
+![Conda_badge] ![Build_Status] ![codecov] [![thesis_badge]][thesis_url]
 
 <br />
 
@@ -379,11 +379,14 @@ c: 0.15 &ensp;p<sub>0</sub>: 0.3 &ensp;p<sub>max</sub>: 0.28
 > (C) 2020, Athanasios Mattas <br />
 > atmattas@physics.auth.gr
 
-[//]: # "links"
-
-[Conda]: <https://img.shields.io/conda/v/mattasa/shortestpaths?color=blue>
+<!-- badges -->
+[Conda_badge]: <https://img.shields.io/conda/v/mattasa/shortestpaths?color=blue>
 [Build_Status]: <https://travis-ci.com/ThanasisMattas/shortestpaths.svg?branch=master>
 [codecov]: <https://codecov.io/gh/ThanasisMattas/shortestpaths/branch/master/graph/badge.svg>
+[thesis_badge]: <https://img.shields.io/badge/-thesis-579ACA.svg?color=purple>
+
+<!-- links -->
+[thesis_url]: <http://ikee.lib.auth.gr/record/334009/>
 [Prof. Kostas Siozios]: <https://ksiop.webpages.auth.gr/>
 [*Yen*'s algorithm]: <https://en.wikipedia.org/wiki/Yen%27s_algorithm>
 [Erdős-Rényi]: <https://en.wikipedia.org/wiki/Erd%C5%91s%E2%80%93R%C3%A9nyi_model>
