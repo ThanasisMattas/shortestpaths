@@ -372,7 +372,8 @@ c: 0.15 &ensp;p<sub>0</sub>: 0.3 &ensp;p<sub>max</sub>: 0.28
 
 ## License
 
-[GNU General Public License v3.0]
+Repository: [GNU General Public License v3.0] <br>
+Thesis: [CC BY-NC-SA 4.0][cc-by-nc-sa]
 
 <br />
 
@@ -396,3 +397,4 @@ c: 0.15 &ensp;p<sub>0</sub>: 0.3 &ensp;p<sub>max</sub>: 0.28
 [here]: <https://docs.python.org/3/library/heapq.html#priority-queue-implementation-notes>
 [NetworkX formatted graph]: <https://networkx.org/documentation/stable/reference/readwrite/index.html>
 [GNU General Public License v3.0]: <https://github.com/ThanasisMattas/shortestpaths/blob/master/COPYING>
+[cc-by-nc-sa]: http://creativecommons.org/licenses/by-nc-sa/4.0/
