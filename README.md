@@ -361,6 +361,26 @@ c: 0.15 &ensp;p<sub>0</sub>: 0.3 &ensp;p<sub>max</sub>: 0.28
 
 <img src="bin/profiling/\k-shortest-paths_profiling_gains_matshows_k_study.png" width="500"/>
 
+## Bidirectional search optimization
+
+At the unidirectional search the search sphere expands from the
+start-node, until the search horizon touches the target-node. However, at
+the bidirectional search two smaller spheres are expanding from both
+nodes, until their search horizons meet each other, resulting to an up to
+4x smaller search volume.
+
+**Unidirectional search volume**:<br>
+
+<img src="https://latex.codecogs.com/svg.image?\frac{4}{3}\pi&space;r^{3}" height=36>
+
+**Bidirectional search volume**:<br>
+
+<img src="https://latex.codecogs.com/svg.image?2\frac{4}{3}\pi&space;\left&space;(&space;\frac{r}{2}&space;\right&space;)^{3}&space;=&space;\frac{1}{3}\pi&space;r^3" height=36>
+<br>
+<img src="bin/search_space/search_sphere_dijkstra_2021-06-01_01-06-47.png" width="650"/>
+<br>
+<img src="bin/search_space/search_sphere_bidirectional_2021-06-01_00-56-37.png" width="650"/>
+
 ## Conclusion
 
 * **DP** induces an optimization of the order **1-46%** over the bidirectional
