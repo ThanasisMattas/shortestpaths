@@ -7,9 +7,14 @@
 Bidirectional replacement-paths and k-shortest paths search with dynamic
 programming
 
-<img src="bin/ksp.png" width=800/>
+<p align="center">
+  <img
+    src="bin/ksp.png"
+    width=800
+  >
+</p>
 
-<br />
+<br/>
 
 | requirements       |
 | ------------------ |
@@ -217,13 +222,28 @@ upon graph creation.
 The frequency of pairs of nodes with distance *x*, in a simple, undirected,
 complete graph (α), is given by the line:
 
-<img src="https://latex.codecogs.com/png.latex?\dpi{300}&space;\bg_white&space;\large&space;f'(x)=n-x" height=18>
+<p align="center">
+  <img
+    src="https://latex.codecogs.com/png.latex?\dpi{400}&space;\bg_white&space;\large&space;f'(x)=n-x"
+    height=18
+  >
+</p>
 
 Whereas, for the directed graph (β) the line is:
 
-<img src="https://latex.codecogs.com/png.latex?\dpi{300}&space;\bg_white&space;\large&space;f'(x)=2(n-x)" height=18>
-
-<img src="bin/graph_model/graph_model.png" width="350"/>
+<p align="center">
+  <img
+    src="https://latex.codecogs.com/png.latex?\dpi{400}&space;\bg_white&space;\large&space;f'(x)=2(n-x)"
+    height=18
+  >
+  <br/>
+  <br/>
+  <br/>
+  <img
+    src="bin/graph_model/graph_model.png"
+    width="350"
+  >
+</p>
 
 ### Small world property
 
@@ -249,17 +269,37 @@ smaller distances to have the greater probability. Fillaly, the result is
 multiplied with an initial probability *p<sub>0</sub>*, controling further the
 graph density.
 
-<img src="https://latex.codecogs.com/png.latex?\dpi{300}&space;\bg_white&space;\large&space;p(x)=p_0\left&space;(1-\frac{1}{1&plus;e^{-\lambda\left&space;[x-c(n-1)\right&space;]}})\right&space;)" height=36>
+<p align="center">
+  <img
+    src="https://latex.codecogs.com/png.latex?\dpi{300}&space;\bg_white&space;\large&space;p(x)=p_0\left&space;(1-\frac{1}{1&plus;e^{-\lambda\left&space;[x-c(n-1)\right&space;]}})\right&space;)"
+    height=36
+  >
+</p>
 
 ### Expected nodal-distance distribution
 
-<img src="https://latex.codecogs.com/png.latex?\dpi{300}&space;\bg_white&space;\large&space;f(x)=f'(x)p(x)=p_0\left&space;(1-\frac{1}{1&plus;e^{-\lambda\left&space;[x-c(n-1)\right&space;]}})\right&space;)(n-x)" height=36>
+<p align="center">
+  <img
+    src="https://latex.codecogs.com/png.latex?\dpi{300}&space;\bg_white&space;\large&space;f(x)=f'(x)p(x)=p_0\left&space;(1-\frac{1}{1&plus;e^{-\lambda\left&space;[x-c(n-1)\right&space;]}})\right&space;)(n-x)"
+    height=36
+  >
+</p>
 
 ### Expected graph density
 
-<img src="https://latex.codecogs.com/png.latex?\dpi{300}&space;\bg_white&space;m=\int_{1}^{n-1}f(x)dx=\int_{1}^{n-1}p_0\left&space;(1-\frac{1}{1&plus;e^{-\lambda\left&space;[x-c(n-1)\right&space;]}})\right&space;)(n-x)dx" height=36>
+<p align="center">
+  <img
+    src="https://latex.codecogs.com/png.latex?\dpi{300}&space;\bg_white&space;m=\int_{1}^{n-1}f(x)dx=\int_{1}^{n-1}p_0\left&space;(1-\frac{1}{1&plus;e^{-\lambda\left&space;[x-c(n-1)\right&space;]}})\right&space;)(n-x)dx"
+    height=36
+  >
+</p>
 
-<img src="https://latex.codecogs.com/png.latex?\dpi{300}&space;\bg_white&space;d=\frac{m}{m_{max}}=p_0p_{max}" height=30>
+<p align="center">
+  <img
+    src="https://latex.codecogs.com/png.latex?\dpi{360}&space;\bg_white&space;d=\frac{m}{m_{max}}=p_0p_{max}"
+    height=30
+  >
+</p>
 
 ### Model Summary
 
@@ -272,8 +312,10 @@ of the nodal-distance distribution.
 essentially the application of the *Gilbert* model over the graph formed by the
 other two parameters.
 
-<img src="bin/graph_model/prob_distribution_1.png" width="650"/><br />
-<img src="bin/graph_model/prob_distribution_2.png" width="650"/>
+<p align="center">
+  <img src="bin/graph_model/prob_distribution_1.png" width="650"/><br/>
+  <img src="bin/graph_model/prob_distribution_2.png" width="650"/>
+</p>
 
 a. Nodal-distance probability distribution<br />
 b. Nodal-distance distribution at the complete graph with n = 100<br />
@@ -336,11 +378,31 @@ executed, because the parent path is already known.
 
 ### offline
 
-<img src="bin/dp/state_retrieval_offline_after_me.png" width="415"/> <img src="bin/dp/state_retrieval_offline_before_me.png" width="415"/>
+<p align="center">
+  <img
+    src="bin/dp/state_retrieval_offline_after_me.png"
+    width="415"
+  >
+  <br/>
+  <img
+    src="bin/dp/state_retrieval_offline_before_me.png"
+    width="415"
+  >
+</p>
 
 ### online
 
-<img src="bin/dp/state_retrieval_online_after_me.png" width="415"/> <img src="bin/dp/state_retrieval_online_before_me.png" width="415"/>
+<p align="center">
+  <img
+    src="bin/dp/state_retrieval_online_after_me.png"
+    width="415"
+  >
+  <br/>
+  <img
+    src="bin/dp/state_retrieval_online_before_me.png"
+    width="415"
+  >
+</p>
 
 ## Profiling
 
@@ -348,39 +410,73 @@ executed, because the parent path is already known.
 
 k: 10 &ensp;c: 0.15 &ensp;p<sub>max</sub>: 0.28
 
-<img src="bin/profiling/k-shortest-paths_profiling.png" width="500"/>
-
-<img src="bin/profiling/k-shortest-paths_profiling_matshows.png" width="500"/>
+<p align="center">
+  <img
+    src="bin/profiling/k-shortest-paths_profiling.png"
+    width="500"
+  >
+  <br/>
+  <img
+    src="bin/profiling/k-shortest-paths_profiling_matshows.png"
+    width="500"
+  >
+</p>
 
 ### CPU time vs n vs k
 
 c: 0.15 &ensp;p<sub>0</sub>: 0.3 &ensp;p<sub>max</sub>: 0.28
 
-<img src="bin/profiling/k-shortest-paths_profiling_k_study.png" width="415"/>
-
-<img src="bin/profiling/k-shortest-paths_profiling_matshows_k_study.png" width="300"/>
-
-<img src="bin/profiling/\k-shortest-paths_profiling_gains_matshows_k_study.png" width="500"/>
+<p align="center">
+  <img
+    src="bin/profiling/k-shortest-paths_profiling_k_study.png"
+    width="415"
+  >
+  <br/>
+  <img
+    src="bin/profiling/k-shortest-paths_profiling_matshows_k_study.png"
+    width="300"
+  >
+  <br/>
+  <img
+    src="bin/profiling/\k-shortest-paths_profiling_gains_matshows_k_study.png"
+    width="500"
+  >
+</p>
 
 ## Bidirectional search optimization
 
-At the unidirectional search the search sphere expands from the
-start-node, until the search horizon touches the target-node. However, at
-the bidirectional search two smaller spheres are expanding from both
-nodes, until their search horizons meet each other, resulting to an up to
-4x smaller search volume.
+The unidirectional search sphere expands in the cost space, until it finds the
+target-node. However, at the bidirectional search two smaller spheres expand
+from both start and end nodes, until their search horizons meet each other,
+resulting to an up to 4x smaller search volume.
 
-**Unidirectional search volume**:<br>
+### Unidirectional search volume:
 
-<img src="https://latex.codecogs.com/svg.image?\frac{4}{3}\pi&space;r^{3}" height=36>
+<p align="center">
+  <img
+    src="https://latex.codecogs.com/png.image?\dpi{400}\bg{white}\frac{4}{3}\pi&space;r^{3}"
+    height=30
+  >
+  <br/>
+  <img
+    src="bin/search_space/search_sphere_dijkstra_2021-06-01_01-06-47.png"
+    width="650"
+  >
+</p>
 
-**Bidirectional search volume**:<br>
+### Bidirectional search volume:
 
-<img src="https://latex.codecogs.com/svg.image?2\frac{4}{3}\pi&space;\left&space;(&space;\frac{r}{2}&space;\right&space;)^{3}&space;=&space;\frac{1}{3}\pi&space;r^3" height=36>
-<br>
-<img src="bin/search_space/search_sphere_dijkstra_2021-06-01_01-06-47.png" width="650"/>
-<br>
-<img src="bin/search_space/search_sphere_bidirectional_2021-06-01_00-56-37.png" width="650"/>
+<p align="center">
+  <img
+    src="https://latex.codecogs.com/png.image?\dpi{400}\bg{white}2\frac{4}{3}\pi\left&space;(&space;\frac{r}{2}&space;\right&space;)^3=\frac{1}{3}\pi&space;r^3"
+    height=30
+  >
+  <br/>
+  <img
+    src="bin/search_space/search_sphere_bidirectional_2021-06-01_00-56-37.png"
+    width="650"
+  >
+</p>
 
 ## Conclusion
 
