@@ -35,13 +35,14 @@ programming
 7. [Applying Dynamic Programming](#applying-dynamic-programming)
 8. [State retrieval](#state-retrieval)
 9. [Profiling](#profiling)
-10. [Bidirectional search optimization](#Bidirectional-search-optimization)
+10. [Bidirectional search optimization](#bidirectional-search-optimization)
 11. [Conclusion](#conclusion)
 12. [License](#license)
 
 ## Overview
 
-ShortestPaths constitutes thesis source code. It examines the optimization of
+ShortestPaths constitutes the source code of my [Bachelor Thesis][thesis_url].
+It examines the optimization of
 the bidirectional *replacement-paths* and *k-shortest paths* search, using
 [dynamic programming](#applying-dynamic-programming). The algorithm proposed
 memoizes the states of the search of the parent path and retrieves them upon
@@ -450,7 +451,7 @@ target-node. However, at the bidirectional search two smaller spheres expand
 from both start and end nodes, until their search horizons meet each other,
 resulting to an up to 4x smaller search volume.
 
-### Unidirectional search volume:
+### Unidirectional search volume
 
 <p align="center">
   <img
@@ -464,7 +465,7 @@ resulting to an up to 4x smaller search volume.
   >
 </p>
 
-### Bidirectional search volume:
+### Bidirectional search volume
 
 <p align="center">
   <img
@@ -480,9 +481,9 @@ resulting to an up to 4x smaller search volume.
 
 ## Conclusion
 
-* **DP** induces an optimization of the order **1-46%** over the bidirectional
-  k-shortest paths search with *Yen*'s method and *Lawler*'s modification, at
-  the scenarios tested.
+* **DP** induces an optimization of the order of **1-46%** over the
+  bidirectional k-shortest paths search with *Yen*'s method and *Lawler*'s
+  modification, at the scenarios tested.
 * Graph **density** and graph **topology** play a significant role over the
   performance of algorithms and can effectively complement graph order for a
   more comprehensive study.
@@ -495,7 +496,7 @@ Thesis: [CC BY-NC-SA 4.0][cc-by-nc-sa]
 <br />
 
 > (C) 2020, Athanasios Mattas <br />
-> atmattas@physics.auth.gr
+> <thanasismatt@gmail.com>
 
 <!-- badges -->
 [Conda_badge]: <https://img.shields.io/conda/v/mattasa/shortestpaths?color=blue>
