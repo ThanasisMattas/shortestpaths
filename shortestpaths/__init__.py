@@ -11,9 +11,9 @@
 # ==========================================================================
 """Special project variables & API"""
 
-from shortestpaths.api import k_shortest_paths, replacement_paths
-from shortestpaths.post import print_paths, plot_paths
-from shortestpaths.graph import random_graph, adj_list_reversed
+from shortestpaths.api import k_shortest_paths, replacement_paths  # noqa: F401
+from shortestpaths.post import print_paths, plot_paths  # noqa: F401
+from shortestpaths.graph import random_graph, adj_list_reversed  # noqa: F401
 
 
 __name__ = 'shortestpaths'
