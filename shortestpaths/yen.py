@@ -30,7 +30,7 @@ def fail_found_spur_edges(adj_list,
                           k_paths,
                           adj_list_reverse=None,
                           head=None):
-  """Failes the edges having spur-node as tail, for each of the K - k found
+  """Fails the edges having spur-node as tail, for each of the K - k found
   paths, that have the same root-path with the prospect-path."""
   # {head: (head, edge_cost)}
   failed_edges = dict()
