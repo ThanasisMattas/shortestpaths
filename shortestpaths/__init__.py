@@ -17,7 +17,7 @@ from shortestpaths.graph import random_graph, adj_list_reversed  # noqa: F401
 
 
 __name__ = 'shortestpaths'
-__version__ = '1.1.2'
+__version__ = '1.1.3'
 __author__ = 'Athanasios Mattas'
 __author_email__ = 'thanasismatt@gmail.gr'
 __description__ = "Bidirectional replacement paths and k-shortest paths search with dynamic programming"
