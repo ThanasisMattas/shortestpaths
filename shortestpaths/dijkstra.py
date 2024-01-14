@@ -765,7 +765,10 @@ def _dijkstra_step(adj_list,
   Used for the alternately steps of the two searches at bidirectional Dijkstra.
   """
   u_path_cost, u_prev, u = to_visit.pop_low()
-  priorityq_top = to_visit.peek()[0]
+  if not to_visit:
+    priorityq_top = 0
+  else:
+    priorityq_top = to_visit.peek()[0]
   if priorityq_top == math.inf:
     priorityq_top = 0
 
