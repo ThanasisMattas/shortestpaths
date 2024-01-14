@@ -765,7 +765,10 @@ def _dijkstra_step(adj_list,
   Used for the alternately steps of the two searches at bidirectional Dijkstra.
   """
   u_path_cost, u_prev, u = to_visit.pop_low()
-  priorityq_top = to_visit.peek()[0]
+  if not to_visit:
+    priorityq_top = 0
+  else:
+    priorityq_top = to_visit.peek()[0]
   if priorityq_top == math.inf:
     priorityq_top = 0
 
@@ -819,9 +822,12 @@ def bidirectional_dijkstra(forward_config,
 
   Args:
     forward_config (dict) : forward search kwargs
-    reverse_config (dict) : reverse serach kwargs
+    reverse_config (dict) : reverse search kwargs
     mode (dict)           : the configuration of the simulation
     failed (hashable)     : the failed node, if any (default: None)
+    prospect (list)       : the candidate path [path_cost, u, v, edge_cost] -
+                            (u, v) is the meeting edge (default: None)
+    top_reverse (int)     : the root of the reverse pqueue (default: None)
 
   Returns:
     path, path_cost, cum_hop_weights, meeting_edge_head

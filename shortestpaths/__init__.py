@@ -11,13 +11,13 @@
 # ==========================================================================
 """Special project variables & API"""
 
-from shortestpaths.api import k_shortest_paths, replacement_paths
-from shortestpaths.post import print_paths, plot_paths
-from shortestpaths.graph import random_graph, adj_list_reversed
+from shortestpaths.api import k_shortest_paths, replacement_paths  # noqa: F401
+from shortestpaths.post import print_paths, plot_paths  # noqa: F401
+from shortestpaths.graph import random_graph, adj_list_reversed  # noqa: F401
 
 
 __name__ = 'shortestpaths'
-__version__ = '1.1.2'
+__version__ = '1.1.3'
 __author__ = 'Athanasios Mattas'
 __author_email__ = 'thanasismatt@gmail.gr'
 __description__ = "Bidirectional replacement paths and k-shortest paths search with dynamic programming"
