@@ -41,9 +41,7 @@ programming
 
 ## Overview
 
-ShortestPaths constitutes the source code of my [Bachelor Thesis][thesis_url].
-It examines the optimization of
-the bidirectional *replacement-paths* and *k-shortest paths* search, using
+ShortestPaths accelerates the bidirectional *replacement-paths* and *k-shortest paths* search, using
 [dynamic programming](#applying-dynamic-programming). The algorithm proposed
 memoizes the states of the search of the parent path and retrieves them upon
 searching the consequent paths. An optimization of **1-46%** is achieved and
@@ -71,7 +69,7 @@ paths search are:
 A [PriorityQueue] class is implemented as a wrapper around [heapq], using the
 <priority, entry_counter, entry> triple, as suggested [here].
 
-Thesis supervisor: [Prof. Kostas Siozios]
+[Thesis][thesis_url] supervisor: [Prof. Kostas Siozios]
 
 ## Install
 
