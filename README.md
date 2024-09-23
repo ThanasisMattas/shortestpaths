@@ -312,8 +312,8 @@ essentially the application of the *Gilbert* model over the graph formed by the
 other two parameters.
 
 <p align="center">
-  <img src="bin/graph_model/prob_distribution_1.png" width="650"/><br/>
-  <img src="bin/graph_model/prob_distribution_2.png" width="650"/>
+  <img src="bin/graph_model/prob_distribution_1.png" alt="prob_distribution_1" width="650"/><br/>
+  <img src="bin/graph_model/prob_distribution_2.png" alt="prob_distribution_2" width="650"/>
 </p>
 
 a. Nodal-distance probability distribution<br />
