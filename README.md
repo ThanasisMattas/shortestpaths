@@ -306,7 +306,7 @@ The proposed graph model uses 3 parameters:
 
 * **c** : sigmoid center. Regulates the graph density and sets the cutoff point
 of the nodal-distance distribution.
-* **λ** : sigmoid gradient. Controls the area around the cutoff point.
+* **λ** : sigmoid gradient. Regulates the steepness of the cutoff area.
 * **p<sub>0</sub>** : initial probability. Regulates the graph density. It is
 essentially the application of the *Gilbert* model over the graph formed by the
 other two parameters.
